@@ -8,6 +8,7 @@ data/*.db-*
 data/**/*.db
 data/**/*.db-*
 data/exports/
+novels/
 tasks/experiments/agent_quality/results/work/
 .DS_Store
 *.log

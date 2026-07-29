@@ -63,3 +63,17 @@ Character 与 World 可以有同时运行的独立 run。Story Arc 前必须创�
 5. 若切换后需要降级旧入口，先用 `scripts/export_novelos_data.py --output-dir <目录>` 导出表定义、后置 Schema、逐表 JSONL 和 Hash Manifest；导出目录已存在时拒绝覆盖。
 6. 导出恢复演练必须在临时数据库重建全部行、索引、触发器和视图，并与正式库逻辑 Hash 一致；正式演练不保留正文导出副本。
 7. 只有授权和完整性同时成立的数据才可接入生产配置。
+
+## 用户项目文件夹投影
+
+参与者：用户、Main Agent、NovelOS MCP。
+
+1. Main 先定位精确 `project_id`，请求 MCP 生成项目级 Authority Snapshot。
+2. MCP 只选择 `locked` 规划、`accepted` 正文、当前 Authority Entity 和已晋升连续性状态，长内容通过 Resource ref 读取。
+3. MCP 在目标根目录内创建临时同级目录，按固定规则生成中文 Markdown 结构和 `manifest.json`。
+4. MCP 校验每个文件 Hash、来源 ID/版本/Hash、路径边界和快照未漂移后，原子替换同一项目的旧投影。
+5. Main 向用户返回实际目录、Authority Snapshot Hash、文件数和被跳过的非权威内容统计。
+
+拒绝路径：目标目录属于其他项目、名称清理失败、路径或符号链接逃逸、生成期间权威版本变化、Resource Hash 不匹配或无法原子完成时，不得留下部分新投影，也不得修改 SQLite。
+
+投影是单向用户视图。用户直接编辑 Markdown 不触发数据库写入；未来如需导入，必须另建候选、差异审查和权威提交流程。

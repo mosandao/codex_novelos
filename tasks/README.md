@@ -1,45 +1,45 @@
 # NovelOS Tasks
 
-本目录是纯 Codex NovelOS 改造的唯一实施状态来源。架构文档描述稳定结果；本目录记录计划、依赖、进度、验收证据和阻塞项。
+本目录只记录可执行工作和交付证据。稳定设计以 `documentation/` 为准，不在已完成 Task 中重复维护架构说明。
 
-## 状态
+## 当前工作
+
+| Task | 状态 | 下一步 |
+|---|---|---|
+| [Task 06：用户项目文件夹投影](./06_user_project_projection.md) | `TODO` | 实现只读快照、确定性 Markdown 投影、清单和安全替换 |
+
+## 延期工作
+
+| 工作 | 状态 | 恢复条件 |
+|---|---|---|
+| [70-case Agent 质量实验](./experiments/agent_quality/README.md) | `DEFERRED` | 按 `deferral.json` 完成剩余案例、独立盲评和可重算汇总 |
+
+延期不等于质量通过。在实验完成前，Writer 仅用于完整章节或长场景；Context Builder 仅用于跨卷、多线、事实冲突或上下文溢出。
+
+## 历史完成项
+
+| Task | 结果 |
+|---|---|
+| [Task 00](./00_pure_codex_target_architecture.md) | 冻结纯 Codex 目标架构 |
+| [Task 01](./01_source_migration_inventory.md) | 冻结并盘点来源工程 |
+| [Task 02](./02_mcp_storage_migration.md) | 完成统一 MCP、SQLite Schema 和数据迁移 |
+| [Task 03](./03_skill_catalog_migration.md) | 完成六个顶层 Skill 和 Catalog 迁移 |
+| [Task 04](./04_agent_workflows_quality.md) | 完成 Agent 契约与工作流；质量实验单独延期 |
+| [Task 05](./05_cutover_cleanup.md) | 完成纯 Codex 切换、旧 Runtime 清理和交付 |
+
+## 目录边界
+
+- `migration/`：来源、迁移、备份、恢复和导出证据，不是待办。
+- `cutover/`：最终切换与仓库卫生证据，不是待办。
+- `experiments/agent_quality/`：延期质量实验的数据集、恢复点和已完成证据。
+- 顶层 `Task NN`：一个文件对应一个可独立验收的阶段。
+
+## 状态规则
 
 - `TODO`：尚未开始。
-- `IN PROGRESS`：正在实施，但尚未满足验收标准。
-- `DONE`：生产路径已接通，自动化验证通过，并记录了证据。
-- `BLOCKED`：存在无法由当前仓库内工作解决的外部阻塞。
+- `IN PROGRESS`：已有实现，但验收尚未全部通过。
+- `DONE`：生产路径和自动化验证均已完成。
+- `DEFERRED`：用户明确推后，保留恢复条件和证据。
+- `BLOCKED`：存在仓库内无法解决的外部阻塞。
 
-不得因为创建了文件、Schema、测试桩或 Prompt 就标记为 `DONE`。
-
-## 执行顺序
-
-| 阶段 | 文件 | 状态 | 依赖 |
-|---|---|---|---|
-| 0 | [纯 Codex 目标架构](./00_pure_codex_target_architecture.md) | DONE | 无 |
-| 1 | [源工程迁移盘点](./01_source_migration_inventory.md) | DONE | 阶段 0 |
-| 2 | [MCP 与 Storage 迁移](./02_mcp_storage_migration.md) | DONE | 阶段 1 |
-| 3 | [Skill Catalog 迁移](./03_skill_catalog_migration.md) | DONE | 阶段 1、阶段 2 的 Catalog 工具骨架 |
-| 4 | [Agent 工作流与质量门禁](./04_agent_workflows_quality.md) | DONE | 阶段 2、阶段 3；完整质量实验作为明确延期项保留 |
-| 5 | [切换、清理与交付](./05_cutover_cleanup.md) | DONE | 阶段 2–4；完整质量实验作为切换后延期项保留 |
-
-Task 05 正在执行最终纯 Codex 切换；完整质量实验已按用户决定移至切换后延期项。
-
-## 工作规则
-
-1. 开始任务前读取本文件和目标阶段文件。
-2. 从第一个未完成且依赖已满足的验收项继续。
-3. 只在当前阶段文件中记录实施事实，避免在多个文件重复维护同一状态。
-4. 任何从 `/Users/yiyi/github/novelos` 迁移的内容必须记录源 commit、源路径、目标路径和处理方式。
-5. 源工程当前存在未提交改动；没有冻结来源快照前，不复制来源不明确的文件。
-6. 每个阶段结束时记录执行过的命令和结果。未运行的验证必须明确写出原因。
-
-## 总体完成条件
-
-- Codex 是唯一长期存在的 Main Agent。
-- 规划职责按权威资产拆分为临时 Agent，不存在覆盖整条规划链路的泛化 Planning Agent。
-- Python 中不存在 Main Agent、Planner、Writer Agent、Review Agent 或 LLM 调度运行时。
-- 所有外部读写只能通过 NovelOS MCP。
-- 顶层 Codex Skill 数量保持精简，细粒度能力由 Skill Catalog 按需提供。
-- 草稿、审查与接受通过不可变正文 Hash 和 Review Receipt 绑定。
-- 迁移内容具备来源、许可证和完整性记录。
-- 单元测试、MCP 协议测试和纯 Codex 端到端场景通过。
+不得因为创建了文档、Schema 或测试桩就标记为 `DONE`。

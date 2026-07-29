@@ -16,6 +16,7 @@ catalog/skills/       细粒度 Skill Catalog
 config/agents.yaml    Agent 角色与工具契约
 mcp/novelos/          统一 FastMCP Server
 data/novelos-v2.db    正式目标数据库（本地忽略）
+novels/               用户可读项目文件夹（可重建投影，本地忽略）
 documentation/        稳定架构、流程、权限、变量和测试文档
 tasks/                实施计划、迁移证据和未决门禁
 ```
@@ -55,6 +56,10 @@ PYTHONWARNINGS='error::ResourceWarning' PYTHONPATH=mcp/novelos/src .venv/bin/pyt
 .venv/bin/python scripts/check_cutover_plan.py --check
 .venv/bin/python -m compileall -q tests mcp/novelos/src mcp/novelos/tests scripts catalog config
 ```
+
+## 用户展示
+
+用户展示采用按小说项目生成的 Markdown 文件夹，SQLite 仍是唯一权威数据源。投影目录可以删除和重建，直接修改其中的文件不会回写数据库。该能力的实施与验收记录在 [Task 06](./tasks/06_user_project_projection.md)，完成前不视为已接通功能；HTML UI 不在当前范围。
 
 ## 文档
 

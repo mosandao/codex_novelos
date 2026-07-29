@@ -34,7 +34,7 @@ class RepositoryHygieneTest(unittest.TestCase):
     def test_missing_ignore_rule_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            content = (ROOT / ".gitignore").read_text(encoding="utf-8").replace("data/exports/\n", "")
+            content = (ROOT / ".gitignore").read_text(encoding="utf-8").replace("novels/\n", "")
             (root / ".gitignore").write_text(content, encoding="utf-8")
             subprocess.run(["git", "init", "-q"], cwd=root, check=True)
             with self.assertRaisesRegex(HygieneError, "缺少规则"):

@@ -4,7 +4,7 @@
   ],
   "git_baseline_available": true,
   "prohibited_file_count": 0,
-  "prospective_file_count": 195,
+  "prospective_file_count": 196,
   "required_ignore_rules": [
     "!.env.example",
     "*.egg-info/",
@@ -24,7 +24,8 @@
     "data/**/*.db-*",
     "data/*.db",
     "data/*.db-*",
-    "data/exports/"
+    "data/exports/",
+    "novels/"
   ],
   "schema_version": 1,
   "sensitive_file_count": 0,
