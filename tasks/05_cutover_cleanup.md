@@ -119,7 +119,7 @@ tests/test_config.py
 - `tasks/cutover/readiness.json`：当前 `ready`；质量实验完成值仍为 `false`，但显式延期与保守路由 disposition 已通过，全部切换 blocker 为 0。
 - `tasks/cutover/removal_manifest.json`：处于 `cutover` 阶段；旧 Runtime、入口、打包、配置和测试均已删除，替代路径和目标文件断言通过。
 - `tasks/migration/migration_summary.json`：由来源 Manifest、Legacy 对账、Schema 9 恢复、Catalog disposition、seed、质量实验 disposition 和 readiness 动态重建；当前为 `completed`，明确记录 633 个源码延后项、5 张 Wave D 表、130 个 Catalog 延后 disposition 和 0 个切换 blocker。
-- `tasks/cutover/hygiene.json`：由 Git tracked/prospective 文件集和文件系统动态生成；当前 192 个 tracked、195 个 prospective 文件中禁止产物与敏感文件均为 0，必需忽略规则齐全，状态为 `passed`。
+- `tasks/cutover/hygiene.json`：由 Git tracked/prospective 文件集和文件系统动态生成；最终 196 个 tracked、195 个 prospective 文件中禁止产物与敏感文件均为 0，必需忽略规则齐全，状态为 `passed`。
 - 清理计划校验器扫描 `src/`、`scripts/`、`tests/`、`.codex/` 和根配置；任何未纳入删除/修改清单的旧 `novelos` 包、Memory MCP、OpenAI 应用变量或模型配置引用都会失败。
 - 质量实验仍只接受 `scripts/summarize_agent_quality_results.py` 从完整 70 case 证据重算；当前 `quality_experiment_complete=false`，`deferral.json` 只允许保守路由下完成基础设施切换，不冒充质量通过。
 - 已授权 Legacy 来源与目标的 projects、books、volumes、chapters、characters 计数和逐表 Hash 已由 `tasks/migration/legacy_migration_report.json` 及 `tests/test_legacy_migration_artifacts.py` 对账；未授权 seed 不计作已迁移数据。
