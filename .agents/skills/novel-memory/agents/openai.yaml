@@ -1,0 +1,4 @@
+interface:
+  display_name: "小说记忆"
+  short_description: "检索并精选规划、续写或审查所需的最小 Canon 上下文"
+  default_prompt: "使用 $novel-memory 为下一章整理精确且紧凑的 Canon 上下文。"

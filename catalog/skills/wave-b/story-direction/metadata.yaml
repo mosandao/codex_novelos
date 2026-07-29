@@ -1,0 +1,12 @@
+name: story-direction
+description: 将项目约束转化为可比较的故事方向、核心冲突和读者承诺候选
+stage: plan
+asset: direction
+capability: generate
+lifecycle: active
+version: 1.0.0
+genres: []
+risk: P1
+output_contract: document
+priority: 10
+tags: [direction, premise, reader-promise]

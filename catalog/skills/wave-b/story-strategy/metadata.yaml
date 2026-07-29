@@ -1,0 +1,12 @@
+name: story-strategy
+description: 将方向和架构转化为全书阶段目标、状态变化与长期推进骨架
+stage: plan
+asset: strategy
+capability: generate
+lifecycle: active
+version: 1.0.0
+genres: []
+risk: P1
+output_contract: document
+priority: 10
+tags: [strategy, phases, state-change]

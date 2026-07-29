@@ -1,0 +1,12 @@
+name: scene-pacing
+description: 根据场景目标和压力曲线诊断节奏停滞、跳跃与无效重复
+stage: review
+asset: scene
+capability: analyze
+lifecycle: active
+version: 1.0.0
+genres: []
+risk: P2
+output_contract: document
+priority: 20
+tags: [scene, pacing, revision]

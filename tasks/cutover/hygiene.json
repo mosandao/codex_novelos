@@ -1,0 +1,33 @@
+{
+  "allowed_tracked_binaries": [
+    "mcp/novelos/resources/seed.db"
+  ],
+  "git_baseline_available": false,
+  "prohibited_file_count": 0,
+  "prospective_file_count": 218,
+  "required_ignore_rules": [
+    "!.env.example",
+    "*.egg-info/",
+    "*.key",
+    "*.log",
+    "*.p12",
+    "*.pem",
+    "*.pfx",
+    "*.py[cod]",
+    ".DS_Store",
+    ".env",
+    ".env.*",
+    ".pytest_cache/",
+    ".venv/",
+    "__pycache__/",
+    "data/**/*.db",
+    "data/**/*.db-*",
+    "data/*.db",
+    "data/*.db-*",
+    "data/exports/"
+  ],
+  "schema_version": 1,
+  "sensitive_file_count": 0,
+  "status": "prepared",
+  "tracked_file_count": 219
+}

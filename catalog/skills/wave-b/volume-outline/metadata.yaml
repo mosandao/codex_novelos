@@ -1,0 +1,12 @@
+name: volume-outline
+description: 将跨卷故事弧转化为单卷目标、转折序列和卷末状态
+stage: plan
+asset: volume_outline
+capability: generate
+lifecycle: active
+version: 1.0.0
+genres: []
+risk: P1
+output_contract: document
+priority: 10
+tags: [volume, outline, turning-point]

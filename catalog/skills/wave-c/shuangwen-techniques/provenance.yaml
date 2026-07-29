@@ -1,0 +1,7 @@
+origin: adapted
+source_repository: /Users/yiyi/github/novelos
+source_path: backend/plugins/craft/skills/shuangwen_techniques/prompt.md
+source_commit: 902d7e62f55bc8bc2862e2b9574b5ee2f5f33403
+source_hash: sha256:298432719e3d5ebc15e446425dd0e8285b8d7d398200dcccefc681507ed7ce21
+license: awesome-novel-skill:GPL-3.0:user-authorized
+migration_note: 保留反馈、信息差和持续问题方法，移除固定章数公式和题材套路清单。

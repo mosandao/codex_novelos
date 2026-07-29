@@ -1,0 +1,52 @@
+{
+  "backup_file_hash": "sha256:76acb08928ba17353018453f3f6a9dacad7de30995f47b2fd0fcac4083afe1a4",
+  "backup_path": "/Users/yiyi/Documents/codex_novelos/data/migration/novelos-v2-schema7-backup.db",
+  "logical_snapshot": {
+    "logical_hash": "sha256:fcf7e37c538b86b713db1138ff266a50650399255a7b66e078b2ec2940ac84af",
+    "quick_check": "ok",
+    "schema_versions": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "table_counts": {
+      "agent_runs": 0,
+      "arc_states": 0,
+      "books": 3,
+      "chapter_completion_checkpoints": 0,
+      "chapter_facts": 0,
+      "chapters": 4,
+      "characters": 2,
+      "continuity_candidate_sets": 0,
+      "continuity_update_results": 0,
+      "entity_mutations": 0,
+      "expectation_ledgers": 0,
+      "factions": 0,
+      "legacy_imports": 1,
+      "legacy_quarantine": 0,
+      "narrative_promises": 0,
+      "planning_asset_dependencies": 0,
+      "planning_assets": 0,
+      "planning_cross_checks": 0,
+      "projects": 4,
+      "relationship_states": 0,
+      "resources": 6,
+      "reviews": 0,
+      "rules": 0,
+      "schema_migrations": 7,
+      "timelines": 0,
+      "trace_steps": 0,
+      "traces": 0,
+      "volumes": 3,
+      "worlds": 0
+    }
+  },
+  "restore_drill": "passed",
+  "schema_version": 1,
+  "source_file_hash": "sha256:e6438e21ee2b566ab1be643ef08f48876629313fcac40be7c28c5f66b7dec191",
+  "source_path": "/Users/yiyi/Documents/codex_novelos/data/novelos-v2.db"
+}

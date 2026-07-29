@@ -1,0 +1,7 @@
+origin: adapted
+source_repository: /Users/yiyi/github/novelos
+source_path: backend/plugins/craft/skills/mobile_formatting/prompt.md
+source_commit: 902d7e62f55bc8bc2862e2b9574b5ee2f5f33403
+source_hash: sha256:3abadfa9c472aa5362dcdf515990b3de31ebd5607125c4fa33984e3aeddcc143
+license: awesome-novel-skill:GPL-3.0:user-authorized
+migration_note: 保留移动端密度目标和功能分段，移除固定字数与空行硬编码。

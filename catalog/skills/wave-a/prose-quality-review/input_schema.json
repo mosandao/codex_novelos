@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["subject_ref", "subject_hash", "reviewer_profile", "context_refs"],
+  "properties": {
+    "subject_ref": {"type": "string", "minLength": 1},
+    "subject_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "reviewer_profile": {"type": "string", "minLength": 1},
+    "context_refs": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "uniqueItems": true
+    }
+  }
+}

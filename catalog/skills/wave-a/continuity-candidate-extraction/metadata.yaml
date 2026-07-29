@@ -1,0 +1,12 @@
+name: continuity-candidate-extraction
+description: 从已接受章节提取带正文证据的事实、承诺、关系和故事弧候选
+stage: meta
+asset: continuity
+capability: extract
+lifecycle: active
+version: 1.0.0
+genres: []
+risk: P1
+output_contract: typed_result
+priority: 10
+tags: [continuity, canon, extraction]

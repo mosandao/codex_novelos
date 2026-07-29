@@ -1,0 +1,5 @@
+path,sha256,table_count,record_count,core_nonzero,decision
+/Users/yiyi/github/novelos/backend/novelos.db,sha256:aaadc9bedf499e9a10534422064d4d91862293529bccac160843e0ab846ae1ba,47,1276,projects=4;books=3;volumes=3;chapters=4;characters=2,selected_latest_backend_runtime
+/Users/yiyi/github/novelos/novelos.db,sha256:2d236bab449331050db67157568df25bc70f786e94046d11d5fb48a5b00b3fa6,35,20,projects=2;books=2;volumes=2;chapters=4;characters=2;rules=6,excluded_older_root_copy
+/Users/yiyi/github/novelos/dist/novel-os-app/data/novelos.db,sha256:350d9fb16b067ee645e519b35abdc51c92d1e278ee2073453522734d9bc6acef,12,20,projects=2;books=2;volumes=2;chapters=4;characters=2;rules=6,excluded_distribution_copy
+/Users/yiyi/github/novelos/backend/plugins/novelos.db,sha256:0ade5db9d96fefe4154672d1ecbb2a7e6e6a2dafb0f7929bf0cc9b1975f1f51e,13,20,projects=2;books=2;volumes=2;chapters=4;characters=2;rules=6,excluded_plugin_copy

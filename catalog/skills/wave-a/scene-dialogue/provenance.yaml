@@ -1,0 +1,7 @@
+origin: adapted
+source_repository: /Users/yiyi/github/novelos
+source_path: backend/plugins/craft/skills/scene_dialogue_craft/prompt.md
+source_commit: 902d7e62f55bc8bc2862e2b9574b5ee2f5f33403
+source_hash: sha256:3b2dfe3acda98db2b83242a936fe08ee0e4facc600cfb83c3d74147c698b8a95
+license: awesome-novel-skill:GPL-3.0:user-authorized
+migration_note: 合并进单一 scene-dialogue 包，保留打断、信息差和执行卡提示，去除重复说明。

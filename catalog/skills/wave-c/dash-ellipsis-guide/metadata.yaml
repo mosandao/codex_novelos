@@ -1,0 +1,12 @@
+name: dash-ellipsis-guide
+description: 检查并修正小说正文中过密或语义错误的破折号与省略号
+stage: review
+asset: style
+capability: analyze
+lifecycle: active
+version: 1.0.0
+genres: []
+risk: P2
+output_contract: document
+priority: 30
+tags: [punctuation, dash, ellipsis]

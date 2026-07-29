@@ -1,0 +1,150 @@
+{
+  "quick_check": "ok",
+  "row_count": 8108,
+  "schema_version": 1,
+  "source_commit": "902d7e62f55bc8bc2862e2b9574b5ee2f5f33403",
+  "source_hash": "sha256:59c7af0bca916824e3b4ff272da918cda1e4deb485b9ff46ed4faadba2a7c53a",
+  "source_path": "backend/src/infrastructure/sqlite/seed.db",
+  "table_count": 23,
+  "table_prefix": "kb_",
+  "tables": [
+    {
+      "content_hash": "sha256:3a0972efbd27e9bde66dd43bc537ca07105d35594c65bb76f4e3177665be6724",
+      "name": "kb_author_personas",
+      "row_count": 122,
+      "schema_hash": "sha256:c4e3f3bc29e477f841a4b6950e43e55590328dfa5922f55ce28444646b63926c"
+    },
+    {
+      "content_hash": "sha256:6407fcb1dcc84bdf6492f2f989840666b4d89a783229288c6a92ee2ead046a07",
+      "name": "kb_book_summaries",
+      "row_count": 79,
+      "schema_hash": "sha256:20642ecfd7b10a5a5a07df091c81958819ea06f225b5ac586dda1b941bc0f668"
+    },
+    {
+      "content_hash": "sha256:489f938e77ef8fde9e35c97fb5f7acbd1c70721b7adf86f515bf48cc98f78934",
+      "name": "kb_character_archetypes",
+      "row_count": 579,
+      "schema_hash": "sha256:cdeed79ec9fd483eb30c1bb558dea19900fdc3a3d173622cea8311c590fae71c"
+    },
+    {
+      "content_hash": "sha256:7d34cf25c45a80d9eede280e6c09f0b6265921c70b77509a3d87b87444703064",
+      "name": "kb_cool_point_patterns",
+      "row_count": 580,
+      "schema_hash": "sha256:3e065474e56072dc8c1bb2f38d633a0d7e402dd08feb4d9206dffc725c2b3af3"
+    },
+    {
+      "content_hash": "sha256:a5a86361a013c849340d8877337483cbb712a61192ecfaf7b539fc1752e051a5",
+      "name": "kb_corpus_articles",
+      "row_count": 123,
+      "schema_hash": "sha256:7c6b4d5ab4f5c458ad115f7e527edd3772ac9fef947b0c374ea2d71415575722"
+    },
+    {
+      "content_hash": "sha256:f51c0acb91a2861ced7cc421ae7a6498a8f5a6283a72526b12d663de8629ca6d",
+      "name": "kb_corpus_excerpts",
+      "row_count": 436,
+      "schema_hash": "sha256:3a110b434d133bc1818f63c94859ac5850ab323c2668eb869ef4069121f30787"
+    },
+    {
+      "content_hash": "sha256:a9e5e9496400084a505a787637cbb3f6a8f2ee7c77ffc932ddc89545edf19b1f",
+      "name": "kb_corpus_tags",
+      "row_count": 28,
+      "schema_hash": "sha256:6674d8f48f199cbc664f1e91011e4a4670472e4ef54dcc02021e6555b04bea85"
+    },
+    {
+      "content_hash": "sha256:959efc393a6aba8a47e7462f117b23f9e7f7105c969966f9ceea762350114367",
+      "name": "kb_dialogue_patterns",
+      "row_count": 303,
+      "schema_hash": "sha256:8b062bbbec4d168570a2d8cc05bfb0343ae405874860d9ae2a34cc3fe045b5f5"
+    },
+    {
+      "content_hash": "sha256:bcb0425c41b439eadfb99920f550d44001006431eacb8093c522160bcb645c69",
+      "name": "kb_economic_systems",
+      "row_count": 156,
+      "schema_hash": "sha256:cf0cc07ace0234e3e039f391a1cf10102ac9907cfab19d495f810db79af8418a"
+    },
+    {
+      "content_hash": "sha256:627c7b717377a8d268eef10920f99024d1f6be3ed8898c0284dd4ddfd730b205",
+      "name": "kb_emotional_arc_patterns",
+      "row_count": 193,
+      "schema_hash": "sha256:0663b7192ec6f86215f953d94536966604cfb4c112e833d6a707f3c28c18816f"
+    },
+    {
+      "content_hash": "sha256:1d03299e6373f56aed92e38e6cc3a0cd6cda91b77bbf826026d7f7555064c2f9",
+      "name": "kb_faction_designs",
+      "row_count": 304,
+      "schema_hash": "sha256:da494a5813eab6185a5e3cb81ae7d2a5af0328dbbc064a657262e088140377fe"
+    },
+    {
+      "content_hash": "sha256:1ddd24251552ee0a328fd7b2169f05965c497428feb25e76812383bbc793925c",
+      "name": "kb_imported_files",
+      "row_count": 261,
+      "schema_hash": "sha256:1911b53272c9ded3e30df33ac27ff41cfc1a3277b926686bd17fb7e30ac4ce76"
+    },
+    {
+      "content_hash": "sha256:25ba7f6794e0a5e16e8ca429f4d4ed9c14b6aad93e1b968802162cd5082b9799",
+      "name": "kb_memes",
+      "row_count": 3,
+      "schema_hash": "sha256:b42eadadfb87b2787fdea37090c6a1e229e21729a9c50197f1c731152c43f57a"
+    },
+    {
+      "content_hash": "sha256:2e0cdf8c4d36b418b3d3c9c0e7ebaa35e35d039494e22499cef272d360de7c8a",
+      "name": "kb_plot_frameworks",
+      "row_count": 286,
+      "schema_hash": "sha256:055cd060ce4de3bd4d1c0c8af6434e9e9b4d9875f8fe264e0cc64f704894dc35"
+    },
+    {
+      "content_hash": "sha256:3971b11608e2064fd3b01716f6a21ca56f0c8a136ecce21b1d485ef834a46267",
+      "name": "kb_reusable_templates",
+      "row_count": 397,
+      "schema_hash": "sha256:08a7061020185b9a4627ffdacea02fe7abb534982d74780fda04e86b70faa572"
+    },
+    {
+      "content_hash": "sha256:27834973eeb97fdbf78ed4edb0dfcc45312405ee04f666b2ad6000a31e327759",
+      "name": "kb_scene_blueprints",
+      "row_count": 326,
+      "schema_hash": "sha256:616a7c6bf32f284d898fab98e8619b39d03c24a2d8cbe629daa7958b4c9e7a2e"
+    },
+    {
+      "content_hash": "sha256:d0a1173a5358e14c060352ac67375a572f5c377ddfd04d16d99dab32864548fb",
+      "name": "kb_social_systems",
+      "row_count": 229,
+      "schema_hash": "sha256:ebebd67bfcb6dd70e5e9927c586b405f50c04e39a02094f3f2adf9fea8c20d95"
+    },
+    {
+      "content_hash": "sha256:fd4543c023a356a52a10286b1810321272502aa13c9cf493a986e2a79e77a800",
+      "name": "kb_story_genres",
+      "row_count": 52,
+      "schema_hash": "sha256:434ccd38ebd716fa916a9b98f447ba1ba2cb795112fc3220739e892eeb7f5d5c"
+    },
+    {
+      "content_hash": "sha256:2eb844b671f44237262e414b4a8d2a1422d33870451656e1a1b15fe2957eab4f",
+      "name": "kb_technique_scene_maps",
+      "row_count": 15,
+      "schema_hash": "sha256:756320c86d36b66dc6ed6bc9c30a79fe4554d8923e56e93f24afc8eefe5ef73b"
+    },
+    {
+      "content_hash": "sha256:adb308b4f0df24855c4cc13b0392807014719fac0b7075fc5f9e47344bc6f547",
+      "name": "kb_world_settings",
+      "row_count": 500,
+      "schema_hash": "sha256:163dbe70c6e549e73a0c287a13fe1ed7d08e300259f01e7f6dd135742590023a"
+    },
+    {
+      "content_hash": "sha256:ba063dd91add275216bd0c6e02b019bee75dc0ae8c3b47c5eb1706b7079f00b0",
+      "name": "kb_worldbuilding_modules",
+      "row_count": 28,
+      "schema_hash": "sha256:7672fa458336ef3f0dac4e6102b04ab14c9e5fb2778a1531adcc2bab89b87c6f"
+    },
+    {
+      "content_hash": "sha256:64f8c983681190f838bb128be308df524a9f2be334293c8681a7b5fb08521764",
+      "name": "kb_worldbuilding_priority",
+      "row_count": 91,
+      "schema_hash": "sha256:74266734fe911ab8614059a7010768e1f814328f6a136f988abde7fd069e9fea"
+    },
+    {
+      "content_hash": "sha256:bad99deb60a5d426b041f3720b8d7d8a3ab8b9d52ddcdc368caab86b11c91027",
+      "name": "kb_writing_techniques",
+      "row_count": 3017,
+      "schema_hash": "sha256:7c26966ba8cebfec82b1dec59dbc36a4582a8757bc4f2a4e5d9be7b4ae496f68"
+    }
+  ]
+}

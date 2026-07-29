@@ -1,0 +1,7 @@
+origin: adapted
+source_repository: /Users/yiyi/github/novelos
+source_path: backend/plugins/craft/skills/dash_ellipsis_guide/prompt.md
+source_commit: 902d7e62f55bc8bc2862e2b9574b5ee2f5f33403
+source_hash: sha256:70b7729683f0f2e277d4e44807ddae930bb9cd864dd499b361e2f45717cb90f2
+license: awesome-novel-skill:GPL-3.0:user-authorized
+migration_note: 保留标点语义和密度检查，移除不适用于所有文风的绝对次数规则。

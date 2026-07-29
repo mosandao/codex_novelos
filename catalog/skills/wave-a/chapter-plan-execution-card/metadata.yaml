@@ -1,0 +1,12 @@
+name: chapter-plan-execution-card
+description: 将锁定卷纲和近期 Canon 转换为可执行的章节状态变化卡
+stage: plan
+asset: chapter_plan
+capability: generate
+lifecycle: active
+version: 1.0.0
+genres: []
+risk: P1
+output_contract: document
+priority: 10
+tags: [chapter, planning, execution-card]

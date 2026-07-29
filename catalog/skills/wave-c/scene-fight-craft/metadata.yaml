@@ -1,0 +1,12 @@
+name: scene-fight-craft
+description: 设计每轮都会改变距离、资源、伤势、信息或心理优势的对抗场景
+stage: write
+asset: scene
+capability: generate
+lifecycle: active
+version: 1.0.0
+genres: []
+risk: P2
+output_contract: free_text
+priority: 30
+tags: [scene, fight, confrontation]

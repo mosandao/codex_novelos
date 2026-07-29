@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "novelos-mcp"
+version = "0.1.0"
+description = "Deterministic storage and protocol boundary for Codex NovelOS"
+requires-python = ">=3.11"
+dependencies = ["mcp>=1.12,<2", "PyYAML>=6,<7", "jsonschema>=4.23,<5"]
+
+[project.scripts]
+novelos-mcp = "novelos_mcp.server:main"
+novelos-migrate-legacy = "novelos_mcp.legacy:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+novelos_mcp = ["storage/*.sql", "storage/migrations/*.sql"]

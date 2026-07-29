@@ -1,0 +1,12 @@
+name: mobile-formatting
+description: 根据移动端阅读密度调整动作、对话、心理和关键句的段落组织
+stage: review
+asset: style
+capability: format
+lifecycle: active
+version: 1.0.0
+genres: []
+risk: P2
+output_contract: document
+priority: 30
+tags: [mobile, formatting, paragraph]

@@ -1,0 +1,4 @@
+interface:
+  display_name: "小说项目"
+  short_description: "管理小说项目、书、卷和章节容器的创建、查询、定位与版本调整流程"
+  default_prompt: "使用 $novel-project 创建或整理当前小说项目结构。"

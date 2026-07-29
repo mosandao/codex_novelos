@@ -1,0 +1,7 @@
+origin: adapted
+source_repository: /Users/yiyi/github/novelos
+source_path: backend/plugins/craft/skills/scene_fight_craft/prompt.md
+source_commit: 902d7e62f55bc8bc2862e2b9574b5ee2f5f33403
+source_hash: sha256:870c41d52d5d08cbeb91ca127ec0fd476d398366c604f3ee5830f47bc171a19e
+license: awesome-novel-skill:GPL-3.0:user-authorized
+migration_note: 保留状态变化、反制和代价方法，合并战斗、追逐、辩论等对抗场景。

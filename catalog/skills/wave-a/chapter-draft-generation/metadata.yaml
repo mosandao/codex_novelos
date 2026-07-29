@@ -1,0 +1,12 @@
+name: chapter-draft-generation
+description: 从锁定章节执行卡和精选上下文生成保持状态边界的完整章节正文
+stage: write
+asset: chapter
+capability: generate
+lifecycle: active
+version: 1.0.0
+genres: []
+risk: P1
+output_contract: free_text
+priority: 10
+tags: [chapter, prose, draft]

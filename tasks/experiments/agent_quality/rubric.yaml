@@ -1,0 +1,90 @@
+schema_version: 1
+scales:
+  five_point:
+    minimum: 1
+    maximum: 5
+    anchors:
+      1: 严重失败，无法进入下一阶段。
+      3: 基本可用，但需要明确返工。
+      5: 可直接进入独立审查或权威候选登记。
+
+planning:
+  dimensions:
+    - id: asset_completeness
+      weight: 0.25
+      scale: five_point
+    - id: upstream_fidelity
+      weight: 0.25
+      scale: five_point
+    - id: ownership_boundary
+      weight: 0.25
+      scale: five_point
+    - id: evidence_and_impact
+      weight: 0.25
+      scale: five_point
+  blocking_rules:
+    - 将上游修改混入本层候选而未返回 change proposal。
+    - 使用未锁定、已失效或版本不匹配的上游。
+
+character_world:
+  dimensions:
+    - id: conflict_detection
+      weight: 0.4
+      scale: five_point
+    - id: evidence_precision
+      weight: 0.3
+      scale: five_point
+    - id: repair_actionability
+      weight: 0.3
+      scale: five_point
+
+writer_ab:
+  dimensions:
+    - id: plan_fidelity
+      weight: 0.25
+      scale: five_point
+    - id: canon_accuracy
+      weight: 0.25
+      scale: five_point
+    - id: scene_causality
+      weight: 0.2
+      scale: five_point
+    - id: character_voice
+      weight: 0.15
+      scale: five_point
+    - id: prose_quality
+      weight: 0.15
+      scale: five_point
+  retention_rule:
+    minimum_clear_win_rate: 0.6
+    clear_win_margin: 0.25
+    canon_regression_allowed: false
+
+context_builder_ab:
+  dimensions:
+    - id: fact_recall
+      weight: 0.4
+      scale: five_point
+    - id: context_relevance
+      weight: 0.25
+      scale: five_point
+    - id: contradiction_detection
+      weight: 0.35
+      scale: five_point
+  routing_rule: 只有跨卷、多线、冲突事实或上下文溢出样本允许创建 Context Builder。
+  retention_rule:
+    minimum_clear_win_rate: 0.6
+    clear_win_margin: 0.25
+    fact_regression_allowed: false
+
+blind_review:
+  randomize_order: true
+  hide_execution_mode: true
+  minimum_reviewers: 1
+  preserve:
+    - raw_input
+    - output_a
+    - output_b
+    - reviewer_run_id
+    - review_receipt_id
+    - subject_hashes

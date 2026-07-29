@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://novelos.local/schemas/change-proposal.schema.json",
+  "title": "NovelOS 上游变更提案",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "target_asset_type",
+    "target_asset_ref",
+    "target_asset_version",
+    "target_subject_hash",
+    "reason",
+    "evidence_refs",
+    "affected_asset_types"
+  ],
+  "properties": {
+    "target_asset_type": {
+      "type": "string",
+      "enum": [
+        "direction",
+        "architecture",
+        "strategy",
+        "character_contract",
+        "world_contract",
+        "story_arc",
+        "volume_outline",
+        "chapter_plan"
+      ]
+    },
+    "target_asset_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "target_asset_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "target_subject_hash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence_refs": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "affected_asset_types": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "direction",
+          "architecture",
+          "strategy",
+          "character_contract",
+          "world_contract",
+          "story_arc",
+          "volume_outline",
+          "chapter_plan"
+        ]
+      }
+    },
+    "suggested_change": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

@@ -1,0 +1,12 @@
+name: shuangwen-techniques
+description: 为商业连载设计反馈频率、期待兑现和持续升级的爽点结构
+stage: plan
+asset: reader_experience
+capability: analyze
+lifecycle: active
+version: 1.0.0
+genres: [shuangwen]
+risk: P2
+output_contract: document
+priority: 30
+tags: [reader-experience, payoff, serial-fiction]

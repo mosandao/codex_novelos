@@ -1,0 +1,4 @@
+interface:
+  display_name: "小说审查"
+  short_description: "独立审查规划、正文或连续性候选并生成绑定 Hash 的结论"
+  default_prompt: "使用 $novel-review 独立审查当前不可变小说资产。"

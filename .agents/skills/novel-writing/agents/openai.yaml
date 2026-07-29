@@ -1,0 +1,4 @@
+interface:
+  display_name: "小说写作"
+  short_description: "根据已锁定章节执行卡和确认上下文生成连贯一致的小说正文候选"
+  default_prompt: "使用 $novel-writing 根据已锁定章纲起草下一章正文。"

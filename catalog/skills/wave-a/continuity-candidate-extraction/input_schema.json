@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["project_id", "chapter_id", "source_content_hash", "authority_snapshot"],
+  "properties": {
+    "project_id": {"type": "string", "minLength": 1},
+    "chapter_id": {"type": "string", "minLength": 1},
+    "source_content_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "authority_snapshot": {
+      "type": "object",
+      "required": ["project_id", "project_version", "assets", "snapshot_hash"],
+      "properties": {
+        "project_id": {"type": "string", "minLength": 1},
+        "project_version": {"type": "integer", "minimum": 1},
+        "assets": {"type": "object"},
+        "snapshot_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+      }
+    }
+  }
+}

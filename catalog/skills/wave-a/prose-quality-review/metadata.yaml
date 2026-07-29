@@ -1,0 +1,12 @@
+name: prose-quality-review
+description: 对绑定 Hash 的章节正文进行连续性、场景结构和文笔质量独立审查
+stage: review
+asset: chapter
+capability: review
+lifecycle: active
+version: 1.0.0
+genres: []
+risk: P1
+output_contract: typed_result
+priority: 10
+tags: [chapter, review, receipt]

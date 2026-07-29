@@ -1,0 +1,167 @@
+{
+  "delete_paths": [
+    {
+      "category": "legacy_runtime",
+      "path": "src/novelos",
+      "reason": "删除 Python Main/业务 Agent、Skill、LLM、旧 MCP、Storage 和领域演示 Runtime。",
+      "replacements": [
+        "mcp/novelos",
+        ".agents/skills",
+        "config/agents.yaml"
+      ]
+    },
+    {
+      "category": "legacy_entrypoint",
+      "path": "scripts/run_memory_mcp.sh",
+      "reason": "删除旧 novelos-memory stdio 启动入口。",
+      "replacements": [
+        "scripts/run_novelos_mcp.sh"
+      ]
+    },
+    {
+      "category": "legacy_packaging",
+      "path": "pyproject.toml",
+      "reason": "删除只服务旧 Runtime 的 OpenAI extra、CLI entry point 和 src/novelos 打包配置。",
+      "replacements": [
+        "mcp/novelos/pyproject.toml"
+      ]
+    },
+    {
+      "category": "legacy_config",
+      "path": "config.example.toml",
+      "reason": "删除旧 app/model Provider 示例配置；目标 MCP 变量由启动脚本和 documentation/variables.md 定义。",
+      "replacements": [
+        "documentation/variables.md",
+        "scripts/run_novelos_mcp.sh"
+      ]
+    },
+    {
+      "category": "legacy_test",
+      "path": "tests/test_architecture.py",
+      "reason": "删除只验证旧 Python Agent Runtime 的测试。",
+      "replacements": [
+        "mcp/novelos/tests/test_pure_codex_workflow.py",
+        "mcp/novelos/tests/test_agent_workflows.py"
+      ]
+    },
+    {
+      "category": "legacy_test",
+      "path": "tests/test_config.py",
+      "reason": "删除只验证旧 app/model 配置的测试。",
+      "replacements": [
+        "mcp/novelos/tests/test_runner_protocol.py",
+        "tests/test_shipping_artifacts.py"
+      ]
+    }
+  ],
+  "modify_paths": [
+    {
+      "forbidden_after_cutover": [
+        "novelos-memory",
+        "run_memory_mcp.sh"
+      ],
+      "path": ".codex/config.toml",
+      "required_after_cutover": [
+        "[mcp_servers.novelos]",
+        "scripts/run_novelos_mcp.sh"
+      ]
+    },
+    {
+      "forbidden_after_cutover": [
+        "迁移期间"
+      ],
+      "path": "AGENTS.md",
+      "required_after_cutover": [
+        "纯 Codex",
+        "authority_commits"
+      ]
+    },
+    {
+      "forbidden_after_cutover": [
+        "迁移期间"
+      ],
+      "path": "agents.md",
+      "required_after_cutover": [
+        "纯 Codex",
+        "authority_commits"
+      ]
+    },
+    {
+      "forbidden_after_cutover": [
+        "默认 `.codex/config.toml` 尚未"
+      ],
+      "path": "readme.md",
+      "required_after_cutover": [
+        "scripts/run_novelos_mcp.sh"
+      ]
+    },
+    {
+      "forbidden_after_cutover": [
+        "仍指向旧 `novelos-memory`"
+      ],
+      "path": "documentation/architecture.md",
+      "required_after_cutover": [
+        "Schema 9"
+      ]
+    },
+    {
+      "forbidden_after_cutover": [
+        "待删除兼容面"
+      ],
+      "path": "documentation/variables.md",
+      "required_after_cutover": [
+        "NOVELOS_DB_PATH"
+      ]
+    },
+    {
+      "forbidden_after_cutover": [],
+      "path": "tasks/README.md",
+      "required_after_cutover": [
+        "Task 05"
+      ]
+    },
+    {
+      "forbidden_after_cutover": [],
+      "path": "tasks/02_mcp_storage_migration.md",
+      "required_after_cutover": [
+        "状态：`DONE`"
+      ]
+    },
+    {
+      "forbidden_after_cutover": [],
+      "path": "tasks/04_agent_workflows_quality.md",
+      "required_after_cutover": [
+        "状态：`DONE`"
+      ]
+    },
+    {
+      "forbidden_after_cutover": [],
+      "path": "tasks/05_cutover_cleanup.md",
+      "required_after_cutover": [
+        "状态：`DONE`"
+      ]
+    }
+  ],
+  "phase": "prepared",
+  "postconditions": [
+    "默认 Codex 配置只注册 novelos MCP。",
+    "仓库不存在 Python Agent、Skill、LLM Provider 或旧 Memory MCP Runtime。",
+    "根测试不再导入 src/novelos。",
+    "最终 Git diff 和仓库产物卫生检查通过。"
+  ],
+  "preconditions": [
+    "seed_authorized",
+    "quality_experiment_complete",
+    "git_review_baseline_available",
+    "database_restore_drill_passed"
+  ],
+  "preserve_paths": [
+    ".agents/skills",
+    "catalog/skills",
+    "config/agents.yaml",
+    "mcp/novelos",
+    "scripts/run_novelos_mcp.sh",
+    "data/novelos-v2.db"
+  ],
+  "schema_version": 1
+}

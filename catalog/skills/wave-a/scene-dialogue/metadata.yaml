@@ -1,0 +1,12 @@
+name: scene-dialogue
+description: 通过目标冲突、信息差、潜台词和角色声音设计有效对话场景
+stage: write
+asset: scene
+capability: generate
+lifecycle: active
+version: 1.0.0
+genres: []
+risk: P2
+output_contract: free_text
+priority: 20
+tags: [scene, dialogue, character-voice]

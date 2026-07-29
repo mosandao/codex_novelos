@@ -1,0 +1,107 @@
+{
+  "catalog": {
+    "disposition_counts": {
+      "adapt-authorized": 8,
+      "defer-experiment": 38,
+      "defer-license": 92
+    },
+    "production_package_count": 17,
+    "source_skill_count": 138
+  },
+  "deferred": {
+    "catalog_disposition_counts": {
+      "defer-experiment": 38,
+      "defer-license": 92
+    },
+    "cutover_blockers": [
+      "codex_config_switched",
+      "git_review_baseline_available",
+      "legacy_model_config_removed",
+      "legacy_runtime_removed",
+      "quality_experiment_complete"
+    ],
+    "source_manifest_by_reason": {
+      "Shadow 或高级完成度存储不属于 V1": 7,
+      "Skill lifecycle=experiment，完成质量评测前不进入生产 Catalog": 265,
+      "Skill lifecycle=unspecified，完成质量评测前不进入生产 Catalog": 5,
+      "仅作为迁移参考，不进入 V1 生产包": 192,
+      "资源需先完成许可证和实际消费者审查": 22,
+      "高级或夹具场景随对应能力波次迁移": 127,
+      "高级评测、Shadow、恢复或自动晋级延后": 15
+    },
+    "source_manifest_count": 633,
+    "wave_d_tables": [
+      "manuscript_editions",
+      "work_acceptance_checkpoints",
+      "work_completion_activations",
+      "work_completion_conditions",
+      "work_completion_reviews"
+    ]
+  },
+  "quality_experiment": {
+    "case_count": 70,
+    "status": "not_run",
+    "summary_current": false
+  },
+  "schema_version": 1,
+  "seed": {
+    "authorization": "authorized",
+    "migrated": true,
+    "row_count": 8108,
+    "source_hash": "sha256:59c7af0bca916824e3b4ff272da918cda1e4deb485b9ff46ed4faadba2a7c53a",
+    "table_count": 23
+  },
+  "source": {
+    "classification_counts": {
+      "adapt": 531,
+      "defer": 633,
+      "direct": 1,
+      "reject": 95
+    },
+    "commit": "902d7e62f55bc8bc2862e2b9574b5ee2f5f33403",
+    "file_count": 1260,
+    "repository": "/Users/yiyi/github/novelos",
+    "tree": "3d0d32221a9d5332dd25a82868b840469288be60"
+  },
+  "status": "prepared",
+  "storage": {
+    "export_manifest_hash": "sha256:40e53e7e5bc30b8f4bfd4c296e07468da41b615283c41d86e0098ac29e126467",
+    "export_restore_drill": "passed",
+    "legacy_import_id": "legacy-import:6835b453-dd8c-4253-a2ae-97e13b118d54",
+    "legacy_source_hash": "sha256:aaadc9bedf499e9a10534422064d4d91862293529bccac160843e0ab846ae1ba",
+    "logical_hash": "sha256:2ac772b894f4bf22d50964a41016f021eb681ec5981cf95f39dbab677eedfe0d",
+    "migrated_counts": {
+      "books": 3,
+      "chapters": 4,
+      "characters": 2,
+      "projects": 4,
+      "volumes": 3
+    },
+    "quarantined_counts": {},
+    "restore_drill": "passed",
+    "schema_versions": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "target_hashes": {
+      "books": "sha256:07b2fc7304f53bb99932980379c3d531fc082f7600f5803d1746a1359691d86a",
+      "chapter_facts": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "chapters": "sha256:616360dda960f9fd5aaf04204418d508d9f0c140c8baba3d11f6427e9dcc006a",
+      "characters": "sha256:953c6c9e3eaf43572c617dc87831371f0b54864c8ba6c4f1f9aac7fe6c322d72",
+      "factions": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "projects": "sha256:d99e50552ae3b681ff69203a99ffd57bce9e374e61852ff2362e9d6f9d600849",
+      "reviews": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "rules": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "timelines": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "volumes": "sha256:ffb40602ea827d2fdcf41544ca9cf26ba03ea1272a738c3f1b1dd14ae451f52f",
+      "worlds": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    }
+  }
+}

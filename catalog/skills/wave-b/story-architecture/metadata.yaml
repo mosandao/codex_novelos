@@ -1,0 +1,12 @@
+name: story-architecture
+description: 把已确认故事方向转化为叙事机制、规则系统和冲突结构
+stage: plan
+asset: architecture
+capability: generate
+lifecycle: active
+version: 1.0.0
+genres: []
+risk: P1
+output_contract: document
+priority: 10
+tags: [architecture, narrative-system, conflict]

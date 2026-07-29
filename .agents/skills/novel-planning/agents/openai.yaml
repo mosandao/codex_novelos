@@ -1,0 +1,4 @@
+interface:
+  display_name: "小说规划"
+  short_description: "识别权威规划资产阶段并准备对应临时 Agent 的最小输入"
+  default_prompt: "使用 $novel-planning 为当前故事目标生成对应层级的规划候选。"

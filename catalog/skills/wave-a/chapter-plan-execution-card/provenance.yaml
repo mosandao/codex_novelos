@@ -1,0 +1,18 @@
+origin: adapted
+source_repository: /Users/yiyi/github/novelos
+source_path: backend/plugins/craft/skills/plot_conflict_craft/prompt.md
+source_commit: 902d7e62f55bc8bc2862e2b9574b5ee2f5f33403
+source_hash: sha256:cac64d6450ede3a332bcac2eef1e898abe51d7ecd8c7157c5e3ff4c52e459188
+license: awesome-novel-skill:GPL-3.0:user-authorized
+migration_note: 将冲突、情绪和钩子三个执行卡局部方法合并进单一 Chapter Plan 包。
+additional_sources:
+  - source_repository: /Users/yiyi/github/novelos
+    source_path: backend/plugins/craft/skills/plot_emotional_pull/prompt.md
+    source_commit: 902d7e62f55bc8bc2862e2b9574b5ee2f5f33403
+    source_hash: sha256:410766142b1821e383a6094ebb21c9de2529d276a57d3018af6b6994b265e328
+    license: awesome-novel-skill:GPL-3.0:user-authorized
+  - source_repository: /Users/yiyi/github/novelos
+    source_path: backend/plugins/craft/skills/plot_hook_craft/prompt.md
+    source_commit: 902d7e62f55bc8bc2862e2b9574b5ee2f5f33403
+    source_hash: sha256:a6210e7c389a8105d70bb88ac878d3d099c5b46d60827aa5ab8fb6732dd7dfe1
+    license: awesome-novel-skill:GPL-3.0:user-authorized

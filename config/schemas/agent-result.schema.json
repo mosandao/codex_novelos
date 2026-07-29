@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://novelos.local/schemas/agent-result.schema.json",
+  "title": "NovelOS 临时 Agent 结果",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "role",
+    "run_id",
+    "status",
+    "input_refs",
+    "output_type",
+    "output_ref",
+    "change_proposals"
+  ],
+  "properties": {
+    "role": {
+      "type": "string",
+      "minLength": 1
+    },
+    "run_id": {
+      "type": "string",
+      "pattern": "^agent-run:"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["completed", "failed", "timed_out"]
+    },
+    "input_refs": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "output_type": {
+      "type": ["string", "null"]
+    },
+    "output_ref": {
+      "type": ["string", "null"]
+    },
+    "change_proposals": {
+      "type": "array",
+      "items": {
+        "$ref": "change-proposal.schema.json"
+      }
+    },
+    "error": {
+      "type": ["string", "null"]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {"const": "completed"}
+        },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "output_type": {"type": "string", "minLength": 1},
+          "output_ref": {"type": "string", "minLength": 1}
+        }
+      },
+      "else": {
+        "properties": {
+          "output_type": {"type": "null"},
+          "output_ref": {"type": "null"},
+          "error": {"type": "string", "minLength": 1}
+        },
+        "required": ["error"]
+      }
+    }
+  ]
+}

@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["owners", "candidates"],
+  "properties": {
+    "owners": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"enum": ["canon", "expectation", "relationship", "arc"]}
+    },
+    "candidates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "fact_type", "subject", "description"],
+            "properties": {
+              "type": {"const": "fact"},
+              "fact_type": {"type": "string", "minLength": 1},
+              "subject": {"type": "string", "minLength": 1},
+              "description": {"type": "string", "minLength": 1}
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "key", "description", "status"],
+            "properties": {
+              "type": {"const": "narrative_promise"},
+              "key": {"type": "string", "minLength": 1},
+              "description": {"type": "string", "minLength": 1},
+              "status": {"enum": ["open", "resolved", "broken"]}
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "key", "description", "status"],
+            "properties": {
+              "type": {"const": "expectation"},
+              "key": {"type": "string", "minLength": 1},
+              "description": {"type": "string", "minLength": 1},
+              "status": {"enum": ["open", "met", "abandoned"]}
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "subject_ref", "object_ref", "state"],
+            "properties": {
+              "type": {"const": "relationship"},
+              "subject_ref": {"type": "string", "minLength": 1},
+              "object_ref": {"type": "string", "minLength": 1},
+              "state": {"type": "string", "minLength": 1}
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "arc_ref", "state"],
+            "properties": {
+              "type": {"const": "arc"},
+              "arc_ref": {"type": "string", "minLength": 1},
+              "state": {"type": "string", "minLength": 1}
+            }
+          }
+        ]
+      }
+    }
+  }
+}

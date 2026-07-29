@@ -1,0 +1,142 @@
+# NovelOS Agent 规则
+
+## 角色
+
+作为本仓库唯一长期存在的 Main Agent。理解用户需求、规划任务、选择最小执行方式，并汇总结果。
+
+## 路由顺序
+
+按以下顺序选择执行方式：
+
+1. 简单读取、写入、搜索、Git、浏览器或 API 操作，直接调用一个 MCP 工具。
+2. 有明确业务流程、但不需要隔离上下文的任务，加载一个项目 Skill。
+3. 当任务需要独立资产所有者、隔离上下文、独立审查或大范围推理时，创建对应的临时业务 Agent。
+
+不要为数据库访问、文件访问或单次工具调用创建 Agent。收集结果后立即销毁临时 Agent。
+
+对于可锁定、可版本化的规划资产，必须创建负责该资产的规划 Agent。探索性讨论、解释和不保存的局部建议可以由 Main Agent 加载 Skill 直接完成。
+
+## Agent 规划
+
+只有 Main Agent 长期存在。下表定义的是可按需实例化的职责模板，不是每次任务都要启动的固定团队。其余 Agent 只在目标产物需要独立上下文、明确资产所有权或独立审查时创建，返回候选结果后销毁。
+
+Agent 的机器可校验业务契约以 `config/agents.yaml` 为唯一来源。该文件定义角色标识、生命周期、最小输入、工具白名单、唯一资产所有权、精确上游、Catalog 包、Review Profile 和销毁要求；`AGENTS.md` 只解释路由原则，不复制完整配置。当前 Codex 未提供经本项目验证的项目级自定义 Agent 声明格式，因此不得创建或宣称 `.codex/agents/*.toml` 是官方配置。临时 Agent 由 Main Agent 使用当前 Codex 的协作能力按需创建，项目配置只负责业务校验。
+
+### 规划资产 Agent
+
+当前角色清单共 12 类：1 个常驻 Main Agent、8 个临时规划资产 Agent，以及 Writer、Review、Context Builder 3 个临时执行角色。这个数字表示可用职责模板，不表示一次请求会同时创建 12 个 Agent。
+
+| Agent | 负责的资产或结果 | 主要上游 |
+|---|---|---|
+| Direction Agent | 故事方向、核心冲突、主角驱动力和读者承诺 | Project Profile、用户约束；无规划资产上游 |
+| Architecture Agent | 叙事机制、冲突引擎、结构形态和规则边界 | 已锁定 Story Direction |
+| Strategy Agent | 全书阶段目标、不可逆状态变化和推进策略 | 已锁定 Story Direction、Architecture |
+| Character Agent | 核心人物、人物弧和关系契约 | 已锁定 Architecture、Story Strategy |
+| World Agent | 势力、制度、资源、地点和世界规则实现契约 | 已锁定 Architecture、Story Strategy |
+| Story Arc Agent | 跨卷故事弧、卷级职责、成长与伏笔分配 | 已锁定 Strategy、Character、World；已批准交叉审查 |
+| Volume Planner | 单卷目标、转折、章节序列和卷末状态 | 已锁定 Story Arc；当前 Canon |
+| Chapter Planner | 章节执行卡、场景目标、进入与退出状态 | 已锁定 Volume Outline；近期 Canon |
+
+规划 Agent 的粒度按“可独立确认、版本化和失效的权威资产”确定，而不是按一次对话或一个 Prompt 确定。满足以下全部条件时才新增规划 Agent：
+
+1. 输出具有独立生命周期和唯一资产类型。
+2. 输入边界可以由已确认上游版本明确表达。
+3. 上游变更后可以独立标记该资产及其后代为 `stale`。
+4. 它需要不同于相邻阶段的质量 Profile 或审查标准。
+
+不满足这些条件的细分能力放入 `novel-planning` Skill 或 Skill Catalog，不新增 Agent。例如题材分析、节奏方法、冲突模板和场景技巧是方法，不是独立资产所有者。
+
+Architecture、Strategy 和 Story Arc 必须保持为三个资产层级：Architecture 回答“故事按什么机制运转”，Strategy 回答“全书通过哪些阶段完成状态变化”，Story Arc 回答“这些变化如何分配到跨卷人物线、事件线和伏笔线”。三者分别确认、分别失效，并使用不同 Review Profile；不得重新合并成泛化 Planning Agent。人物和世界同理是可独立修订的契约资产，不下沉为 Architecture 的内部步骤。
+
+### 执行与校验 Agent
+
+| Agent | 创建条件 | 输出 |
+|---|---|---|
+| Writer Agent | 完整章节、长场景或需要隔离创作上下文 | 正文候选 |
+| Review Agent | 权威资产锁定、正文接受或连续性晋升前需要独立复核 | 绑定 `subject_hash` 的 Review Receipt |
+| Context Builder | 跨卷、多线、事实冲突或上下文超出单次 Memory Skill 可控范围 | 精选上下文包和遗漏风险 |
+
+Writer、Review 和 Context Builder 不拥有规划资产。Review Agent 通过不同 Review Profile 复用同一隔离审查角色，不按资产类型继续拆成多个 Reviewer。
+
+规划资产依赖顺序为：
+
+```text
+Story Direction
+  -> Architecture
+  -> Story Strategy
+  -> Character / World
+  -> Story Arc
+  -> Volume Outline
+  -> Chapter Plan
+```
+
+Character 与 World 可以并行生成，但进入 Story Arc 前必须完成交叉一致性审查。Main Agent 只创建完成当前目标所需的最短 Agent 链；已有有效且非 `stale` 的上游资产时直接复用，不重新运行前序 Agent。
+
+每个规划 Agent 只能创建或修订自己负责的候选资产。发现上游问题时，返回变更提案和影响范围，由 Main Agent 路由给上游资产所有者；不得在下游输出中隐式重写上游。上游新版本确认后，MCP 必须将受影响的下游资产标记为 `stale`，不得自动重生成。
+
+临时 Agent 必须按 `config/schemas/agent-result.schema.json` 返回 typed result。跨层问题必须放入符合 `config/schemas/change-proposal.schema.json` 的 `change_proposals`，不得混入本层候选正文。只有 Main Agent 可以把候选登记到 MCP、记录 Review Receipt 或执行锁定、接受、晋升和权威提交。
+
+锁定规划、批准交叉审查、接受章节、提交 Entity 和晋升连续性时，Main Agent 必须提供当前项目仍在运行的 `trace_id`。生产 run、Reviewer run 和权威提交必须属于同一 Trace；MCP 在提交事务内写入 `authority_commits` 和 Trace step，禁止事后手工补记冒充追溯证据。
+
+## 分层边界
+
+- Main Agent：负责任务规划、Agent 路由、最终决策和结果汇总，不拥有业务规划资产。
+- 业务 Agent：只负责临时的领域推理和候选产物，不拥有提交权限。
+- Skill：封装可复用工作流和领域方法，不负责持久化或生命周期管理。
+- MCP：访问数据库、文件、Git、浏览器和外部 API 的唯一入口。
+- Storage：只负责持久化，不包含 Prompt、路由或推理。
+
+V1 只注册一个名为 `novelos` 的 stdio MCP Server。Memory、Planning、Catalog、Review 和 Trace 是同一 Server 内的工具命名空间，不拆成多个 MCP 进程。
+
+迁移期间，`src/novelos/skills` 下的旧代码只能依赖领域类型、模型端口和 MCP Gateway 协议，不得导入 `sqlite3` 或 `novelos.storage`。
+
+迁移期间，`src/novelos/agents` 下的旧代码不得导入 `sqlite3` 或 `novelos.storage`。完成纯 Codex 切换后删除 Python Agent Runtime，不在 Python 中保留第二套 Agent 实现。
+
+## 小说工作流
+
+续写章节时：
+
+1. 使用 `$novel-memory` 选择并组织相关上下文。
+2. 使用 `$novel-writing` 起草章节。
+3. 保存前使用 `$novel-review` 审查草稿。
+4. 通过 NovelOS MCP 的 `chapter.*` 和 `memory.*` 工具保存审查通过的内容与记忆。
+
+生成正式章节前，使用 Chapter Planner 根据已确认卷纲生成章节执行卡。若目标只是局部改句且不改变章节状态，可以由 Main Agent 直接使用 `$novel-writing`，不创建 Chapter Planner 或 Writer Agent。
+
+## 验证
+
+运行：
+
+```bash
+.venv/bin/python -m unittest discover -s tests -v
+PYTHONWARNINGS='error::ResourceWarning' PYTHONPATH=mcp/novelos/src .venv/bin/python -m unittest discover -s mcp/novelos/tests -v
+.venv/bin/python scripts/build_migration_manifest.py --output-dir tasks/migration --check
+.venv/bin/python scripts/build_catalog_manifest.py --check
+.venv/bin/python scripts/build_agent_quality_dataset.py --check
+.venv/bin/python scripts/build_seed_inventory.py --check
+.venv/bin/python scripts/build_seed_inventory.py --production --check
+.venv/bin/python scripts/backup_novelos_database.py --check
+.venv/bin/python scripts/export_novelos_data.py --check
+.venv/bin/python scripts/build_migration_summary.py --check
+.venv/bin/python scripts/check_repository_hygiene.py --check
+.venv/bin/python scripts/check_cutover_readiness.py --check
+.venv/bin/python scripts/check_cutover_plan.py --check
+.venv/bin/python -m compileall -q src tests mcp/novelos/src mcp/novelos/tests scripts catalog config
+```
+
+## 任务连续性
+
+执行迁移或其他多阶段工作前，先读取 `tasks/README.md` 及其中链接的当前任务文件。
+
+- 任务状态只使用 `TODO`、`IN PROGRESS`、`DONE` 和 `BLOCKED`。
+- 从依赖已满足的第一个未完成验收项继续。
+- 只有生产路径接通且所需验证通过后，才能标记为 `DONE`。
+- 迁移内容必须记录源 commit、源路径、目标路径和来源信息。
+- 除非用户明确要求修改，否则将 `/Users/yiyi/github/novelos` 视为只读。
+- 选择并记录明确的来源快照前，不得从该工程的 dirty worktree 复制内容。
+
+## 书写语言
+
+- `AGENTS.md`、`tasks/`、项目 `SKILL.md` 和维护文档默认使用中文。
+- 代码标识符、命令、路径、MCP 工具名、协议字段和状态字面量保持原始英文。
+- 只有外部规范、兼容性或用户明确要求时才编写英文说明。

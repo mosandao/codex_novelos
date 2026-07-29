@@ -1,0 +1,59 @@
+{
+  "import_id": "legacy-import:6835b453-dd8c-4253-a2ae-97e13b118d54",
+  "migrated_counts": {
+    "books": 3,
+    "chapters": 4,
+    "characters": 2,
+    "projects": 4,
+    "volumes": 3
+  },
+  "quarantined_counts": {},
+  "source_counts": {
+    "arc_states": 0,
+    "books": 3,
+    "chapter_completion_checkpoints": 0,
+    "chapter_facts": 0,
+    "chapters": 4,
+    "characters": 2,
+    "continuity_candidate_sets": 0,
+    "continuity_update_results": 0,
+    "expectation_ledgers": 0,
+    "factions": 0,
+    "narrative_promises": 0,
+    "projects": 4,
+    "relationship_states": 0,
+    "reviews": 0,
+    "rules": 0,
+    "timelines": 0,
+    "volumes": 3,
+    "worlds": 0
+  },
+  "source_hash": "sha256:aaadc9bedf499e9a10534422064d4d91862293529bccac160843e0ab846ae1ba",
+  "source_path": "/Users/yiyi/Documents/codex_novelos/data/migration/backend-novelos-aaadc9bedf499e.db",
+  "target_counts": {
+    "books": 3,
+    "chapter_facts": 0,
+    "chapters": 4,
+    "characters": 2,
+    "factions": 0,
+    "projects": 4,
+    "reviews": 0,
+    "rules": 0,
+    "timelines": 0,
+    "volumes": 3,
+    "worlds": 0
+  },
+  "target_hashes": {
+    "books": "sha256:07b2fc7304f53bb99932980379c3d531fc082f7600f5803d1746a1359691d86a",
+    "chapter_facts": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "chapters": "sha256:616360dda960f9fd5aaf04204418d508d9f0c140c8baba3d11f6427e9dcc006a",
+    "characters": "sha256:953c6c9e3eaf43572c617dc87831371f0b54864c8ba6c4f1f9aac7fe6c322d72",
+    "factions": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "projects": "sha256:d99e50552ae3b681ff69203a99ffd57bce9e374e61852ff2362e9d6f9d600849",
+    "reviews": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "rules": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "timelines": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "volumes": "sha256:ffb40602ea827d2fdcf41544ca9cf26ba03ea1272a738c3f1b1dd14ae451f52f",
+    "worlds": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+  }
+}

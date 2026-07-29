@@ -1,0 +1,64 @@
+schema_version: 1
+
+scenarios:
+  - id: gate_seal
+    title: 城门与封印
+    project_profile: 守城奇幻；主角必须在公共安全与救人承诺之间选择。
+    direction: 读者承诺是每次开门都会改变城内权力与封印状态。
+    architecture: 魔法代价可追踪；制度决定谁能授权开门。
+    strategy: 三阶段从追查失效、争夺授权到公开承担开门后果。
+    canon: 林舟是信使；巡夜司控制夜间城门；旧封印仍未修复。
+  - id: false_crown
+    title: 伪王继承
+    project_profile: 宫廷悬疑；主角借假身份调查王位继承案。
+    direction: 每次身份获益都会增加最终公开真相的代价。
+    architecture: 血统证据、法律程序和民意构成三套相互制约的合法性系统。
+    strategy: 先取得入场资格，再拆解证据链，最终选择王位或真相。
+    canon: 沈砚持有伪造族谱；摄政院控制审判程序。
+  - id: memory_city
+    title: 记忆之城
+    project_profile: 都市科幻；居民用记忆缴纳公共服务费用。
+    direction: 主角每解决一个案件都必须决定保留谁的记忆。
+    architecture: 记忆可复制但不可无损回写，审计日志不能被个人删除。
+    strategy: 从个案异常扩展到城市账本，再揭示主角自身记忆来源。
+    canon: 周岚是记忆审计员；第七区出现重复童年记录。
+  - id: silent_ship
+    title: 静默星舰
+    project_profile: 世代飞船生存故事；船员不知道航程已经偏离目标。
+    direction: 真相越接近，维持船上秩序越困难。
+    architecture: 能源、航线和人口配额形成不可同时满足的约束系统。
+    strategy: 修复局部故障、发现偏航、争夺是否返航的集体决策权。
+    canon: 维修员尹夏能进入旧导航舱；议会封存了三十年前的航行记录。
+  - id: drowned_temple
+    title: 沉庙乡约
+    project_profile: 民俗惊悚；水库退水后旧庙和失踪名册重新出现。
+    direction: 调查每推进一步，村民共同隐瞒的理由就更合理也更残酷。
+    architecture: 祭仪只改变群体认知，不能直接改变物理事实。
+    strategy: 名册核对、旧约复现、洪水真相与当代责任公开。
+    canon: 顾禾负责水文测绘；村约禁止直呼失踪者姓名。
+
+planning_assets:
+  - asset_type: direction
+    role_id: direction_agent
+  - asset_type: architecture
+    role_id: architecture_agent
+  - asset_type: strategy
+    role_id: strategy_agent
+  - asset_type: character_contract
+    role_id: character_agent
+  - asset_type: world_contract
+    role_id: world_agent
+  - asset_type: story_arc
+    role_id: story_arc_agent
+  - asset_type: volume_outline
+    role_id: volume_planner
+  - asset_type: chapter_plan
+    role_id: chapter_planner
+
+conflict_types:
+  - ability_vs_rule
+  - relationship_vs_faction
+  - growth_vs_resource
+  - motive_vs_institution
+  - timeline_vs_travel
+

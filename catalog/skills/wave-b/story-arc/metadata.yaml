@@ -1,0 +1,12 @@
+name: story-arc
+description: 将战略和已审查人物世界契约分配为跨卷故事弧与伏笔职责
+stage: plan
+asset: story_arc
+capability: generate
+lifecycle: active
+version: 1.0.0
+genres: []
+risk: P1
+output_contract: document
+priority: 10
+tags: [story-arc, volume-duty, foreshadowing]

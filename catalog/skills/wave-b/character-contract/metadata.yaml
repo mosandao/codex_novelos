@@ -1,0 +1,12 @@
+name: character-contract
+description: 从架构和战略建立核心人物职责、人物弧与关系契约
+stage: plan
+asset: character_contract
+capability: generate
+lifecycle: active
+version: 1.0.0
+genres: []
+risk: P1
+output_contract: document
+priority: 10
+tags: [character, arc, relationship]
