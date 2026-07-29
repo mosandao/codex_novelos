@@ -15,7 +15,7 @@
 
 | 配置 | 文件 | 风险与要求 |
 |---|---|---|
-| MCP command/args | `.codex/config.toml` | 最终只能注册一个 `novelos` Server；当前仍未切换 |
+| MCP command/args | `.codex/config.toml` | 只注册一个 `novelos` Server，并调用 `scripts/run_novelos_mcp.sh` |
 | startup/tool timeout | `.codex/config.toml` | 超时必须允许数据库初始化，但不能掩盖挂起进程 |
 | Agent role contract | `config/agents.yaml` | 不属于 Codex 官方 Agent 声明；由 NovelOS MCP 读取和验证 |
 
@@ -23,7 +23,7 @@
 
 纯本地 SQLite V1 不需要 OpenAI API Key、数据库密码或第三方 Provider Secret。Codex 的模型认证由 Codex 产品自身管理，不进入仓库、MCP 参数或 NovelOS 环境变量。
 
-旧 Runtime 的 `OPENAI_API_KEY`、`OPENAI_MODEL` 和 `[model]` 配置只在切换完成前作为待删除兼容面存在，不是目标生产变量。仓库没有客户端构建，因此不存在把服务端 Secret 打包到浏览器的问题。
+仓库不包含应用级 `OPENAI_API_KEY`、`OPENAI_MODEL` 或 `[model]` 配置。仓库没有客户端构建，因此不存在把服务端 Secret 打包到浏览器的问题。
 
 ## 切换检查
 

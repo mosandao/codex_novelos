@@ -23,6 +23,7 @@ except ModuleNotFoundError:  # 作为 scripts 命名空间模块导入时使用�
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT = ROOT / "tasks" / "cutover" / "readiness.json"
+QUALITY_DEFERRAL = ROOT / "tasks" / "experiments" / "agent_quality" / "deferral.json"
 MCP_SOURCE = ROOT / "mcp" / "novelos" / "src"
 if str(MCP_SOURCE) not in sys.path:
     sys.path.insert(0, str(MCP_SOURCE))
@@ -62,6 +63,26 @@ def _seed_ready(authorization: str) -> bool:
     )
 
 
+def _quality_deferred(agent_contract: str) -> bool:
+    deferral = _json(QUALITY_DEFERRAL)
+    return bool(
+        deferral
+        and deferral == {
+            "schema_version": 1,
+            "status": "deferred",
+            "decision": "conservative-routing",
+            "writer_policy": "retain-unvalidated-complete-chapter-only",
+            "context_builder_policy": "exception-only",
+            "partial_results_non_authoritative": True,
+            "reason": "用户决定将完整 70-case 真实 Agent 质量实验推后，不阻塞纯 Codex 基础设施切换。",
+            "resume_requirement": "完成全部 70 个唯一 case、独立 Reviewer、Receipt 和可重算 summary.json 后才能改变路由策略。",
+        }
+        and "spawn_condition: complete_chapter_or_long_scene_required" in agent_contract
+        and "spawn_condition: cross_volume_or_context_overflow" in agent_contract
+        and "evidence_field: complexity_reasons" in agent_contract
+    )
+
+
 def build() -> dict[str, Any]:
     docs = {
         "architecture.md",
@@ -78,7 +99,9 @@ def build() -> dict[str, Any]:
     quality_evidence_valid = summary_is_current(DEFAULT_DATASET, DEFAULT_RESULTS)
     authorization = (ROOT / "tasks" / "migration" / "seed_authorization_audit.md").read_text(encoding="utf-8")
     codex_config = (ROOT / ".codex" / "config.toml").read_text(encoding="utf-8")
-    config_example = (ROOT / "config.example.toml").read_text(encoding="utf-8")
+    config_example_path = ROOT / "config.example.toml"
+    config_example = config_example_path.read_text(encoding="utf-8") if config_example_path.is_file() else ""
+    agent_contract = (ROOT / "config" / "agents.yaml").read_text(encoding="utf-8")
     legacy_paths = [
         "src/novelos/agents",
         "src/novelos/application.py",
@@ -97,6 +120,14 @@ def build() -> dict[str, Any]:
     ).returncode == 0
     hygiene = build_hygiene()
     hygiene_current = HYGIENE_REPORT.is_file() and HYGIENE_REPORT.read_text(encoding="utf-8") == render_hygiene(hygiene)
+    quality_complete = bool(
+        quality_evidence_valid
+        and quality
+        and quality.get("status") == "completed"
+        and quality.get("writer_decision") in {"retain", "remove"}
+        and quality.get("context_builder_decision") in {"exception_only", "remove"}
+    )
+    quality_deferred = _quality_deferred(agent_contract)
     gates = {
         "documentation_complete": actual_docs == docs,
         "unified_runner_ready": (ROOT / "scripts" / "run_novelos_mcp.sh").is_file(),
@@ -114,13 +145,9 @@ def build() -> dict[str, Any]:
             and hygiene.get("sensitive_file_count") == 0
         ),
         "seed_authorized": _seed_ready(authorization),
-        "quality_experiment_complete": bool(
-            quality_evidence_valid
-            and quality
-            and quality.get("status") == "completed"
-            and quality.get("writer_decision") in {"retain", "remove"}
-            and quality.get("context_builder_decision") in {"exception_only", "remove"}
-        ),
+        "quality_experiment_complete": quality_complete,
+        "quality_experiment_deferred": quality_deferred,
+        "quality_experiment_dispositioned": quality_complete or quality_deferred,
         "codex_config_switched": (
             "[mcp_servers.novelos]" in codex_config
             and "scripts/run_novelos_mcp.sh" in codex_config
@@ -128,13 +155,15 @@ def build() -> dict[str, Any]:
         ),
         "legacy_runtime_removed": not any((ROOT / path).exists() for path in legacy_paths),
         "legacy_model_config_removed": (
-            "[model]" not in config_example
+            not config_example_path.exists()
+            and "[model]" not in config_example
             and "OPENAI_API_KEY" not in config_example
             and "OPENAI_MODEL" not in config_example
         ),
         "git_review_baseline_available": git_baseline,
     }
-    blockers = sorted(name for name, passed in gates.items() if not passed)
+    informational = {"quality_experiment_complete"}
+    blockers = sorted(name for name, passed in gates.items() if not passed and name not in informational)
     return {
         "schema_version": 1,
         "status": "ready" if not blockers else "not_ready",

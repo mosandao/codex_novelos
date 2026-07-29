@@ -51,10 +51,10 @@ MCP 不依赖模型 Provider，不保存 Prompt，不作语义选择。长文本
 
 ## 已知风险与假设
 
-- `.codex/config.toml` 仍指向旧 `novelos-memory` Server；切换前新旧 Runtime 暂时并存，Task 05 禁止把两者同时作为默认生产入口。
+- `.codex/config.toml` 只注册统一 `novelos` Server，仓库不保留第二套 Agent Runtime。
 - seed 授权只覆盖当前固定 commit/Hash 的本地复制和生产检索，不扩展到公开再分发或来源仓库的其他未核权内容。
 - Agent run 的 `context_id` 和工具白名单可证明协议隔离，真实模型上下文隔离仍依赖 Main Agent 正确创建新的 Codex 临时 Agent。
-- Writer 与 Context Builder 的最终保留和触发频率尚未经过真实 70 样本质量实验。
+- Writer 与 Context Builder 的质量实验已延期；Writer 暂限完整章节或长场景，Context Builder 暂限跨卷、多线、事实冲突或上下文溢出，部分实验结果不构成质量结论。
 - 仓库当前没有 CI；测试是本地交付门禁，不应被描述为受保护分支检查。
 
 ## 相关文档

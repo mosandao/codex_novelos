@@ -15,9 +15,9 @@ ROOT = Path(__file__).resolve().parents[1]
 class RepositoryHygieneTest(unittest.TestCase):
     def test_current_prospective_git_surface_is_clean(self) -> None:
         report = build()
-        self.assertEqual("prepared", report["status"])
-        self.assertFalse(report["git_baseline_available"])
-        self.assertEqual(0, report["tracked_file_count"])
+        self.assertEqual("passed", report["status"])
+        self.assertTrue(report["git_baseline_available"])
+        self.assertGreater(report["tracked_file_count"], 0)
         self.assertEqual(0, report["prohibited_file_count"])
         self.assertEqual(render(report), DEFAULT_OUTPUT.read_text(encoding="utf-8"))
 

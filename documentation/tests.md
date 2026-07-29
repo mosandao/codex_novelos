@@ -25,22 +25,20 @@
 | 迁移汇总 | 来源、Legacy、Catalog、seed、质量实验和切换门禁动态重建；统计篡改失败关闭 | `migration_summary.json`、`test_migration_summary.py` | existing |
 | 仓库产物卫生 | prospective Git 文件集、忽略规则、生成物和本地敏感文件失败关闭 | `hygiene.json`、`test_repository_hygiene.py` | existing |
 
-当前本地门禁为根测试 40 个、MCP 测试 81 个、Migration/Catalog manifest、Agent 质量录制器/数据集/结果证据、seed inventory、迁移汇总、备份/导出恢复、仓库卫生、cutover plan/readiness 和 `compileall` 检查。仓库没有 CI，这些检查目前不自动阻止合并。
+当前本地门禁为根测试 33 个、MCP 测试 81 个、Migration/Catalog manifest、Agent 质量录制器/数据集/结果证据、seed inventory、迁移汇总、备份/导出恢复、仓库卫生、cutover plan/readiness 和 `compileall` 检查。仓库没有 CI，这些检查目前不自动阻止合并。
 
 ## 已提出但未完成
 
 | 用例 | 类型 | 预期证据 | 状态 |
 |---|---|---|---|
-| 70 个真实 Agent 质量实验 | guarded live + manual blind review | 原始输入、匿名输出、评分、Reviewer run 和 Receipt | proposed |
-| 全新 Codex 任务发现新 MCP/Skill | manual integration | 新任务的 `tools/list`、Skill 发现和实际调用 Trace | proposed |
-| 最终 `.codex` 切换 | automated integration + manual | 只启动一个 `novelos`，旧 Server 不可发现 | proposed |
+| 70 个真实 Agent 质量实验 | guarded live + manual blind review | 原始输入、匿名输出、评分、Reviewer run 和 Receipt | deferred |
+| 独立 Codex CLI 进程发现新 MCP/Skill | integration | `codex mcp list`、runner stdio 调用、6 个 Skill 发现 | completed |
+| 最终 `.codex` 切换 | automated integration + manual | 只启动一个 `novelos`，旧 Server 不可发现 | completed |
 
 ## 缺口
 
 | 风险 | 未验证规则 | 暴露 |
 |---|---|---|
-| 高 | Writer/Context Builder 尚无真实质量结论 | 无法安全冻结最终生产路由 |
-| 高 | 默认入口仍是旧 Runtime | 用户实际运行路径与已测试目标架构不一致 |
-| 高 | Git 仓库尚无 commit，已跟踪文件数为 0 | prospective 文件集已检查，但无法以 `git diff` 审查最终删除范围 |
+| 中 | Writer/Context Builder 尚无完整真实质量结论 | 当前使用保守触发范围，不能宣称质量优势或扩大路由 |
 | 中 | 没有 CI 或受保护分支门禁 | 本地检查可能被跳过 |
 | 中 | Agent context 隔离依赖 Main 正确创建 Codex 临时上下文 | 协议记录不能单独证明模型上下文未复用 |

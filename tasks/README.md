@@ -19,8 +19,10 @@
 | 1 | [源工程迁移盘点](./01_source_migration_inventory.md) | DONE | 阶段 0 |
 | 2 | [MCP 与 Storage 迁移](./02_mcp_storage_migration.md) | DONE | 阶段 1 |
 | 3 | [Skill Catalog 迁移](./03_skill_catalog_migration.md) | DONE | 阶段 1、阶段 2 的 Catalog 工具骨架 |
-| 4 | [Agent 工作流与质量门禁](./04_agent_workflows_quality.md) | IN PROGRESS | 阶段 2、阶段 3；正在执行真实临时 Agent 实验 |
-| 5 | [切换、清理与交付](./05_cutover_cleanup.md) | BLOCKED | 阶段 2–4、Git 基线和最终切换授权 |
+| 4 | [Agent 工作流与质量门禁](./04_agent_workflows_quality.md) | DONE | 阶段 2、阶段 3；完整质量实验作为明确延期项保留 |
+| 5 | [切换、清理与交付](./05_cutover_cleanup.md) | DONE | 阶段 2–4；完整质量实验作为切换后延期项保留 |
+
+Task 05 正在执行最终纯 Codex 切换；完整质量实验已按用户决定移至切换后延期项。
 
 ## 工作规则
 

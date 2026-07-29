@@ -17,14 +17,15 @@ class MigrationSummaryTest(unittest.TestCase):
         expected = render(build())
         self.assertEqual(expected, DEFAULT_OUTPUT.read_text(encoding="utf-8"))
         summary = json.loads(expected)
-        self.assertEqual("prepared", summary["status"])
+        self.assertEqual("completed", summary["status"])
         self.assertEqual(1260, summary["source"]["file_count"])
         self.assertEqual(17, summary["catalog"]["production_package_count"])
         self.assertEqual("authorized", summary["seed"]["authorization"])
         self.assertTrue(summary["seed"]["migrated"])
-        self.assertEqual("not_run", summary["quality_experiment"]["status"])
+        self.assertEqual("deferred", summary["quality_experiment"]["status"])
         self.assertEqual(70, summary["quality_experiment"]["case_count"])
-        self.assertEqual(5, len(summary["deferred"]["cutover_blockers"]))
+        self.assertEqual(2, summary["quality_experiment"]["completed_case_count"])
+        self.assertEqual([], summary["deferred"]["cutover_blockers"])
 
     def test_summary_exposes_all_intentional_deferrals(self) -> None:
         summary = build()

@@ -142,7 +142,7 @@
       ]
     }
   ],
-  "phase": "prepared",
+  "phase": "cutover",
   "postconditions": [
     "默认 Codex 配置只注册 novelos MCP。",
     "仓库不存在 Python Agent、Skill、LLM Provider 或旧 Memory MCP Runtime。",
@@ -151,7 +151,7 @@
   ],
   "preconditions": [
     "seed_authorized",
-    "quality_experiment_complete",
+    "quality_experiment_dispositioned",
     "git_review_baseline_available",
     "database_restore_drill_passed"
   ],

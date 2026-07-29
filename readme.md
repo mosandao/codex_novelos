@@ -4,11 +4,7 @@ NovelOS 是面向长篇小说创作的纯 Codex 系统。Codex 作为唯一长�
 
 ## 当前状态
 
-迁移仍在进行，默认 `.codex/config.toml` 尚未从旧演示 Runtime 切换到新 MCP。当前已完成目标架构、legacy 迁移、Skill Catalog 和 Agent 工作流；剩余门禁为：
-
-- 70 个真实 Agent 质量实验及 Writer/Context Builder 最终策略。
-- 默认入口切换、旧 Python Agent Runtime 删除和最终新任务验收。
-- 建立首个可审查 Git 基线后执行最终 diff 与仓库卫生检查。
+默认 `.codex/config.toml` 已切换到统一 `novelos` MCP，旧 Python Agent Runtime 已删除。完整 70-case Agent 质量实验按用户决定延期；在实验完成前，Writer 仅用于完整章节或长场景，Context Builder 仅用于跨卷、多线、事实冲突或上下文溢出，不宣称两者已取得质量优势。
 
 权威进度见 [tasks/README.md](./tasks/README.md)，不得以本 README 代替任务状态。
 
@@ -33,13 +29,13 @@ python3 -m venv .venv
 .venv/bin/pip install -e mcp/novelos
 ```
 
-新统一 MCP 的候选启动入口是：
+统一 MCP 的生产启动入口是：
 
 ```text
 scripts/run_novelos_mcp.sh
 ```
 
-该脚本供 Codex stdio MCP 配置调用，不是交互式命令。它显式使用 `data/novelos-v2.db`、`catalog/skills`、`config/agents.yaml` 和已授权的只读 seed；seed 必须匹配固定 inventory，且生产 runner 拒绝环境变量替换。默认 Codex 配置会在 Task 05 最终切换时更新。
+该脚本供 Codex stdio MCP 配置调用，不是交互式命令。它显式使用 `data/novelos-v2.db`、`catalog/skills`、`config/agents.yaml` 和已授权的只读 seed；seed 必须匹配固定 inventory，且生产 runner 拒绝环境变量替换。
 
 ## 验证
 
@@ -57,7 +53,7 @@ PYTHONWARNINGS='error::ResourceWarning' PYTHONPATH=mcp/novelos/src .venv/bin/pyt
 .venv/bin/python scripts/check_repository_hygiene.py --check
 .venv/bin/python scripts/check_cutover_readiness.py --check
 .venv/bin/python scripts/check_cutover_plan.py --check
-.venv/bin/python -m compileall -q src tests mcp/novelos/src mcp/novelos/tests scripts catalog config
+.venv/bin/python -m compileall -q tests mcp/novelos/src mcp/novelos/tests scripts catalog config
 ```
 
 ## 文档

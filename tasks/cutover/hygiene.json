@@ -2,9 +2,9 @@
   "allowed_tracked_binaries": [
     "mcp/novelos/resources/seed.db"
   ],
-  "git_baseline_available": false,
+  "git_baseline_available": true,
   "prohibited_file_count": 0,
-  "prospective_file_count": 218,
+  "prospective_file_count": 195,
   "required_ignore_rules": [
     "!.env.example",
     "*.egg-info/",
@@ -28,6 +28,6 @@
   ],
   "schema_version": 1,
   "sensitive_file_count": 0,
-  "status": "prepared",
-  "tracked_file_count": 219
+  "status": "passed",
+  "tracked_file_count": 192
 }

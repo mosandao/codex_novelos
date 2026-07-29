@@ -1,6 +1,6 @@
 # Task 04: Agent 工作流与质量门禁
 
-状态：`IN PROGRESS`
+状态：`DONE`
 
 依赖：[Task 02](./02_mcp_storage_migration.md)、[Task 03](./03_skill_catalog_migration.md)
 
@@ -242,7 +242,7 @@ Main -> one Skill or one MCP tool -> result
 - [x] Character 与 World 的并行结果在 Story Arc 前完成交叉审查。
 - [x] 不存在独立 Continuity Agent。
 - [x] 规划、章节和连续性流程通过端到端测试。
-- [ ] 质量实验具备原始输入、匿名输出、评分和 Review 证据。
+- [ ] 质量实验具备原始输入、匿名输出、评分和 Review 证据（用户决定延期，见 `tasks/experiments/agent_quality/deferral.json`）。
 - [x] 没有临时 Agent 可以绕过 MCP 权威门禁。
 
 ## 验证证据
@@ -261,13 +261,9 @@ Main -> one Skill or one MCP tool -> result
 - `mcp/novelos/tests/test_agent_workflows.py`：简单任务、并行 run、超时、部分结果、越权提案、Writer 触发和 Review 绑定负向测试。
 - `mcp/novelos/tests/test_pure_codex_workflow.py`：八层规划、交叉审查、Writer、独立 Review、章节接受和连续性晋升共用一条 Agent run 生产路径，结束时无活动 run。
 - change proposal 绑定 locked 上游的精确 ID、版本和 `subject_hash`；影响范围必须包含当前资产且只能引用该上游的真实下游，延迟处理和跨层越权均失败关闭。
-- `tasks/experiments/agent_quality/`：40 个规划、10 个 Character/World、10 个 Writer A/B 和 10 个合法复杂上下文 Context Builder A/B 输入，另有绑定输入 Hash、盲标签和 Review Profile 的 70 case `execution_manifest.jsonl`；真实输出与评分尚未执行。
+- `tasks/experiments/agent_quality/`：40 个规划、10 个 Character/World、10 个 Writer A/B 和 10 个合法复杂上下文 Context Builder A/B 输入，另有绑定输入 Hash、盲标签和 Review Profile 的 70 case `execution_manifest.jsonl`；已完成 2 个 case，其余按 `deferral.json` 延期。
 - `scripts/summarize_agent_quality_results.py`：失败关闭校验 70 case、完整原始输入、匿名输出文件、Review Subject、Receipt、assessment 和逐层 Hash；分数与判断必须等于 Receipt 绑定 assessment，再由 Rubric 自动解盲计算 Writer/Context Builder 决策，readiness 不信任手写 `summary.json`。
-- 当前验证：根测试 40 个、MCP 测试 81 个全部通过；Migration/Catalog manifest、实验录制器/数据集、seed inventory、迁移汇总、备份/导出恢复、仓库卫生、cutover plan/readiness 和 `compileall` 检查通过。
+- 当前验证：切换后根测试 33 个、MCP 测试 81 个全部通过；Migration/Catalog manifest、实验录制器/数据集、seed inventory、迁移汇总、备份/导出恢复、仓库卫生、cutover plan/readiness 和 `compileall` 检查通过。
 - 正式数据库 `data/novelos-v2.db` 已前向升级至 Schema 9，`quick_check=ok`；Schema 8 升级前备份仍保留，Schema 9 恢复证据位于 `tasks/migration/schema9_restore_drill.json`。
 
-状态为 `DONE` 前仍需执行真实质量实验，并根据结果冻结 Writer Agent 和 Context Builder 的最终触发策略。
-
-用户已明确允许创建临时业务 Agent 并接受相应模型执行成本；当前正在执行 70-case 实验，结果仍必须保留完整匿名输出、独立 Review 和 Receipt 证据。
-
-`scripts/record_agent_quality_experiment.py` 已通过真实 stdio MCP 单 case 集成测试，并按 `start -> prepare -> finalize` 三阶段登记独立 Trace、Producer run、Review Subject、Reviewer run、Receipt 和 assessment。正式实验已完成首个 Direction case 的全证据闭环，其余 case 继续执行；不以部分结果解除质量门禁。
+用户决定将完整真实质量实验推后。Task 04 的 Agent 契约、权限隔离和端到端工作流已经完成；延期不等于质量通过，Writer 与 Context Builder 在实验完成前采用 `deferral.json` 固化的保守路由。当前 2 个完整 case 和未完成恢复点均保留，不能用于计算胜率或改变策略。

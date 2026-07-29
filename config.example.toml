@@ -1,8 +1,0 @@
-[app]
-database_path = "data/novelos.db"
-context_chapter_limit = 5
-spawn_context_builder_after = 20
-
-[model]
-provider = "local"
-# 如需使用 OpenAI，将 provider 改为 "openai"，并提供 OPENAI_API_KEY 和 OPENAI_MODEL。

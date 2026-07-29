@@ -1,6 +1,6 @@
 # Agent 质量实验
 
-状态：`IN PROGRESS`，正在执行真实业务 Agent 推理和独立盲评。
+状态：`DEFERRED`，保留现有证据和恢复点，完整实验推后执行。
 
 ## 数据集
 
@@ -28,4 +28,4 @@
 
 用户已明确授权创建临时业务 Agent 并接受模型成本。`scripts/record_agent_quality_experiment.py` 使用专用 `data/agent-quality.db` 和真实 stdio MCP，以 `start -> prepare -> finalize` 三阶段录制每个 case；正式数据库不接收实验数据。
 
-当前已完成首个 Direction case 的 Producer、独立 Reviewer、不可变 Subject、Receipt、assessment 和 Evidence Schema 2 闭环。其余 69 个 case 尚未完成，因此 `summary.json` 不存在，Task 04 的质量实验验收项保持未完成。
+当前已完成 2 个 Direction case 的 Producer、独立 Reviewer、不可变 Subject、Receipt、assessment 和 Evidence Schema 2 闭环，其余 case 保留恢复点。`deferral.json` 固化用户延期决定和保守路由；`summary.json` 不存在，已有部分结果不构成 Writer 或 Context Builder 的质量结论。

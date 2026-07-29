@@ -38,6 +38,8 @@ Reviewer run 必须读取不可变 subject ref、精确 `subject_hash`、Review 
 
 Agent 质量实验使用 `review.prepare_subject` 构造不含执行模式的不可变盲评包。MCP 绑定已完成 Producer runs 和输出 refs，Review Receipt 额外绑定结构化 assessment Resource；该 Receipt 只用于评测证据，不具备小说权威提交权限。
 
+完整 70-case 实验当前延期。延期期间 Writer 只处理完整章节、长场景或明确需要隔离上下文的写作；Context Builder 只在 `complexity_reasons` 命中跨卷、多线、事实冲突或上下文溢出时创建。已完成的部分 case 仅作为恢复证据，不用于宣称胜率或改变路由。
+
 Character/World 交叉审查将两个 locked 资产的 ID、版本和 Hash 组成独立 subject；Story Arc 只能消费已批准且仍有效的检查。
 
 ## 操作控制

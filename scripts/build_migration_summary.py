@@ -67,6 +67,23 @@ def _quality() -> dict[str, Any]:
         raise MigrationSummaryError(f"无法读取质量实验清单：{manifest_path}") from exc
     summary_path = DEFAULT_RESULTS / "summary.json"
     if not summary_path.is_file():
+        deferral = _json(DEFAULT_DATASET / "deferral.json")
+        if deferral.get("status") == "deferred":
+            completed_path = DEFAULT_RESULTS / "case_results.jsonl"
+            completed = (
+                sum(1 for line in completed_path.read_text(encoding="utf-8").splitlines() if line.strip())
+                if completed_path.is_file()
+                else 0
+            )
+            return {
+                "case_count": case_count,
+                "completed_case_count": completed,
+                "status": "deferred",
+                "summary_current": False,
+                "partial_results_non_authoritative": bool(deferral.get("partial_results_non_authoritative")),
+                "writer_policy": deferral.get("writer_policy"),
+                "context_builder_policy": deferral.get("context_builder_policy"),
+            }
         return {"case_count": case_count, "status": "not_run", "summary_current": False}
     summary = _json(summary_path)
     current = summary_is_current(DEFAULT_DATASET, DEFAULT_RESULTS)

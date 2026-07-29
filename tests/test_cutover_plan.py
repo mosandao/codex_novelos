@@ -9,9 +9,9 @@ from scripts.check_cutover_plan import CutoverPlanError, DEFAULT_MANIFEST, REQUI
 
 
 class CutoverPlanTest(unittest.TestCase):
-    def test_prepared_manifest_covers_the_complete_legacy_surface(self) -> None:
+    def test_cutover_manifest_covers_the_complete_removed_legacy_surface(self) -> None:
         manifest = load_and_validate()
-        self.assertEqual("prepared", manifest["phase"])
+        self.assertEqual("cutover", manifest["phase"])
         self.assertEqual(REQUIRED_DELETE_PATHS, {entry["path"] for entry in manifest["delete_paths"]})
         self.assertIn("mcp/novelos", manifest["preserve_paths"])
         self.assertIn(".agents/skills", manifest["preserve_paths"])

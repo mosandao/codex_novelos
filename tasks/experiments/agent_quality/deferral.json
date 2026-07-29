@@ -1,0 +1,10 @@
+{
+  "context_builder_policy": "exception-only",
+  "decision": "conservative-routing",
+  "partial_results_non_authoritative": true,
+  "reason": "用户决定将完整 70-case 真实 Agent 质量实验推后，不阻塞纯 Codex 基础设施切换。",
+  "resume_requirement": "完成全部 70 个唯一 case、独立 Reviewer、Receipt 和可重算 summary.json 后才能改变路由策略。",
+  "schema_version": 1,
+  "status": "deferred",
+  "writer_policy": "retain-unvalidated-complete-chapter-only"
+}

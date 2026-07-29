@@ -13,13 +13,7 @@
       "defer-experiment": 38,
       "defer-license": 92
     },
-    "cutover_blockers": [
-      "codex_config_switched",
-      "git_review_baseline_available",
-      "legacy_model_config_removed",
-      "legacy_runtime_removed",
-      "quality_experiment_complete"
-    ],
+    "cutover_blockers": [],
     "source_manifest_by_reason": {
       "Shadow 或高级完成度存储不属于 V1": 7,
       "Skill lifecycle=experiment，完成质量评测前不进入生产 Catalog": 265,
@@ -40,8 +34,12 @@
   },
   "quality_experiment": {
     "case_count": 70,
-    "status": "not_run",
-    "summary_current": false
+    "completed_case_count": 2,
+    "context_builder_policy": "exception-only",
+    "partial_results_non_authoritative": true,
+    "status": "deferred",
+    "summary_current": false,
+    "writer_policy": "retain-unvalidated-complete-chapter-only"
   },
   "schema_version": 1,
   "seed": {
@@ -63,7 +61,7 @@
     "repository": "/Users/yiyi/github/novelos",
     "tree": "3d0d32221a9d5332dd25a82868b840469288be60"
   },
-  "status": "prepared",
+  "status": "completed",
   "storage": {
     "export_manifest_hash": "sha256:40e53e7e5bc30b8f4bfd4c296e07468da41b615283c41d86e0098ac29e126467",
     "export_restore_drill": "passed",

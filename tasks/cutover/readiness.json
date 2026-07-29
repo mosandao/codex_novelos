@@ -1,24 +1,20 @@
 {
-  "blockers": [
-    "codex_config_switched",
-    "git_review_baseline_available",
-    "legacy_model_config_removed",
-    "legacy_runtime_removed",
-    "quality_experiment_complete"
-  ],
+  "blockers": [],
   "gates": {
-    "codex_config_switched": false,
+    "codex_config_switched": true,
     "cutover_plan_valid": true,
     "database_restore_drill_passed": true,
     "documentation_complete": true,
-    "git_review_baseline_available": false,
-    "legacy_model_config_removed": false,
-    "legacy_runtime_removed": false,
+    "git_review_baseline_available": true,
+    "legacy_model_config_removed": true,
+    "legacy_runtime_removed": true,
     "quality_experiment_complete": false,
+    "quality_experiment_deferred": true,
+    "quality_experiment_dispositioned": true,
     "repository_hygiene_prepared": true,
     "seed_authorized": true,
     "unified_runner_ready": true
   },
   "schema_version": 1,
-  "status": "not_ready"
+  "status": "ready"
 }

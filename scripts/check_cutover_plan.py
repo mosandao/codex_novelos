@@ -28,7 +28,7 @@ REQUIRED_DELETE_PATHS = {
 }
 REQUIRED_PRECONDITIONS = {
     "seed_authorized",
-    "quality_experiment_complete",
+    "quality_experiment_dispositioned",
     "git_review_baseline_available",
     "database_restore_drill_passed",
 }

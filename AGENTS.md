@@ -58,6 +58,8 @@ Architecture、Strategy 和 Story Arc 必须保持为三个资产层级：Archit
 
 Writer、Review 和 Context Builder 不拥有规划资产。Review Agent 通过不同 Review Profile 复用同一隔离审查角色，不按资产类型继续拆成多个 Reviewer。
 
+完整 70-case 质量实验当前按用户决定延期。实验完成前采用保守路由：Writer Agent 只用于完整章节、长场景或明确需要隔离创作上下文的任务；Context Builder 只用于跨卷、多线、事实冲突或上下文溢出。现有部分实验结果不构成质量结论，也不得据此扩大触发范围。
+
 规划资产依赖顺序为：
 
 ```text
@@ -88,9 +90,7 @@ Character 与 World 可以并行生成，但进入 Story Arc 前必须完成交�
 
 V1 只注册一个名为 `novelos` 的 stdio MCP Server。Memory、Planning、Catalog、Review 和 Trace 是同一 Server 内的工具命名空间，不拆成多个 MCP 进程。
 
-迁移期间，`src/novelos/skills` 下的旧代码只能依赖领域类型、模型端口和 MCP Gateway 协议，不得导入 `sqlite3` 或 `novelos.storage`。
-
-迁移期间，`src/novelos/agents` 下的旧代码不得导入 `sqlite3` 或 `novelos.storage`。完成纯 Codex 切换后删除 Python Agent Runtime，不在 Python 中保留第二套 Agent 实现。
+仓库已经完成纯 Codex 切换，不保留 Python Agent、Skill、LLM Provider 或旧 Memory MCP Runtime。所有权威数据访问必须经过统一 `novelos` MCP，并通过 `authority_commits` 追溯到 Trace、subject Hash 和 Review Receipt。
 
 ## 小说工作流
 
@@ -121,7 +121,7 @@ PYTHONWARNINGS='error::ResourceWarning' PYTHONPATH=mcp/novelos/src .venv/bin/pyt
 .venv/bin/python scripts/check_repository_hygiene.py --check
 .venv/bin/python scripts/check_cutover_readiness.py --check
 .venv/bin/python scripts/check_cutover_plan.py --check
-.venv/bin/python -m compileall -q src tests mcp/novelos/src mcp/novelos/tests scripts catalog config
+.venv/bin/python -m compileall -q tests mcp/novelos/src mcp/novelos/tests scripts catalog config
 ```
 
 ## 任务连续性

@@ -254,7 +254,7 @@ MCP 拒绝以下情况：
 当前阶段证据：
 
 - `PYTHONWARNINGS='error::ResourceWarning' PYTHONPATH=mcp/novelos/src .venv/bin/python -m unittest discover -s mcp/novelos/tests -v`：当前 81 个测试通过，无连接泄漏。
-- `PYTHONWARNINGS='error::ResourceWarning' PYTHONPATH=mcp/novelos/src .venv/bin/python -m unittest discover -s tests -v`：当前 40 个架构、Manifest、Skill、实验录制/数据集/结果证据、迁移汇总、仓库卫生、切换清单、备份/导出恢复与真实迁移产物测试通过。
+- `PYTHONWARNINGS='error::ResourceWarning' PYTHONPATH=mcp/novelos/src .venv/bin/python -m unittest discover -s tests -v`：切换后当前 33 个 Manifest、Skill、实验录制/数据集/结果证据、迁移汇总、仓库卫生、切换清单、备份/导出恢复与真实迁移产物测试通过。
 - `.venv/bin/python -m compileall -q src tests mcp/novelos/src mcp/novelos/tests scripts catalog config`：通过。
 - stdio：Server 名称 `novelos`，63 个工具，3 个 Resource Template；五个 authority `*.upsert` 不再注册。
 - Legacy 来源：`data/migration/backend-novelos-aaadc9bedf499e.db`，SHA-256 为 `aaadc9bedf499e9a10534422064d4d91862293529bccac160843e0ab846ae1ba`。
