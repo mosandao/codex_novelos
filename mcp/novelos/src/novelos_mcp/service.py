@@ -2536,17 +2536,19 @@ class NovelOSService:
         if not 1 <= limit <= 200 or offset < 0:
             raise NovelOSError("invalid_pagination", "limit 必须为 1..200 且 offset >= 0")
 
-    def get_projection_snapshot(self, project_id: str) -> dict[str, Any]:
+    def get_projection_snapshot(self, project_id: str, include_candidates: bool = False) -> dict[str, Any]:
         with self.database.read() as connection:
             # 显式开启只读事务以获得快照隔离：整个读取期间所有 SELECT
             # 看到事务开始时的数据库快照，并发写不会穿插进来造成混合版本。
             connection.execute("BEGIN")
             try:
-                return self._read_projection_snapshot(connection, project_id)
+                return self._read_projection_snapshot(connection, project_id, include_candidates=include_candidates)
             finally:
                 connection.rollback()
 
-    def _read_projection_snapshot(self, connection: sqlite3.Connection, project_id: str) -> dict[str, Any]:
+    def _read_projection_snapshot(
+        self, connection: sqlite3.Connection, project_id: str, include_candidates: bool = False
+    ) -> dict[str, Any]:
         project = self._get(connection, "projects", project_id)
         initial_version = project["version"]
 
@@ -2701,13 +2703,30 @@ class NovelOSService:
         snapshot_hash = content_hash(_json(snapshot_payload))
         snapshot_payload["authority_snapshot_hash"] = snapshot_hash
         snapshot_payload["skipped_non_authoritative_stats"] = skipped_non_authoritative_stats
+        # 诊断模式：额外读取未锁定的 candidate 规划资产，供显式诊断视图渲染。
+        # 与 skipped 统计、authority_snapshot_hash 一样走旁路 key，绝不纳入
+        # snapshot_payload 哈希计算，以免候选增删破坏两次投影间的确定性 Hash。
+        if include_candidates:
+            cand_rows = connection.execute(
+                "SELECT * FROM planning_assets WHERE project_id=? AND status='candidate' ORDER BY asset_type, revision",
+                (project_id,),
+            ).fetchall()
+            planning_candidate_assets = []
+            for row in cand_rows:
+                item = self._row(row)
+                res_id = item["resource_ref"].replace("novelos://resource/", "")
+                item["content"] = self.get_resource(res_id)
+                planning_candidate_assets.append(item)
+            snapshot_payload["planning_candidate_assets"] = planning_candidate_assets
         return snapshot_payload
 
-    def render_project_projection(self, project_id: str, output_root: str = "novels") -> dict[str, Any]:
+    def render_project_projection(
+        self, project_id: str, output_root: str = "novels", include_candidates: bool = False
+    ) -> dict[str, Any]:
         from novelos_mcp.projection import ProjectionEngine
 
         engine = ProjectionEngine(root_dir=output_root)
-        return engine.render(self, project_id)
+        return engine.render(self, project_id, include_candidates=include_candidates)
 
     def verify_project_projection(self, project_directory: str) -> dict[str, Any]:
         """逐文件校验已生成的投影目录，校验其 manifest 中记录的内容 Hash 与来源 Hash。"""

@@ -42,10 +42,14 @@ class ProjectionEngine:
     def __init__(self, root_dir: Path | str = "novels") -> None:
         self.root_dir = Path(root_dir).resolve()
 
-    def render(self, service: Any, project_id: str) -> dict[str, Any]:
-        """将项目的 SQLite 权威快照单向原子渲染为 Markdown 展示文件夹。"""
+    def render(self, service: Any, project_id: str, include_candidates: bool = False) -> dict[str, Any]:
+        """将项目的 SQLite 权威快照单向原子渲染为 Markdown 展示文件夹。
+
+        include_candidates=True 时开启显式诊断模式，额外把未锁定的 candidate
+        规划资产渲染到独立的 候选/ 子目录，不与权威视图的 locked 资产混淆。
+        """
         # 1. 从 Service 获取版本一致的权威只读快照
-        snapshot = service.get_projection_snapshot(project_id)
+        snapshot = service.get_projection_snapshot(project_id, include_candidates=include_candidates)
         project_title = snapshot["project"].get("name") or snapshot["project"].get("title") or "Untitled"
         project_version = snapshot["project"]["version"]
         authority_snapshot_hash = snapshot["authority_snapshot_hash"]
@@ -234,6 +238,39 @@ class ProjectionEngine:
                 cont_text,
                 {"source_type": "continuity_ledger", "source_id": cont_file, "source_version": 1, "source_hash": content_hash(cont_text)},
             )
+
+        # F2. 诊断模式：渲染 candidate 规划资产到独立的 候选/ 子目录。
+        # 候选资产走旁路 key，不参与 authority_snapshot_hash；文件名带 revision
+        # 后缀，与权威视图的 locked 资产物理隔离，绝不互相覆盖。
+        if include_candidates:
+            # 与 planning_map 保持一致的中文类型展示名。
+            candidate_display = {
+                "direction": "01-故事方向",
+                "architecture": "02-故事架构",
+                "strategy": "03-全书战略",
+                "character_contract": "04-人物契约",
+                "world_contract": "05-世界契约",
+                "story_arc": "06-故事弧",
+                "volume_outline": "卷纲",
+                "chapter_plan": "章纲",
+            }
+            for cand in snapshot.get("planning_candidate_assets", []) or []:
+                atype = cand.get("asset_type", "planning")
+                display = candidate_display.get(atype, atype)
+                revision = cand.get("revision", 1)
+                title = f"候选：{display}（r{revision}）"
+                body = cand.get("content", "")
+                _write_markdown(
+                    f"候选/{display}-候选-r{revision}.md",
+                    title,
+                    body,
+                    {
+                        "source_type": "planning_candidate",
+                        "source_id": cand["id"],
+                        "source_version": cand.get("version", 1),
+                        "source_hash": cand.get("subject_hash") or content_hash(body),
+                    },
+                )
 
         # G. 校验生成 manifest.json 账本
         manifest_payload = {

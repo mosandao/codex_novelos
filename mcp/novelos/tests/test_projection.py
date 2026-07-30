@@ -236,6 +236,47 @@ class ProjectionTest(unittest.TestCase):
         self.assertEqual(res1["authority_snapshot_hash"], res2["authority_snapshot_hash"])
         self.assertEqual(manifest1, manifest2)
 
+    def test_diagnostic_mode_includes_candidates(self) -> None:
+        # 额外创建一个未锁定的 direction candidate，验证诊断模式行为。
+        cand_run = complete_agent_run(self.service, self.trace["id"], "direction_agent", "planning_candidate", "诊断模式专属候选方向")
+        cand_draft = self.service.create_planning_candidate(
+            self.project["id"],
+            "direction",
+            self.project["id"],
+            "诊断模式专属候选方向",
+            [],
+            producer_run_id=cand_run["id"],
+        )
+        out_root = Path(self.tmp_dir.name) / "novels"
+
+        # 默认模式：候选不进目录，且无 候选/ 子目录。
+        res_default = self.service.render_project_projection(self.project["id"], output_root=str(out_root))
+        target_default = Path(res_default["output_directory"])
+        self.assertFalse((target_default / "候选").exists())
+        locked_default = (target_default / "规划" / "01-故事方向.md").read_text(encoding="utf-8")
+        self.assertNotIn("诊断模式专属候选方向", locked_default)
+        self.assertIn("direction 规划内容正文", locked_default)
+
+        # 诊断模式：候选进入独立的 候选/ 子目录，locked 内容不变。
+        res_diag = self.service.render_project_projection(
+            self.project["id"], output_root=str(out_root), include_candidates=True
+        )
+        target_diag = Path(res_diag["output_directory"])
+        cand_rev = cand_draft["revision"]
+        cand_file = target_diag / "候选" / f"01-故事方向-候选-r{cand_rev}.md"
+        self.assertTrue(cand_file.is_file())
+        self.assertIn("诊断模式专属候选方向", cand_file.read_text(encoding="utf-8"))
+        # locked 视图不受诊断模式影响。
+        locked_diag = (target_diag / "规划" / "01-故事方向.md").read_text(encoding="utf-8")
+        self.assertEqual(locked_default, locked_diag)
+
+        # 候选走旁路 key，不污染 authority_snapshot_hash：两种模式哈希必须一致。
+        self.assertEqual(res_default["authority_snapshot_hash"], res_diag["authority_snapshot_hash"])
+
+        # 候选文件经 manifest 登记，verify_manifest 可逐文件校验通过。
+        verify = self.service.verify_project_projection(str(target_diag))
+        self.assertEqual([], verify["errors"])
+
     def test_rebuild_from_sqlite_without_db_mutation(self) -> None:
         out_root = Path(self.tmp_dir.name) / "novels"
         res1 = self.service.render_project_projection(self.project["id"], output_root=str(out_root))
