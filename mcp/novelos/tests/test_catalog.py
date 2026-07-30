@@ -13,7 +13,7 @@ class CatalogStoreTest(unittest.TestCase):
     def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory()
         self.root = Path(self.temporary.name)
-        package = self.root / "wave-a" / "scene-dialogue"
+        package = self.root / "writing" / "scene-dialogue"
         package.mkdir(parents=True)
         (package / "metadata.yaml").write_text(
             """name: scene-dialogue
@@ -65,14 +65,14 @@ migration_note: 测试夹具
         self.assertEqual("target-native", package["provenance"]["origin"])
 
     def test_unknown_metadata_field_is_rejected(self) -> None:
-        metadata = self.root / "wave-a" / "scene-dialogue" / "metadata.yaml"
+        metadata = self.root / "writing" / "scene-dialogue" / "metadata.yaml"
         metadata.write_text(metadata.read_text(encoding="utf-8") + "semantic_router: true\n", encoding="utf-8")
         with self.assertRaisesRegex(NovelOSError, "invalid_catalog"):
             self.store.search()
 
     def test_changed_package_invalidates_snapshot(self) -> None:
         result = self.store.search()
-        prompt = self.root / "wave-a" / "scene-dialogue" / "prompt.md"
+        prompt = self.root / "writing" / "scene-dialogue" / "prompt.md"
         prompt.write_text("新的方法。", encoding="utf-8")
         with self.assertRaisesRegex(NovelOSError, "stale_catalog"):
             self.store.validate_selection(
@@ -80,7 +80,7 @@ migration_note: 测试夹具
             )
 
     def test_missing_provenance_is_rejected(self) -> None:
-        (self.root / "wave-a" / "scene-dialogue" / "provenance.yaml").unlink()
+        (self.root / "writing" / "scene-dialogue" / "provenance.yaml").unlink()
         with self.assertRaisesRegex(NovelOSError, "invalid_catalog"):
             self.store.search()
 
@@ -89,20 +89,20 @@ migration_note: 测试夹具
         self.assertFalse(self.store.validate_output("scene-dialogue", "  ")["valid"])
 
     def test_non_active_package_requires_explicit_lifecycle(self) -> None:
-        metadata = self.root / "wave-a" / "scene-dialogue" / "metadata.yaml"
+        metadata = self.root / "writing" / "scene-dialogue" / "metadata.yaml"
         metadata.write_text(metadata.read_text(encoding="utf-8").replace("lifecycle: active", "lifecycle: experiment"), encoding="utf-8")
         self.assertEqual([], self.store.search()["candidates"])
         self.assertEqual(["scene-dialogue"], [item["name"] for item in self.store.search(lifecycle="experiment")["candidates"]])
 
     def test_duplicate_name_across_tiers_is_rejected(self) -> None:
-        source = self.root / "wave-a" / "scene-dialogue"
-        duplicate = self.root / "wave-b" / "scene-dialogue"
+        source = self.root / "writing" / "scene-dialogue"
+        duplicate = self.root / "planning" / "scene-dialogue"
         shutil.copytree(source, duplicate)
         with self.assertRaisesRegex(NovelOSError, "名称重复"):
             self.store.search()
 
     def test_exact_scope_precedes_global_candidate(self) -> None:
-        package = self.root / "wave-a" / "scene-dialogue-project"
+        package = self.root / "writing" / "scene-dialogue-project"
         package.mkdir(parents=True)
         (package / "metadata.yaml").write_text(
             """name: scene-dialogue-project
@@ -118,7 +118,7 @@ priority: 100
 """,
             encoding="utf-8",
         )
-        shutil.copy(self.root / "wave-a" / "scene-dialogue" / "provenance.yaml", package / "provenance.yaml")
+        shutil.copy(self.root / "writing" / "scene-dialogue" / "provenance.yaml", package / "provenance.yaml")
         result = self.store.search(stage="write", asset="scene", scope="project:1")
         self.assertEqual(["scene-dialogue-project", "scene-dialogue"], [item["name"] for item in result["candidates"]])
         self.assertTrue(
@@ -130,7 +130,7 @@ priority: 100
         )
 
     def test_contract_yaml_loading_and_lightweight_search(self) -> None:
-        package_dir = self.root / "wave-a" / "scene-dialogue"
+        package_dir = self.root / "writing" / "scene-dialogue"
         (package_dir / "contract.yaml").write_text(
             """contract_version: 1
 inputs:
@@ -155,13 +155,13 @@ forbidden_actions:
         self.assertIn("fundamental_rules", content)
 
     def test_invalid_contract_yaml_rejected(self) -> None:
-        package_dir = self.root / "wave-a" / "scene-dialogue"
+        package_dir = self.root / "writing" / "scene-dialogue"
         (package_dir / "contract.yaml").write_text("contract_version: 1\nunknown_field: true\n", encoding="utf-8")
         with self.assertRaisesRegex(NovelOSError, "contract 字段不合法"):
             self.store.search()
 
     def test_invalid_contract_cardinality_rejected(self) -> None:
-        package_dir = self.root / "wave-a" / "scene-dialogue"
+        package_dir = self.root / "writing" / "scene-dialogue"
         (package_dir / "contract.yaml").write_text(
             """contract_version: 1
 inputs:
@@ -177,7 +177,7 @@ forbidden_actions: []
             self.store.search()
 
     def test_duplicate_string_in_contract_rejected(self) -> None:
-        package_dir = self.root / "wave-a" / "scene-dialogue"
+        package_dir = self.root / "writing" / "scene-dialogue"
         (package_dir / "contract.yaml").write_text(
             """contract_version: 1
 inputs: []
@@ -193,7 +193,7 @@ forbidden_actions: []
             self.store.search()
 
     def test_contract_yaml_change_invalidates_snapshot(self) -> None:
-        package_dir = self.root / "wave-a" / "scene-dialogue"
+        package_dir = self.root / "writing" / "scene-dialogue"
         (package_dir / "contract.yaml").write_text(
             """contract_version: 1
 inputs: []
