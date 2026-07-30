@@ -37,7 +37,7 @@
 
 - `tasks/migration/catalog_disposition.csv`
 - `tasks/07_prompt_catalog/execution_manifest.csv`
-- `catalog/skills/wave-d/*/provenance.yaml`
+- `catalog/skills/expansions/*/provenance.yaml`
 - `tests/test_catalog_manifest.py`
 - `mcp/novelos/tests/test_production_catalog.py`
 
@@ -100,15 +100,15 @@
 
 ### 允许修改
 
-- `catalog/skills/wave-a/planning-quality-review/**`
-- `catalog/skills/wave-a/planning-direction-review/**`
-- `catalog/skills/wave-a/planning-architecture-review/**`
-- `catalog/skills/wave-a/planning-strategy-review/**`
-- `catalog/skills/wave-a/planning-character-contract-review/**`
-- `catalog/skills/wave-a/planning-world-contract-review/**`
-- `catalog/skills/wave-a/planning-story-arc-review/**`
-- `catalog/skills/wave-a/planning-volume-outline-review/**`
-- `catalog/skills/wave-a/planning-chapter-plan-review/**`
+- `catalog/skills/review/planning-quality-review/**`
+- `catalog/skills/review/planning-direction-review/**`
+- `catalog/skills/review/planning-architecture-review/**`
+- `catalog/skills/review/planning-strategy-review/**`
+- `catalog/skills/review/planning-character-contract-review/**`
+- `catalog/skills/review/planning-world-contract-review/**`
+- `catalog/skills/review/planning-story-arc-review/**`
+- `catalog/skills/review/planning-volume-outline-review/**`
+- `catalog/skills/review/planning-chapter-plan-review/**`
 - `config/agents.yaml`
 - `mcp/novelos/tests/test_agent_contracts.py`
 - `mcp/novelos/tests/test_production_catalog.py`

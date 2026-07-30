@@ -15,8 +15,8 @@
 
 ## 允许修改
 
-- `catalog/skills/wave-d/prose-revision/**`
-- `catalog/skills/wave-a/prose-quality-review/**`
+- `catalog/skills/expansions/prose-revision/**`
+- `catalog/skills/review/prose-quality-review/**`
 - `mcp/novelos/tests/test_production_catalog.py`
 - `tests/test_prompt_catalog_boundaries.py`
 - `tasks/07_prompt_catalog/execution_manifest.csv` 的本批 `status` 和证据列

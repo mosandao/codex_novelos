@@ -18,10 +18,10 @@
 - `mcp/novelos/src/novelos_mcp/agent_contracts.py`
 - `mcp/novelos/src/novelos_mcp/service.py`
 - `mcp/novelos/src/novelos_mcp/server.py`
-- `catalog/skills/wave-a/planning-quality-review/**`
-- `catalog/skills/wave-a/planning-cross-consistency-review/**`
-- `catalog/skills/wave-a/entity-authority-review/**`
-- `catalog/skills/wave-a/continuity-quality-review/**`
+- `catalog/skills/review/planning-quality-review/**`
+- `catalog/skills/review/planning-cross-consistency-review/**`
+- `catalog/skills/review/entity-authority-review/**`
+- `catalog/skills/review/continuity-quality-review/**`
 - `mcp/novelos/tests/test_agent_contracts.py`
 - `mcp/novelos/tests/test_protocol.py`
 - `mcp/novelos/tests/test_production_catalog.py`

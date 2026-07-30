@@ -16,13 +16,13 @@
 
 ## 允许修改
 
-- `catalog/skills/wave-d/world-rule-system/**`
-- `catalog/skills/wave-d/world-growth-resource/**`
-- `catalog/skills/wave-d/world-social-power/**`
-- `catalog/skills/wave-d/world-system-interaction/**`
-- `catalog/skills/wave-d/story-expectation-design/**`
-- `catalog/skills/wave-d/story-causal-structure/**`
-- `catalog/skills/wave-d/story-pov-tone-contract/**`
+- `catalog/skills/expansions/world-rule-system/**`
+- `catalog/skills/expansions/world-growth-resource/**`
+- `catalog/skills/expansions/world-social-power/**`
+- `catalog/skills/expansions/world-system-interaction/**`
+- `catalog/skills/expansions/story-expectation-design/**`
+- `catalog/skills/expansions/story-causal-structure/**`
+- `catalog/skills/expansions/story-pov-tone-contract/**`
 - `mcp/novelos/tests/test_production_catalog.py`
 - `tests/test_prompt_catalog_boundaries.py`
 - `tasks/07_prompt_catalog/execution_manifest.csv` 的本批 `status` 和证据列

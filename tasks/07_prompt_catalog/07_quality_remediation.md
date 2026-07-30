@@ -33,8 +33,8 @@
 
 - `tasks/migration/catalog_disposition.csv`
 - `tasks/07_prompt_catalog/execution_manifest.csv`
-- `catalog/skills/wave-d/*/provenance.yaml`
-- `catalog/skills/wave-a/prose-quality-review/provenance.yaml`
+- `catalog/skills/expansions/*/provenance.yaml`
+- `catalog/skills/review/prose-quality-review/provenance.yaml`
 - `tests/test_catalog_manifest.py`
 - `mcp/novelos/tests/test_production_catalog.py`
 
@@ -57,7 +57,7 @@
 
 允许修改：
 
-- `catalog/skills/wave-d/*/metadata.yaml`
+- `catalog/skills/expansions/*/metadata.yaml`
 - `mcp/novelos/src/novelos_mcp/catalog.py`
 - `mcp/novelos/tests/test_catalog.py`
 - `.agents/skills/novel-planning/SKILL.md`
@@ -95,7 +95,7 @@
 
 允许修改：
 
-- `catalog/skills/wave-d/*/contract.yaml`
+- `catalog/skills/expansions/*/contract.yaml`
 - `mcp/novelos/src/novelos_mcp/catalog.py`
 - `mcp/novelos/src/novelos_mcp/service.py`
 - `mcp/novelos/src/novelos_mcp/server.py`
@@ -131,9 +131,9 @@ Contract 输入只使用当前系统可解析的权威类型：
 
 允许修改：
 
-- `catalog/skills/wave-d/*/prompt.md`
-- `catalog/skills/wave-a/planning-quality-review/prompt.md`
-- `catalog/skills/wave-a/planning-*-review/**`
+- `catalog/skills/expansions/*/prompt.md`
+- `catalog/skills/review/planning-quality-review/prompt.md`
+- `catalog/skills/review/planning-*-review/**`
 - `config/agents.yaml`
 - `mcp/novelos/tests/test_agent_contracts.py`
 - `mcp/novelos/tests/test_production_catalog.py`
