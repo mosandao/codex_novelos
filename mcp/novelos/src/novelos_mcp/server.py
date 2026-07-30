@@ -160,7 +160,7 @@ def create_server(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="运行统一 NovelOS MCP Server")
-    parser.add_argument("--database", default=os.environ.get("NOVELOS_DB_PATH", "data/novelos.db"))
+    parser.add_argument("--database", default=os.environ.get("NOVELOS_DB_PATH", "data/novelos-v2.db"))
     parser.add_argument("--seed-database", default=os.environ.get("NOVELOS_SEED_DB_PATH"))
     parser.add_argument("--seed-inventory", default=os.environ.get("NOVELOS_SEED_INVENTORY_PATH"))
     parser.add_argument("--catalog", default=os.environ.get("NOVELOS_CATALOG_PATH"))
