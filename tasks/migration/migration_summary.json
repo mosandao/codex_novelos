@@ -1,17 +1,18 @@
 {
   "catalog": {
     "disposition_counts": {
-      "adapt-authorized": 8,
-      "defer-experiment": 38,
-      "defer-license": 92
+      "adapt-authorized": 21,
+      "defer-experiment": 37,
+      "defer-license": 80
     },
-    "production_package_count": 17,
+    "experiment_package_count": 8,
+    "production_package_count": 29,
     "source_skill_count": 138
   },
   "deferred": {
     "catalog_disposition_counts": {
-      "defer-experiment": 38,
-      "defer-license": 92
+      "defer-experiment": 37,
+      "defer-license": 80
     },
     "cutover_blockers": [],
     "source_manifest_by_reason": {

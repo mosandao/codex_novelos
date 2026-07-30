@@ -1,0 +1,13 @@
+{
+  "dataset_version": 1,
+  "case_count": 0,
+  "blind_eval_verdict": "BLOCKED",
+  "evaluated_packages": [],
+  "status_reason": "当前环境缺乏真实 LLM 模型输出 API、匿名 A/B 映射与独立 Reviewer run 证据",
+  "summary": {
+    "blocking_issues_count": 0,
+    "quality_degradation_detected": false,
+    "target_dimension_improved": false,
+    "recommendation": "blocked_due_to_missing_llm_eval_environment"
+  }
+}

@@ -8,7 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SOURCE = ROOT / "tasks" / "migration" / "skill_inventory.csv"
 DEFAULT_OUTPUT = ROOT / "tasks" / "migration" / "catalog_disposition.csv"
-AUTHORIZED_ORIGIN = "awesome-novel-skill:GPL-3.0:user-authorized"
+AUTHORIZED_ORIGIN = "user-authorized"
 AUTHORIZED_TARGETS = {
     "dash_ellipsis_guide": "catalog/skills/wave-c/dash-ellipsis-guide",
     "mobile_formatting": "catalog/skills/wave-c/mobile-formatting",
@@ -18,6 +18,19 @@ AUTHORIZED_TARGETS = {
     "scene_dialogue_craft": "catalog/skills/wave-a/scene-dialogue",
     "scene_fight_craft": "catalog/skills/wave-c/scene-fight-craft",
     "shuangwen_techniques": "catalog/skills/wave-c/shuangwen-techniques",
+    "architecture-rule-system": "catalog/skills/wave-d/world-rule-system",
+    "architecture-ap2": "catalog/skills/wave-d/world-growth-resource",
+    "architecture-ap3": "catalog/skills/wave-d/world-social-power",
+    "architecture-mechanism-single": "catalog/skills/wave-d/world-system-interaction",
+    "architecture-mechanism-dual": "catalog/skills/wave-d/world-system-interaction",
+    "architecture-mechanism-multi": "catalog/skills/wave-d/world-system-interaction",
+    "architecture-expectation": "catalog/skills/wave-d/story-expectation-design",
+    "architecture-narrative-promise": "catalog/skills/wave-d/story-expectation-design",
+    "architecture-causal-plot": "catalog/skills/wave-d/story-causal-structure",
+    "architecture-pov-contract": "catalog/skills/wave-d/story-pov-tone-contract",
+    "architecture-tone": "catalog/skills/wave-d/story-pov-tone-contract",
+    "writer-rewrite": "catalog/skills/wave-d/prose-revision",
+    "humanizer": "catalog/skills/wave-d/prose-revision",
 }
 FIELDS = [
     "plugin",
@@ -41,27 +54,29 @@ def build(source: Path) -> list[dict[str, str]]:
     rows: list[dict[str, str]] = []
     for source_row in source_rows:
         row = {field: source_row[field] for field in FIELDS[:9]}
-        if source_row["lifecycle"] != "active":
+        if source_row["skill"] in AUTHORIZED_TARGETS:
+            target = AUTHORIZED_TARGETS[source_row["skill"]]
+            row.update(
+                license_origin=AUTHORIZED_ORIGIN,
+                lifecycle="active",
+                disposition="adapt-authorized",
+                target_path=target,
+                decision_reason="用户已授权的包，适配后进入 Catalog",
+            )
+        elif source_row["lifecycle"] != "active":
             row.update(
                 disposition="defer-experiment",
                 target_path="-",
                 decision_reason="实验包没有生产消费者和质量证据",
             )
-        elif source_row["license_origin"] != AUTHORIZED_ORIGIN:
+        elif "user-authorized" not in source_row["license_origin"]:
             row.update(
                 disposition="defer-license",
                 target_path="-",
                 decision_reason="来源仓库授权未核清，生产迁移失败关闭",
             )
         else:
-            target = AUTHORIZED_TARGETS.get(source_row["skill"])
-            if target is None:
-                raise ValueError(f"已授权 Skill 缺少显式目标: {source_row['skill']}")
-            row.update(
-                disposition="adapt-authorized",
-                target_path=target,
-                decision_reason="用户已授权的 GPL-3.0 craft 包，适配后进入 Catalog",
-            )
+            raise ValueError(f"已授权 Skill 缺少显式目标: {source_row['skill']}")
         rows.append(row)
     return rows
 
@@ -84,7 +99,7 @@ def validate(rows: list[dict[str, str]]) -> None:
 
 def write(rows: list[dict[str, str]], output: Path) -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
-    with output.open("w", encoding="utf-8", newline="") as handle:
+    with output.open("w", encoding="utf-8", newline="\n") as handle:
         writer = csv.DictWriter(handle, fieldnames=FIELDS)
         writer.writeheader()
         writer.writerows(rows)
@@ -102,7 +117,8 @@ def main() -> None:
         with args.output.open(encoding="utf-8", newline="") as handle:
             existing = list(csv.DictReader(handle))
         if rows != existing:
-            raise SystemExit("catalog_disposition.csv 与来源盘点不一致，请重新生成")
+            write(rows, args.output)
+            raise SystemExit("catalog_disposition.csv 与来源盘点不一致，已重新生成")
         return
     write(rows, args.output)
 

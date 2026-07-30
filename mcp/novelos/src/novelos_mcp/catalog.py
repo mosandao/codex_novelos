@@ -68,6 +68,13 @@ class CatalogStore:
                     "Catalog Skill 名称必须与目录名一致",
                     {"name": metadata["name"], "directory": metadata_path.parent.name},
                 )
+            contract_path = metadata_path.parent / "contract.yaml"
+            if contract_path.is_file():
+                try:
+                    contract_data = yaml.safe_load(contract_path.read_text(encoding="utf-8"))
+                except yaml.YAMLError as exc:
+                    raise NovelOSError("invalid_catalog", "Catalog YAML 解析失败", {"path": str(contract_path)}) from exc
+                self._validate_contract(contract_data, contract_path)
             package = CatalogPackage(metadata_path.parent, metadata, provenance, self._package_hash(metadata_path.parent))
             if package.name in packages:
                 raise NovelOSError("invalid_catalog", "Catalog Skill 名称重复", {"name": package.name})
@@ -115,7 +122,12 @@ class CatalogStore:
     def get(self, name: str) -> dict[str, Any]:
         package = self._get_package(name)
         resources = {}
-        for artifact, filename in (("prompt", "prompt.md"), ("input_schema", "input_schema.json"), ("schema", "schema.json")):
+        for artifact, filename in (
+            ("prompt", "prompt.md"),
+            ("contract", "contract.yaml"),
+            ("input_schema", "input_schema.json"),
+            ("schema", "schema.json"),
+        ):
             if (package.root / filename).is_file():
                 resources[artifact] = f"novelos://catalog/{name}/{artifact}"
         examples = package.root / "examples"
@@ -170,7 +182,12 @@ class CatalogStore:
 
     def get_resource(self, name: str, artifact: str) -> str:
         package = self._get_package(name)
-        filenames = {"prompt": "prompt.md", "input_schema": "input_schema.json", "schema": "schema.json"}
+        filenames = {
+            "prompt": "prompt.md",
+            "contract": "contract.yaml",
+            "input_schema": "input_schema.json",
+            "schema": "schema.json",
+        }
         if artifact not in filenames:
             raise NovelOSError("not_found", "Catalog Resource 类型不存在", {"artifact": artifact})
         path = package.root / filenames[artifact]
@@ -245,6 +262,38 @@ class CatalogStore:
             raise NovelOSError("invalid_catalog", "迁移包 source_hash 非法", {"path": str(path)})
 
     @staticmethod
+    def _validate_contract(contract: Any, path: Path) -> None:
+        if not isinstance(contract, dict):
+            raise NovelOSError("invalid_catalog", "contract 必须是对象", {"path": str(path)})
+        expected_fields = {"contract_version", "inputs", "outputs", "invariants", "forbidden_actions"}
+        if set(contract.keys()) != expected_fields:
+            missing = sorted(expected_fields - contract.keys())
+            unknown = sorted(contract.keys() - expected_fields)
+            raise NovelOSError("invalid_catalog", "contract 字段不合法", {"path": str(path), "missing": missing, "unknown": unknown})
+        version = contract["contract_version"]
+        if isinstance(version, bool) or version != 1:
+            raise NovelOSError("invalid_catalog", "contract contract_version 非法", {"path": str(path)})
+        inputs = contract["inputs"]
+        if not isinstance(inputs, list):
+            raise NovelOSError("invalid_catalog", "contract inputs 必须是列表", {"path": str(path)})
+        allowed_cardinalities = {"one", "zero_or_one", "one_or_more", "zero_or_more", "exactly_two", "three_or_more"}
+        for item in inputs:
+            if not isinstance(item, dict) or set(item.keys()) != {"contract", "cardinality"}:
+                raise NovelOSError("invalid_catalog", "contract input 项字段不合法", {"path": str(path)})
+            if not isinstance(item["contract"], str) or not item["contract"].strip():
+                raise NovelOSError("invalid_catalog", "contract input 必须包含非空 contract 名称", {"path": str(path)})
+            if item["cardinality"] not in allowed_cardinalities:
+                raise NovelOSError("invalid_catalog", "contract input cardinality 非法", {"path": str(path)})
+        for field in ("outputs", "invariants", "forbidden_actions"):
+            arr = contract[field]
+            if not isinstance(arr, list):
+                raise NovelOSError("invalid_catalog", f"contract {field} 必须是列表", {"path": str(path)})
+            if any(not isinstance(x, str) or not x.strip() for x in arr):
+                raise NovelOSError("invalid_catalog", f"contract {field} 元素必须是非空字符串", {"path": str(path)})
+            if len(arr) != len(set(arr)):
+                raise NovelOSError("invalid_catalog", f"contract {field} 存在重复字符串", {"path": str(path)})
+
+    @staticmethod
     def _package_hash(root: Path) -> str:
         digest_input = bytearray()
         for path in sorted(item for item in root.rglob("*") if item.is_file() and "__pycache__" not in item.parts):
@@ -286,6 +335,8 @@ class CatalogStore:
             "capability": metadata["capability"],
             "genres": metadata.get("genres") or [],
             "scope": metadata.get("scope"),
+            "use_when": metadata.get("use_when") or [],
+            "avoid_when": metadata.get("avoid_when") or [],
             "priority": int(metadata.get("priority", 100)),
             "package_hash": package.package_hash,
         }

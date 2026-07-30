@@ -1,0 +1,14 @@
+target_name,source_path,source_dimension,target_section,coverage_status,evidence
+world-rule-system,backend/plugins/worldbuilding/skills/architecture-rule-system/prompt.md,底层物理与超自然铁律不可打破,执行步骤 1,retained,已在 prompt.md 包含
+world-growth-resource,backend/plugins/worldbuilding/skills/architecture-ap2/prompt.md,能力阶梯与资源产生消耗闭环,执行步骤 1-2,retained,已在 prompt.md 包含
+world-social-power,backend/plugins/worldbuilding/skills/architecture-ap3/prompt.md,势力垄断与阶层冲突,执行步骤 1-3,retained,已在 prompt.md 包含
+world-system-interaction,backend/plugins/worldbuilding/skills/architecture-mechanism-single/prompt.md,单体系机制诊断,执行步骤 1,merged,已归并至 prompt.md
+world-system-interaction,backend/plugins/worldbuilding/skills/architecture-mechanism-dual/prompt.md,双体系接触面碰撞,执行步骤 2,merged,已归并至 prompt.md
+world-system-interaction,backend/plugins/worldbuilding/skills/architecture-mechanism-multi/prompt.md,多体系压制与翻译,执行步骤 3,merged,已归并至 prompt.md
+story-expectation-design,backend/plugins/worldbuilding/skills/architecture-expectation/prompt.md,期待管理与信息揭示,执行步骤 1-2,merged,已归并至 prompt.md
+story-expectation-design,backend/plugins/worldbuilding/skills/architecture-narrative-promise/prompt.md,全书叙事承诺兑现,执行步骤 3,merged,已归并至 prompt.md
+story-causal-structure,backend/plugins/worldbuilding/skills/architecture-causal-plot/prompt.md,不可逆状态推演与因果闭合,执行步骤 1-3,retained,已在 prompt.md 包含
+story-pov-tone-contract,backend/plugins/worldbuilding/skills/architecture-pov-contract/prompt.md,POV 感知与知识受限,执行步骤 1,merged,已归并至 prompt.md
+story-pov-tone-contract,backend/plugins/worldbuilding/skills/architecture-tone/prompt.md,叙事基调与语言风貌,执行步骤 2,merged,已归并至 prompt.md
+prose-revision,backend/plugins/system/skills/writer-rewrite/prompt.md,正文局部重写与改句,执行步骤 1,merged,已归并至 prompt.md
+prose-revision,backend/plugins/system/skills/humanizer/prompt.md,去 AI 腔与真实声音保留,执行步骤 2,merged,已归并至 prompt.md

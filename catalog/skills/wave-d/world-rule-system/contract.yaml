@@ -1,0 +1,12 @@
+contract_version: 1
+inputs:
+  - contract: architecture
+    cardinality: one
+  - contract: strategy
+    cardinality: one
+outputs:
+  - rule_system_contract
+invariants:
+  - 不得创建无代价规则与主角免责例外
+forbidden_actions:
+  - commit_authority

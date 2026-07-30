@@ -1,0 +1,7 @@
+origin: adapted
+source_repository: /Users/yiyi/github/novelos
+source_path: backend/plugins/worldbuilding/skills/architecture-rule-system/prompt.md
+source_commit: 902d7e62f55bc8bc2862e2b9574b5ee2f5f33403
+source_hash: sha256:b09ee30290376501b46bfde6f16c06647f21e1421c9bc27ecdbb47f2e22706b0
+license: user-authorized
+migration_note: 适配旧工程 architecture-rule-system Prompt，移除 Plugin 运行时与提交逻辑，限定为只读规则契约生成。

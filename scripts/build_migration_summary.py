@@ -152,7 +152,16 @@ def build(root: Path = ROOT) -> dict[str, Any]:
     seed_authorization = conclusion.group(1)
     quality = _quality() if root == ROOT else _quality_for_root(root)
     readiness = build_readiness() if root == ROOT else _json(root / "tasks" / "cutover" / "readiness.json")
-    production_catalog_count = sum(1 for _ in (root / "catalog" / "skills").rglob("metadata.yaml"))
+    import yaml
+    active_catalog_count = 0
+    experiment_catalog_count = 0
+    for meta_file in (root / "catalog" / "skills").rglob("metadata.yaml"):
+        meta = yaml.safe_load(meta_file.read_text(encoding="utf-8"))
+        if meta.get("lifecycle") == "active":
+            active_catalog_count += 1
+        elif meta.get("lifecycle") == "experiment":
+            experiment_catalog_count += 1
+    production_catalog_count = active_catalog_count
 
     deferred_source = [row for row in source_rows if row["classification"] == "defer"]
     wave_d_tables = [row["table_name"] for row in table_rows if row["wave"] == "D"]
@@ -187,6 +196,7 @@ def build(root: Path = ROOT) -> dict[str, Any]:
             "source_skill_count": len(catalog_rows),
             "disposition_counts": catalog_dispositions,
             "production_package_count": production_catalog_count,
+            "experiment_package_count": experiment_catalog_count,
         },
         "quality_experiment": quality,
         "seed": {

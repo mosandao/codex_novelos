@@ -123,6 +123,8 @@ def create_server(
         "skill_catalog.validate": service.validate_skill_selection,
         "skill_catalog.validate_input": service.validate_skill_input,
         "skill_catalog.validate_output": service.validate_skill_output,
+        "skill_catalog.validate_contract_inputs": service.validate_contract_inputs,
+        "skill_catalog.review_route": service.get_review_catalog_route,
         "trace.start": service.start_trace,
         "trace.record_step": service.record_trace_step,
         "trace.finish": service.finish_trace,

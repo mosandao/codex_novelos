@@ -1,0 +1,15 @@
+name: planning-direction-review
+description: 故事方向核心冲突与主角驱动力审查
+stage: review
+asset: direction
+capability: review
+lifecycle: active
+version: 1.0.0
+genres: []
+risk: P1
+output_contract: typed_result
+priority: 10
+tags:
+- review
+- planning
+- direction

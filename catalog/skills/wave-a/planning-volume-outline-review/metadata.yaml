@@ -1,0 +1,15 @@
+name: planning-volume-outline-review
+description: 单卷转折与章节序列审查
+stage: review
+asset: volume_outline
+capability: review
+lifecycle: active
+version: 1.0.0
+genres: []
+risk: P1
+output_contract: typed_result
+priority: 10
+tags:
+- review
+- planning
+- volume_outline

@@ -1,0 +1,19 @@
+name: story-causal-structure
+description: 因果链与不可跳过状态变化结构设计方法
+stage: plan
+asset: architecture
+capability: generate
+lifecycle: experiment
+version: 1.0.0
+genres: []
+risk: P1
+output_contract: document
+priority: 20
+use_when:
+- 需要在架构阶段梳理剧情逻辑因果链与不可逆状态推演时
+avoid_when:
+- 只需要局部修饰对话或排版标点时
+tags:
+- story-architecture
+- causality
+- plot-structure

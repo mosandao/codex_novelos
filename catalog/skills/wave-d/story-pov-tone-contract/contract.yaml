@@ -1,0 +1,10 @@
+contract_version: 1
+inputs:
+  - contract: direction
+    cardinality: one
+outputs:
+  - pov_tone_contract
+invariants:
+  - 视角人物不得在场景中展现超越其知识与感知边界的信息
+forbidden_actions:
+  - commit_authority

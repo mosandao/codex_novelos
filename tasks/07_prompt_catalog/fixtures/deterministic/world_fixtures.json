@@ -1,0 +1,32 @@
+{
+  "realist_no_power": {
+    "project_id": "proj:realist_1",
+    "genre": "现实生活",
+    "power_level": "none",
+    "expected_search": {
+      "stage": "plan",
+      "asset": "world_contract",
+      "capability": "generate",
+      "lifecycle": "experiment"
+    },
+    "forbidden_packages": ["world-growth-resource", "world-system-interaction"]
+  },
+  "single_system_cost": {
+    "project_id": "proj:magic_1",
+    "genre": "奇幻魔法",
+    "power_level": "single_system",
+    "expected_package": "world-rule-system"
+  },
+  "dual_system_contact": {
+    "project_id": "proj:sci_fantasy",
+    "genre": "科幻修真",
+    "power_level": "dual_system",
+    "expected_package": "world-system-interaction"
+  },
+  "social_control": {
+    "project_id": "proj:empire_1",
+    "genre": "权谋制度",
+    "power_level": "institutional",
+    "expected_package": "world-social-power"
+  }
+}

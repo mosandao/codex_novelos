@@ -1,8 +1,14 @@
 from __future__ import annotations
 
+from collections import Counter
+from datetime import datetime, timezone
+import hashlib
 import json
+import re
+import shutil
 import sqlite3
 import uuid
+import yaml
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -307,6 +313,183 @@ class NovelOSService:
 
     def validate_skill_input(self, name: str, payload: Any) -> dict[str, Any]:
         return self.catalog.validate_input(name, payload)
+
+    def get_review_catalog_route(self, profile: str) -> dict[str, Any]:
+        package_names = self.agent_contracts.review_packages(profile)
+        packages: list[dict[str, Any]] = []
+        for name in package_names:
+            pkg_info = self.catalog.get(name)
+            if pkg_info["metadata"].get("lifecycle") != "active":
+                raise NovelOSError(
+                    "invalid_review_profile",
+                    "Review Profile 包含非 active Catalog 包",
+                    {"profile": profile, "name": name},
+                )
+            packages.append({
+                "name": name,
+                "package_hash": pkg_info["package_hash"],
+                "resources": pkg_info["resources"],
+            })
+        return {
+            "profile": profile,
+            "packages": packages,
+        }
+
+    def validate_contract_inputs(self, package_name: str, project_id: str, bindings: list[dict[str, Any]]) -> dict[str, Any]:
+        if not project_id or not isinstance(project_id, str):
+            raise NovelOSError("invalid_argument", "project_id 必须是非空字符串", {"project_id": project_id})
+
+        package = self.catalog.get(package_name)
+        resources = package.get("resources", {})
+        if "contract" not in resources:
+            raise NovelOSError("invalid_contract", "Catalog 包不包含 contract 资源", {"package_name": package_name})
+
+        contract_text = self.catalog.get_resource(package_name, "contract")
+        try:
+            contract_data = yaml.safe_load(contract_text)
+        except Exception as exc:
+            raise NovelOSError("invalid_contract", "无法解析 contract.yaml", {"package_name": package_name}) from exc
+
+        expected_inputs = contract_data.get("inputs", [])
+        if not isinstance(expected_inputs, list):
+            expected_inputs = []
+
+        cardinality_map = {}
+        for item in expected_inputs:
+            c_name = item.get("contract")
+            c_card = item.get("cardinality")
+            if c_name and c_card:
+                cardinality_map[c_name] = c_card
+
+        if not isinstance(bindings, list):
+            raise NovelOSError("invalid_argument", "bindings 必须是数组", {"package_name": package_name})
+
+        verified_bindings = []
+        counts_by_contract = Counter()
+        seen_refs = set()
+
+        with self.database.read() as connection:
+            for b in bindings:
+                if not isinstance(b, dict):
+                    raise NovelOSError("invalid_argument", "binding 必须是对象", {"package_name": package_name})
+
+                allowed_fields = {"contract", "subject_ref", "version", "subject_hash", "status"}
+                if any(k not in allowed_fields for k in b):
+                    raise NovelOSError("invalid_contract_binding", "binding 包含未知字段", {"binding": b})
+
+                c_type = b.get("contract")
+                ref = b.get("subject_ref")
+                version = b.get("version")
+                s_hash = b.get("subject_hash")
+                status = b.get("status")
+
+                if not c_type or not ref or version is None or not s_hash or not status:
+                    raise NovelOSError("invalid_contract_binding", "binding 缺少必填字段", {"binding": b})
+
+                if type(version) is bool or not isinstance(version, int):
+                    raise NovelOSError("invalid_contract_binding", "version 必须是整数", {"binding": b})
+                if type(s_hash) is not str or type(status) is not str or type(c_type) is not str or type(ref) is not str:
+                    raise NovelOSError("invalid_contract_binding", "binding 字段类型错误", {"binding": b})
+
+                if ref in seen_refs:
+                    raise NovelOSError("contract_validation_failed", f"重复的引用: {ref}", {"subject_ref": ref})
+                seen_refs.add(ref)
+
+                if c_type in {"direction", "architecture", "strategy", "character_contract", "world_contract", "story_arc", "volume_outline", "chapter_plan"}:
+                    row = connection.execute(
+                        "SELECT id, asset_type, version, subject_hash, status, project_id FROM planning_assets WHERE id = ?",
+                        (ref,),
+                    ).fetchone()
+                    if not row:
+                        raise NovelOSError("contract_validation_failed", f"找不到规划资产: {ref}", {"subject_ref": ref})
+                    if row["project_id"] != project_id:
+                        raise NovelOSError("contract_validation_failed", "跨项目引用资产", {"expected_project": project_id, "actual_project": row["project_id"]})
+                    if row["asset_type"] != c_type:
+                        raise NovelOSError("contract_validation_failed", "资产类型不匹配", {"expected": c_type, "actual": row["asset_type"]})
+                    if row["status"] in ("stale", "superseded") or status in ("stale", "superseded"):
+                        raise NovelOSError("contract_validation_failed", f"引用的规划资产已失效 ({row['status']})，必须使用最新 locked 资产", {"subject_ref": ref, "status": row["status"]})
+                    if row["status"] != "locked" or status != "locked":
+                        raise NovelOSError("contract_validation_failed", "规划资产必须处于 locked 状态", {"subject_ref": ref, "status": row["status"]})
+                    if row["version"] != version:
+                        raise NovelOSError("contract_validation_failed", "资产版本漂移", {"expected": version, "actual": row["version"]})
+                    if row["subject_hash"] != s_hash:
+                        raise NovelOSError("contract_validation_failed", "资产 Hash 漂移", {"expected": s_hash, "actual": row["subject_hash"]})
+
+                elif c_type == "chapter_draft":
+                    row = connection.execute(
+                        "SELECT chapters.id, chapters.version, chapters.subject_hash, chapters.status, books.project_id FROM chapters JOIN volumes ON chapters.volume_id = volumes.id JOIN books ON volumes.book_id = books.id WHERE chapters.id = ?",
+                        (ref,),
+                    ).fetchone()
+                    if not row:
+                        raise NovelOSError("contract_validation_failed", f"找不到章节: {ref}", {"subject_ref": ref})
+                    if row["project_id"] != project_id:
+                        raise NovelOSError("contract_validation_failed", "跨项目引用章节", {"expected_project": project_id, "actual_project": row["project_id"]})
+                    if row["status"] != "draft" or status != "draft":
+                        raise NovelOSError("contract_validation_failed", "章节必须处于 draft 状态", {"subject_ref": ref, "status": row["status"]})
+                    if row["version"] != version:
+                        raise NovelOSError("contract_validation_failed", "章节版本漂移", {"expected": version, "actual": row["version"]})
+                    if row["subject_hash"] != s_hash:
+                        raise NovelOSError("contract_validation_failed", "章节 Hash 漂移", {"expected": s_hash, "actual": row["subject_hash"]})
+                else:
+                    raise NovelOSError("invalid_contract", f"不支持的 contract 输入类型: {c_type}", {"contract": c_type})
+
+                counts_by_contract[c_type] += 1
+                verified_bindings.append({
+                    "contract": c_type,
+                    "subject_ref": ref,
+                    "version": version,
+                    "subject_hash": s_hash,
+                    "status": row["status"],
+                })
+
+        for req_type, expr in cardinality_map.items():
+            count = counts_by_contract[req_type]
+            valid = False
+            if expr == "one" and count == 1:
+                valid = True
+            elif expr == "zero_or_one" and count in (0, 1):
+                valid = True
+            elif expr == "one_or_more" and count >= 1:
+                valid = True
+            elif expr == "zero_or_more" and count >= 0:
+                valid = True
+            elif expr == "exactly_two" and count == 2:
+                valid = True
+            elif expr == "three_or_more" and count >= 3:
+                valid = True
+
+            if not valid:
+                raise NovelOSError(
+                    "contract_validation_failed",
+                    f"输入数量不符合 cardinality 要求: {req_type} 要求 {expr}, 实际得到 {count}",
+                    {"contract": req_type, "cardinality": expr, "actual_count": count},
+                )
+
+        for b_type in counts_by_contract:
+            if b_type not in cardinality_map:
+                raise NovelOSError("contract_validation_failed", f"未在 Contract 中声明的输入类型: {b_type}", {"contract": b_type})
+
+        contract_hash = hashlib.sha256(contract_text.encode("utf-8")).hexdigest()
+        package_hash = package.get("package_hash", "")
+
+        verified_bindings_sorted = sorted(verified_bindings, key=lambda x: (x["contract"], x["subject_ref"]))
+        snapshot_payload = {
+            "package_name": package_name,
+            "package_hash": package_hash,
+            "contract_hash": f"sha256:{contract_hash}",
+            "project_id": project_id,
+            "verified_bindings": verified_bindings_sorted,
+        }
+        payload_bytes = json.dumps(snapshot_payload, sort_keys=True, ensure_ascii=False).encode("utf-8")
+        snapshot_hash = f"sha256:{hashlib.sha256(payload_bytes).hexdigest()}"
+
+        return {
+            "valid": True,
+            "package_name": package_name,
+            "project_id": project_id,
+            "verified_bindings": verified_bindings_sorted,
+            "contract_snapshot_hash": snapshot_hash,
+        }
 
     def create_project(self, name: str, description: str = "", metadata: dict[str, Any] | None = None) -> dict[str, Any]:
         project_id = _id("project")
@@ -961,6 +1144,8 @@ class NovelOSService:
                 raise NovelOSError("invalid_state", "只有 draft 可以接受", {"status": chapter["status"]})
             if review["subject_type"] != "chapter" or review["subject_ref"] != chapter_id:
                 raise NovelOSError("invalid_review", "Review 不属于当前章节")
+            if review["reviewer_profile"] != "prose-v1":
+                raise NovelOSError("invalid_review_profile", "接受章节必须使用 prose-v1 Profile", {"reviewer_profile": review["reviewer_profile"]})
             if review["subject_hash"] != chapter["subject_hash"]:
                 raise NovelOSError("hash_mismatch", "Review Hash 与当前章节不一致")
             if review["verdict"] != "approved":
@@ -1260,6 +1445,8 @@ class NovelOSService:
                 raise NovelOSError("invalid_state", "只有 working 候选集可以晋升")
             if review["subject_type"] != "continuity_candidate_set" or review["subject_ref"] != candidate_set_id:
                 raise NovelOSError("invalid_review", "Review 不属于当前连续性候选集")
+            if review["reviewer_profile"] != "continuity-v1":
+                raise NovelOSError("invalid_review_profile", "晋升连续性候选必须使用 continuity-v1 Profile", {"reviewer_profile": review["reviewer_profile"]})
             if review["subject_hash"] != candidate_set["subject_hash"]:
                 raise NovelOSError("hash_mismatch", "Review Hash 与候选集不一致")
             if review["verdict"] != "approved":

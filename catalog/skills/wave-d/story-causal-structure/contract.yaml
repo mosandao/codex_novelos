@@ -1,0 +1,10 @@
+contract_version: 1
+inputs:
+  - contract: direction
+    cardinality: one
+outputs:
+  - causal_structure_contract
+invariants:
+  - 每个主要转折必须由前置决策或规则冲突直接引发
+forbidden_actions:
+  - commit_authority

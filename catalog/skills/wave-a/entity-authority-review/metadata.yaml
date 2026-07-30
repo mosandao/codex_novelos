@@ -1,0 +1,12 @@
+name: entity-authority-review
+description: 实体（人物、世界、势力、规则、时间线）权威来源一致性独立审查
+stage: review
+asset: entity
+capability: review
+lifecycle: active
+version: 1.0.0
+genres: []
+risk: P1
+output_contract: typed_result
+priority: 10
+tags: [entity, review, receipt]

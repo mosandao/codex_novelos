@@ -1,0 +1,12 @@
+contract_version: 1
+inputs:
+  - contract: architecture
+    cardinality: one
+  - contract: strategy
+    cardinality: one
+outputs:
+  - system_interaction_contract
+invariants:
+  - 体系碰撞时必须保留双方的原始代价与不可替代性
+forbidden_actions:
+  - commit_authority

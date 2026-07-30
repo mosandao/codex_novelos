@@ -1,0 +1,12 @@
+name: planning-quality-review
+description: 规划资产的上游忠实度与内部一致性独立审查
+stage: review
+asset: planning
+capability: review
+lifecycle: active
+version: 1.0.0
+genres: []
+risk: P1
+output_contract: typed_result
+priority: 10
+tags: [planning, review, receipt]

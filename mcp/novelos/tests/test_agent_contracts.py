@@ -60,7 +60,7 @@ class AgentContractTest(unittest.TestCase):
             self.assertTrue(set(role["allowed_tools"]).issubset(registered), role_id)
             self.assertTrue(all(tool.split(".", 1)[-1] in {
                 "get", "list", "search", "validate", "validate_input", "validate_output",
-                "get_subject",
+                "validate_contract_inputs", "get_subject", "review_route",
                 "recent_chapters", "search_facts", "get_entity_states", "get_authority_snapshot",
             } for tool in role["allowed_tools"]), role_id)
 
@@ -118,6 +118,38 @@ class AgentContractTest(unittest.TestCase):
             validator.validate(invalid)
         with self.assertRaises(jsonschema.ValidationError):
             jsonschema.Draft202012Validator(change_schema).validate({"reason": "缺少绑定字段"})
+
+    def test_review_profile_routes_validation_and_unknown_profile_fail_closed(self) -> None:
+        from novelos_mcp.agent_contracts import AgentContractStore
+        from novelos_mcp import NovelOSError
+
+        store = AgentContractStore(CONFIG_PATH)
+        expected_profiles = [
+            "planning-direction", "planning-architecture", "planning-strategy",
+            "planning-character-contract", "planning-world-contract", "planning-story-arc",
+            "planning-volume-outline", "planning-chapter-plan",
+            "planning-character-world-cross-consistency", "entity-character",
+            "entity-world", "entity-faction", "entity-rule", "entity-timeline",
+            "prose-v1", "continuity-v1",
+        ]
+        for profile in expected_profiles:
+            packages = store.review_packages(profile)
+            self.assertTrue(isinstance(packages, list) and len(packages) > 0, profile)
+
+        for profile, specific in [
+            ("planning-direction", "planning-direction-review"),
+            ("planning-architecture", "planning-architecture-review"),
+            ("planning-strategy", "planning-strategy-review"),
+            ("planning-character-contract", "planning-character-contract-review"),
+            ("planning-world-contract", "planning-world-contract-review"),
+            ("planning-story-arc", "planning-story-arc-review"),
+            ("planning-volume-outline", "planning-volume-outline-review"),
+            ("planning-chapter-plan", "planning-chapter-plan-review"),
+        ]:
+            self.assertEqual(["planning-quality-review", specific], store.review_packages(profile))
+
+        with self.assertRaisesRegex(NovelOSError, "未知 Review Profile"):
+            store.review_packages("unknown-profile-x")
 
 
 if __name__ == "__main__":

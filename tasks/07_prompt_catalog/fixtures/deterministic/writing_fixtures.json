@@ -1,0 +1,38 @@
+{
+  "dialogue_expressiveness": {
+    "project_id": "proj:writing_1",
+    "stage": "write",
+    "asset": "scene",
+    "capability": "generate",
+    "expected_package": "scene-dialogue"
+  },
+  "fight_action_sequence": {
+    "project_id": "proj:writing_2",
+    "stage": "write",
+    "asset": "scene",
+    "capability": "generate",
+    "expected_package": "scene-fight-craft"
+  },
+  "mobile_formatting_rules": {
+    "project_id": "proj:writing_3",
+    "stage": "review",
+    "asset": "style",
+    "capability": "format",
+    "expected_package": "mobile-formatting"
+  },
+  "prose_humanize_revision": {
+    "project_id": "proj:writing_4",
+    "stage": "write",
+    "asset": "chapter",
+    "capability": "revise",
+    "lifecycle": "experiment",
+    "expected_package": "prose-revision"
+  },
+  "shuangwen_rhythm_hook": {
+    "project_id": "proj:writing_5",
+    "stage": "plan",
+    "asset": "reader_experience",
+    "capability": "analyze",
+    "expected_package": "shuangwen-techniques"
+  }
+}

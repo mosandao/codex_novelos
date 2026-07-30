@@ -25,7 +25,7 @@
 | 迁移汇总 | 来源、Legacy、Catalog、seed、质量实验和切换门禁动态重建；统计篡改失败关闭 | `migration_summary.json`、`test_migration_summary.py` | existing |
 | 仓库产物卫生 | prospective Git 文件集、忽略规则、生成物和本地敏感文件失败关闭 | `hygiene.json`、`test_repository_hygiene.py` | existing |
 
-当前本地门禁为根测试 33 个、MCP 测试 81 个、Migration/Catalog manifest、Agent 质量录制器/数据集/结果证据、seed inventory、迁移汇总、备份/导出恢复、仓库卫生、cutover plan/readiness 和 `compileall` 检查。仓库没有 CI，这些检查目前不自动阻止合并。
+当前本地门禁为根测试 48 个、MCP 测试 102 个（合计 150 个测试）、Migration/Catalog manifest、Agent 质量录制器/数据集/结果证据、seed inventory、迁移汇总、备份/导出恢复、仓库卫生、cutover plan/readiness 和 `compileall` 检查。仓库没有 CI，这些检查目前不自动阻止合并。
 
 ## 已提出但未完成
 

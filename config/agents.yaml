@@ -30,6 +30,8 @@ read_only_tools: &read_only_tools
   - skill_catalog.validate
   - skill_catalog.validate_input
   - skill_catalog.validate_output
+  - skill_catalog.validate_contract_inputs
+  - skill_catalog.review_route
 
 review_tools: &review_tools
   - review.get_subject
@@ -46,6 +48,26 @@ review_tools: &review_tools
   - skill_catalog.validate
   - skill_catalog.validate_input
   - skill_catalog.validate_output
+  - skill_catalog.validate_contract_inputs
+  - skill_catalog.review_route
+
+review_profile_routes:
+  planning-direction: [planning-quality-review, planning-direction-review]
+  planning-architecture: [planning-quality-review, planning-architecture-review]
+  planning-strategy: [planning-quality-review, planning-strategy-review]
+  planning-character-contract: [planning-quality-review, planning-character-contract-review]
+  planning-world-contract: [planning-quality-review, planning-world-contract-review]
+  planning-story-arc: [planning-quality-review, planning-story-arc-review]
+  planning-volume-outline: [planning-quality-review, planning-volume-outline-review]
+  planning-chapter-plan: [planning-quality-review, planning-chapter-plan-review]
+  planning-character-world-cross-consistency: [planning-cross-consistency-review]
+  entity-character: [entity-authority-review]
+  entity-world: [entity-authority-review]
+  entity-faction: [entity-authority-review]
+  entity-rule: [entity-authority-review]
+  entity-timeline: [entity-authority-review]
+  prose-v1: [prose-quality-review]
+  continuity-v1: [continuity-quality-review]
 
 roles:
   main_agent:
@@ -273,7 +295,7 @@ roles:
     output_types:
       - review_receipt_candidate
     review_profile: dynamic
-    catalog_package: prose-quality-review
+    catalog_package: null
     spawn_condition: independent_review_required
     must_destroy: true
 

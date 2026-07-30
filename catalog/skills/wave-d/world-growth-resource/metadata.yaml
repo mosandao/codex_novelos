@@ -1,0 +1,19 @@
+name: world-growth-resource
+description: 能力进阶、资源循环与成长硬上限设计方法
+stage: plan
+asset: world_contract
+capability: generate
+lifecycle: experiment
+version: 1.0.0
+genres: []
+risk: P1
+output_contract: document
+priority: 20
+use_when:
+- 需要在世界契约阶段设定能力提升阶梯与资源消耗闭环时
+avoid_when:
+- 属于无能力等级与无特殊资源争夺的故事类型时
+tags:
+- worldbuilding
+- growth
+- resource

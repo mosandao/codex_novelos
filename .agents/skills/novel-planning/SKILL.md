@@ -24,7 +24,7 @@ description: 识别小说规划层级并准备对应权威资产的最小输入�
 
 1. 从用户目标判断唯一目标 `asset_type` 和 `scope_ref`。
 2. 用 `planning.list` 读取当前资产；复用所有有效 `locked` 上游，拒绝使用 `stale` 或 `superseded` 资产。
-3. 用 `skill_catalog.search` 按 `stage`、`asset`、`capability` 和题材硬条件获取轻量候选，再由 Codex 做语义选择。
+3. 用 `skill_catalog.search` 按 `stage=plan`、`asset`、`capability=generate` 和题材硬条件获取轻量候选，再由 Codex 做语义选择。
 4. 用 `skill_catalog.validate` 校验选择属于同一候选快照；只对选中项调用 `skill_catalog.get` 读取 Prompt、Schema 或 examples。
 5. 探索性讨论直接返回方案，不创建 Agent、不持久化。
 6. 需要正式版本时，只创建目标资产对应的临时 Agent，提供精确上游 refs、选中 Catalog refs、用户约束和必要 Canon。

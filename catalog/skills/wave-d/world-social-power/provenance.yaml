@@ -1,0 +1,7 @@
+origin: adapted
+source_repository: /Users/yiyi/github/novelos
+source_path: backend/plugins/worldbuilding/skills/architecture-ap3/prompt.md
+source_commit: 902d7e62f55bc8bc2862e2b9574b5ee2f5f33403
+source_hash: sha256:af86502b190dc6de19f7dbe5ad5409c59a563a178aafa324de116ccf0652ce91
+license: user-authorized
+migration_note: 适配旧工程 architecture-ap3 Prompt，限定为社会权力与势力关系契约生成。

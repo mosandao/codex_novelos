@@ -9,7 +9,7 @@ description: 根据已锁定 Chapter Plan 和已确认 Canon 上下文起草或�
 
 ## 工作流
 
-1. 接收有效且非 `stale` 的 Chapter Plan、精选上下文、视角、语气、长度和选中的 Catalog refs。
+1. 接收有效且非 `stale` 的 Chapter Plan、精选上下文、视角、语气、长度和选中的 Catalog refs。全章起草查询 `stage=write, asset=chapter, capability=generate`；局部修订润色查询 `stage=write, asset=chapter, capability=revise`。
 2. 将已确认上游与 Canon 视为约束。缺少关键材料时返回 context gap，不要自行检索或编造替代事实。
 3. 完整章节或长场景由 Main Agent 创建隔离的 Writer Agent 执行；局部改句且不改变章节状态时可由 Main Agent 直接处理。
 4. 写作时保持人物动机、知识边界、地点规则、时间顺序、伏笔和场景状态变化一致。

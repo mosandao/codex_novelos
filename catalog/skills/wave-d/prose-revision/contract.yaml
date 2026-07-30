@@ -1,0 +1,13 @@
+contract_version: 1
+inputs:
+  - contract: chapter_plan
+    cardinality: one
+  - contract: chapter_draft
+    cardinality: one
+outputs:
+  - prose_revision_candidate
+invariants:
+  - 修订候选不得改变既有事实、时间线或人物知识边界
+forbidden_actions:
+  - commit_authority
+  - approve_draft

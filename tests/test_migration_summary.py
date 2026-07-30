@@ -19,7 +19,8 @@ class MigrationSummaryTest(unittest.TestCase):
         summary = json.loads(expected)
         self.assertEqual("completed", summary["status"])
         self.assertEqual(1260, summary["source"]["file_count"])
-        self.assertEqual(17, summary["catalog"]["production_package_count"])
+        self.assertEqual(29, summary["catalog"]["production_package_count"])
+        self.assertEqual(8, summary["catalog"]["experiment_package_count"])
         self.assertEqual("authorized", summary["seed"]["authorization"])
         self.assertTrue(summary["seed"]["migrated"])
         self.assertEqual("deferred", summary["quality_experiment"]["status"])
@@ -32,7 +33,7 @@ class MigrationSummaryTest(unittest.TestCase):
         self.assertEqual(633, summary["deferred"]["source_manifest_count"])
         self.assertEqual(5, len(summary["deferred"]["wave_d_tables"]))
         self.assertEqual(
-            {"defer-experiment": 38, "defer-license": 92},
+            {"defer-experiment": 37, "defer-license": 80},
             summary["deferred"]["catalog_disposition_counts"],
         )
 

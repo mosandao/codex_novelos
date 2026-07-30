@@ -1,0 +1,13 @@
+origin: adapted
+source_repository: /Users/yiyi/github/novelos
+source_path: backend/plugins/system/skills/writer-rewrite/prompt.md
+source_commit: 902d7e62f55bc8bc2862e2b9574b5ee2f5f33403
+source_hash: sha256:af160fc1031809e0cedfd0429faaa0bfd69266d9bf9e8280ad0a4f1918b5fc5a
+license: user-authorized
+additional_sources:
+  - source_repository: /Users/yiyi/github/novelos
+    source_path: backend/plugins/system/skills/humanizer/prompt.md
+    source_commit: 902d7e62f55bc8bc2862e2b9574b5ee2f5f33403
+    source_hash: sha256:3189727364783a2650907d9fef6283aab75a4bf26b8d157be23076e344d1ee47
+    license: user-authorized
+migration_note: 归并 writer-rewrite 与 humanizer Prompt，限定为正文修订候选生成，保留人物声音与不可变事实。

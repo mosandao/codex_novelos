@@ -8,8 +8,11 @@ from contextlib import closing
 from pathlib import Path
 
 from novelos_mcp import NovelOSError, NovelOSService
+from novelos_mcp.storage.database import Database
 from novelos_mcp.seed_inventory import build_seed_inventory
 from agent_test_support import complete_review_run
+
+CATALOG_ROOT = Path(__file__).resolve().parents[3] / "catalog" / "skills"
 
 
 class NovelOSServiceTest(unittest.TestCase):
@@ -226,6 +229,386 @@ class KnowledgeStoreTest(unittest.TestCase):
             with self.assertRaises(sqlite3.OperationalError):
                 with closing(service.knowledge._connect()) as connection:
                     connection.execute("DELETE FROM kb_writing_techniques")
+
+
+class NovelOSServiceContractValidationTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.directory = tempfile.TemporaryDirectory()
+        self.db_path = Path(self.directory.name) / "test.db"
+        self.service = NovelOSService(self.db_path, catalog_path=CATALOG_ROOT)
+        self.project = self.service.create_project("Test Project")
+        self.trace = self.service.start_trace("contract-test", self.project["id"])
+
+    def tearDown(self) -> None:
+        self.directory.cleanup()
+
+    def test_validate_contract_inputs_success(self) -> None:
+        dir_asset = self.service.create_planning_candidate(
+            self.project["id"],
+            "direction",
+            self.project["id"],
+            "Story direction content",
+            [],
+            "Direction Agent",
+        )
+        _, review = complete_review_run(
+            self.service,
+            self.trace["id"],
+            "planning_asset",
+            dir_asset["id"],
+            dir_asset["subject_hash"],
+            "planning-direction",
+        )
+        locked_dir = self.service.lock_planning_asset(dir_asset["id"], review["id"], dir_asset["version"], self.trace["id"])
+
+        result = self.service.validate_contract_inputs("story-causal-structure", self.project["id"], [
+            {
+                "contract": "direction",
+                "subject_ref": locked_dir["id"],
+                "version": locked_dir["version"],
+                "subject_hash": locked_dir["subject_hash"],
+                "status": "locked",
+            }
+        ])
+        self.assertTrue(result["valid"])
+        self.assertEqual("story-causal-structure", result["package_name"])
+        self.assertEqual(self.project["id"], result["project_id"])
+        self.assertTrue(result["contract_snapshot_hash"].startswith("sha256:"))
+
+    def test_validate_contract_inputs_snapshot_hash_changes_on_contract_or_package_modification(self) -> None:
+        dir_asset = self.service.create_planning_candidate(
+            self.project["id"],
+            "direction",
+            self.project["id"],
+            "Story direction content",
+            [],
+            "Direction Agent",
+        )
+        _, review = complete_review_run(
+            self.service,
+            self.trace["id"],
+            "planning_asset",
+            dir_asset["id"],
+            dir_asset["subject_hash"],
+            "planning-direction",
+        )
+        locked_dir = self.service.lock_planning_asset(dir_asset["id"], review["id"], dir_asset["version"], self.trace["id"])
+
+        bindings = [
+            {
+                "contract": "direction",
+                "subject_ref": locked_dir["id"],
+                "version": locked_dir["version"],
+                "subject_hash": locked_dir["subject_hash"],
+                "status": "locked",
+            }
+        ]
+        res1 = self.service.validate_contract_inputs("story-causal-structure", self.project["id"], bindings)
+        hash1 = res1["contract_snapshot_hash"]
+
+        # 校验生成的 contract_snapshot_hash 具备确定性 SHA256 结果且符合规范前缀
+        self.assertTrue(hash1.startswith("sha256:"))
+        self.assertEqual(64, len(hash1.split(":")[1]))
+
+        # 1. 修改输入 bindings 中的资产 Hash / 版本，导出的 snapshot_hash 必须发生变动
+        dir_asset2 = self.service.create_planning_candidate(
+            self.project["id"],
+            "direction",
+            self.project["id"],
+            "Story direction content v2 modified",
+            [],
+            "Direction Agent",
+        )
+        _, review2 = complete_review_run(
+            self.service,
+            self.trace["id"],
+            "planning_asset",
+            dir_asset2["id"],
+            dir_asset2["subject_hash"],
+            "planning-direction",
+        )
+        locked_dir2 = self.service.lock_planning_asset(dir_asset2["id"], review2["id"], dir_asset2["version"], self.trace["id"])
+        bindings2 = [
+            {
+                "contract": "direction",
+                "subject_ref": locked_dir2["id"],
+                "version": locked_dir2["version"],
+                "subject_hash": locked_dir2["subject_hash"],
+                "status": "locked",
+            }
+        ]
+        res2 = self.service.validate_contract_inputs("story-causal-structure", self.project["id"], bindings2)
+        hash2 = res2["contract_snapshot_hash"]
+        self.assertNotEqual(hash1, hash2, "contract_snapshot_hash 必须随 bindings 的更改发生变动")
+
+    def test_validate_contract_inputs_unlocked_fails(self) -> None:
+        dir_asset = self.service.create_planning_candidate(
+            self.project["id"],
+            "direction",
+            self.project["id"],
+            "Story direction content",
+            [],
+            "Direction Agent",
+        )
+        with self.assertRaises(NovelOSError) as cm:
+            self.service.validate_contract_inputs("story-causal-structure", self.project["id"], [
+                {
+                    "contract": "direction",
+                    "subject_ref": dir_asset["id"],
+                    "version": dir_asset["version"],
+                    "subject_hash": dir_asset["subject_hash"],
+                    "status": "candidate",
+                }
+            ])
+        self.assertEqual("contract_validation_failed", cm.exception.code)
+
+    def test_validate_contract_inputs_cross_project_fails(self) -> None:
+        other_proj = self.service.create_project("Other Project")
+        other_trace = self.service.start_trace("other-trace", other_proj["id"])
+        dir_asset = self.service.create_planning_candidate(
+            other_proj["id"],
+            "direction",
+            other_proj["id"],
+            "Story direction content",
+            [],
+            "Direction Agent",
+        )
+        _, review = complete_review_run(
+            self.service,
+            other_trace["id"],
+            "planning_asset",
+            dir_asset["id"],
+            dir_asset["subject_hash"],
+            "planning-direction",
+        )
+        locked_dir = self.service.lock_planning_asset(dir_asset["id"], review["id"], dir_asset["version"], other_trace["id"])
+
+        with self.assertRaises(NovelOSError) as cm:
+            self.service.validate_contract_inputs("story-causal-structure", self.project["id"], [
+                {
+                    "contract": "direction",
+                    "subject_ref": locked_dir["id"],
+                    "version": locked_dir["version"],
+                    "subject_hash": locked_dir["subject_hash"],
+                    "status": "locked",
+                }
+            ])
+        self.assertEqual("contract_validation_failed", cm.exception.code)
+
+    def test_validate_contract_inputs_missing_field_fails(self) -> None:
+        with self.assertRaises(NovelOSError) as cm:
+            self.service.validate_contract_inputs("story-causal-structure", self.project["id"], [
+                {
+                    "contract": "direction",
+                    "subject_ref": "asset:123",
+                    "version": 1,
+                    # 缺少 subject_hash 和 status
+                }
+            ])
+        self.assertEqual("invalid_contract_binding", cm.exception.code)
+
+    def test_validate_contract_inputs_unknown_field_fails(self) -> None:
+        with self.assertRaises(NovelOSError) as cm:
+            self.service.validate_contract_inputs("story-causal-structure", self.project["id"], [
+                {
+                    "contract": "direction",
+                    "subject_ref": "asset:123",
+                    "version": 1,
+                    "subject_hash": "sha256:123",
+                    "status": "locked",
+                    "unexpected_field": True,
+                }
+            ])
+        self.assertEqual("invalid_contract_binding", cm.exception.code)
+
+    def test_validate_contract_inputs_duplicate_ref_fails(self) -> None:
+        dir_asset = self.service.create_planning_candidate(
+            self.project["id"],
+            "direction",
+            self.project["id"],
+            "Story direction content",
+            [],
+            "Direction Agent",
+        )
+        _, review = complete_review_run(
+            self.service,
+            self.trace["id"],
+            "planning_asset",
+            dir_asset["id"],
+            dir_asset["subject_hash"],
+            "planning-direction",
+        )
+        locked_dir = self.service.lock_planning_asset(dir_asset["id"], review["id"], dir_asset["version"], self.trace["id"])
+
+        binding = {
+            "contract": "direction",
+            "subject_ref": locked_dir["id"],
+            "version": locked_dir["version"],
+            "subject_hash": locked_dir["subject_hash"],
+            "status": "locked",
+        }
+        with self.assertRaises(NovelOSError) as cm:
+            self.service.validate_contract_inputs("story-causal-structure", self.project["id"], [binding, binding])
+        self.assertEqual("contract_validation_failed", cm.exception.code)
+
+    def test_validate_contract_inputs_version_hash_status_drift_fails(self) -> None:
+        dir_asset = self.service.create_planning_candidate(
+            self.project["id"],
+            "direction",
+            self.project["id"],
+            "Story direction content",
+            [],
+            "Direction Agent",
+        )
+        _, review = complete_review_run(
+            self.service,
+            self.trace["id"],
+            "planning_asset",
+            dir_asset["id"],
+            dir_asset["subject_hash"],
+            "planning-direction",
+        )
+        locked_dir = self.service.lock_planning_asset(dir_asset["id"], review["id"], dir_asset["version"], self.trace["id"])
+
+        # 版本漂移
+        with self.assertRaises(NovelOSError):
+            self.service.validate_contract_inputs("story-causal-structure", self.project["id"], [
+                {
+                    "contract": "direction",
+                    "subject_ref": locked_dir["id"],
+                    "version": 999,
+                    "subject_hash": locked_dir["subject_hash"],
+                    "status": "locked",
+                }
+            ])
+
+    def test_validate_contract_inputs_boolean_version_fails(self) -> None:
+        with self.assertRaises(NovelOSError) as cm:
+            self.service.validate_contract_inputs("story-causal-structure", self.project["id"], [
+                {
+                    "contract": "direction",
+                    "subject_ref": "asset:123",
+                    "version": True,
+                    "subject_hash": "sha256:123",
+                    "status": "locked",
+                }
+            ])
+        self.assertEqual("invalid_contract_binding", cm.exception.code)
+
+    def test_validate_contract_inputs_cardinality_mismatch_fails(self) -> None:
+        with self.assertRaises(NovelOSError) as cm:
+            self.service.validate_contract_inputs("story-causal-structure", self.project["id"], [])
+        self.assertEqual("contract_validation_failed", cm.exception.code)
+        self.assertIn("cardinality", cm.exception.message)
+
+    def test_validate_contract_inputs_asset_type_mismatch_fails(self) -> None:
+        dir_asset = self.service.create_planning_candidate(
+            self.project["id"],
+            "direction",
+            self.project["id"],
+            "Direction content",
+            [],
+            "Direction Agent",
+        )
+        _, rev1 = complete_review_run(
+            self.service,
+            self.trace["id"],
+            "planning_asset",
+            dir_asset["id"],
+            dir_asset["subject_hash"],
+            "planning-direction",
+        )
+        locked_dir = self.service.lock_planning_asset(dir_asset["id"], rev1["id"], dir_asset["version"], self.trace["id"])
+
+        arch_asset = self.service.create_planning_candidate(
+            self.project["id"],
+            "architecture",
+            self.project["id"],
+            "Architecture content",
+            [{"asset_id": locked_dir["id"], "version": locked_dir["version"]}],
+            "Architecture Agent",
+        )
+        _, review = complete_review_run(
+            self.service,
+            self.trace["id"],
+            "planning_asset",
+            arch_asset["id"],
+            arch_asset["subject_hash"],
+            "planning-architecture",
+        )
+        locked_arch = self.service.lock_planning_asset(arch_asset["id"], review["id"], arch_asset["version"], self.trace["id"])
+        with self.assertRaises(NovelOSError) as cm:
+            self.service.validate_contract_inputs("story-causal-structure", self.project["id"], [
+                {
+                    "contract": "direction",
+                    "subject_ref": locked_arch["id"],
+                    "version": locked_arch["version"],
+                    "subject_hash": locked_arch["subject_hash"],
+                    "status": "locked",
+                }
+            ])
+        self.assertEqual("contract_validation_failed", cm.exception.code)
+        self.assertIn("资产类型不匹配", cm.exception.message)
+
+        # Hash 漂移
+        with self.assertRaises(NovelOSError):
+            self.service.validate_contract_inputs("story-causal-structure", self.project["id"], [
+                {
+                    "contract": "direction",
+                    "subject_ref": locked_dir["id"],
+                    "version": locked_dir["version"],
+                    "subject_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+                    "status": "locked",
+                }
+            ])
+
+        # 状态漂移
+        with self.assertRaises(NovelOSError):
+            self.service.validate_contract_inputs("story-causal-structure", self.project["id"], [
+                {
+                    "contract": "direction",
+                    "subject_ref": locked_dir["id"],
+                    "version": locked_dir["version"],
+                    "subject_hash": locked_dir["subject_hash"],
+                    "status": "draft",
+                }
+            ])
+
+    def test_validate_contract_inputs_stale_or_superseded_status_fails(self) -> None:
+        dir_asset = self.service.create_planning_candidate(
+            self.project["id"],
+            "direction",
+            self.project["id"],
+            "Story direction content",
+            [],
+            "Direction Agent",
+        )
+        _, review = complete_review_run(
+            self.service,
+            self.trace["id"],
+            "planning_asset",
+            dir_asset["id"],
+            dir_asset["subject_hash"],
+            "planning-direction",
+        )
+        locked_dir = self.service.lock_planning_asset(dir_asset["id"], review["id"], dir_asset["version"], self.trace["id"])
+
+        # 将资产直接设为 stale 校验拦截
+        with self.service.database.transaction() as conn:
+            conn.execute("UPDATE planning_assets SET status = 'stale' WHERE id = ?", (locked_dir["id"],))
+
+        with self.assertRaises(NovelOSError) as cm:
+            self.service.validate_contract_inputs("story-causal-structure", self.project["id"], [
+                {
+                    "contract": "direction",
+                    "subject_ref": locked_dir["id"],
+                    "version": locked_dir["version"],
+                    "subject_hash": locked_dir["subject_hash"],
+                    "status": "locked",
+                }
+            ])
+        self.assertEqual("contract_validation_failed", cm.exception.code)
+        self.assertIn("已失效", cm.exception.message)
 
 
 if __name__ == "__main__":

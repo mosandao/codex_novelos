@@ -4,4 +4,4 @@ source_path: null
 source_commit: null
 source_hash: null
 license: NovelOS-project
-migration_note: 根据 Review Receipt 和 prose Profile 契约独立编写，未复制 legacy Prompt。
+migration_note: 根据 Review Receipt 和 prose Profile 契约编写，整合正文与长场景自检质量标准。

@@ -1,0 +1,10 @@
+contract_version: 1
+inputs:
+  - contract: direction
+    cardinality: one
+outputs:
+  - expectation_design_contract
+invariants:
+  - 所有建立的叙事承诺必须有明确的兑现或反转规划
+forbidden_actions:
+  - commit_authority

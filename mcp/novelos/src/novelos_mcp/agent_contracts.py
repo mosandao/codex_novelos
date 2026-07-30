@@ -40,7 +40,9 @@ class AgentContractStore:
             raise NovelOSError("configuration_error", "Agent 契约缺少 roles")
         self.config = payload
         self.roles: dict[str, dict[str, Any]] = roles
+        self.routes: dict[str, list[str]] = payload.get("review_profile_routes", {})
         self._validate_roles()
+        self._validate_routes()
         root = self.path.parents[1]
         result_path = root / payload["runtime"]["result_schema"]
         proposal_path = root / payload["runtime"]["change_proposal_schema"]
@@ -57,6 +59,14 @@ class AgentContractStore:
             return self.roles[role_id]
         except KeyError as exc:
             raise NovelOSError("invalid_agent_role", "未知 Agent role", {"role_id": role_id}) from exc
+
+    def review_packages(self, profile: str) -> list[str]:
+        if not isinstance(self.routes, dict) or profile not in self.routes:
+            raise NovelOSError("invalid_review_profile", "未知 Review Profile", {"profile": profile})
+        packages = self.routes[profile]
+        if not isinstance(packages, list) or not packages:
+            raise NovelOSError("invalid_review_profile", "Review Profile 未关联有效 Catalog 包", {"profile": profile})
+        return list(packages)
 
     def validate_inputs(self, role_id: str, bindings: dict[str, Any]) -> list[str]:
         role = self.get(role_id)
@@ -182,8 +192,33 @@ class AgentContractStore:
             }
             if set(role) != required:
                 raise NovelOSError("configuration_error", "Agent role 字段不合法", {"role_id": role_id})
+            if role_id == "review_agent" and role["catalog_package"] is not None:
+                raise NovelOSError("configuration_error", "review_agent catalog_package 必须为 null")
             if role["kind"] == "planning_asset":
                 asset_type = role["owned_asset_type"]
                 if not isinstance(asset_type, str) or asset_type in planning_assets:
                     raise NovelOSError("configuration_error", "规划资产必须有唯一 Agent owner", {"role_id": role_id})
                 planning_assets.add(asset_type)
+
+    def _validate_routes(self) -> None:
+        routes = self.config.get("review_profile_routes")
+        if not isinstance(routes, dict) or not routes:
+            raise NovelOSError("configuration_error", "Agent 契约缺少 review_profile_routes")
+        expected_profiles = {
+            "planning-direction", "planning-architecture", "planning-strategy",
+            "planning-character-contract", "planning-world-contract", "planning-story-arc",
+            "planning-volume-outline", "planning-chapter-plan",
+            "planning-character-world-cross-consistency", "entity-character",
+            "entity-world", "entity-faction", "entity-rule", "entity-timeline",
+            "prose-v1", "continuity-v1",
+        }
+        if not expected_profiles.issubset(routes.keys()):
+            missing = sorted(expected_profiles - routes.keys())
+            raise NovelOSError("configuration_error", "review_profile_routes 缺失权威 Profile", {"missing": missing})
+        for profile, packages in routes.items():
+            if not isinstance(packages, list) or not packages:
+                raise NovelOSError("configuration_error", "review_profile_routes 列表不能为空", {"profile": profile})
+            if any(not isinstance(pkg, str) or not pkg.strip() for pkg in packages):
+                raise NovelOSError("configuration_error", "review_profile_routes 必须是非空字符串列表", {"profile": profile})
+            if len(packages) != len(set(packages)):
+                raise NovelOSError("configuration_error", "review_profile_routes 包含重复包名", {"profile": profile})

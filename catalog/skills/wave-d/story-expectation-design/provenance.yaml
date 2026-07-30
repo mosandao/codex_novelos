@@ -1,0 +1,13 @@
+origin: adapted
+source_repository: /Users/yiyi/github/novelos
+source_path: backend/plugins/worldbuilding/skills/architecture-expectation/prompt.md
+source_commit: 902d7e62f55bc8bc2862e2b9574b5ee2f5f33403
+source_hash: sha256:a596f60f6a7cae0dfe476a961cc2413dbbe831c400d40ed14ba58b9f79ecf211
+license: user-authorized
+additional_sources:
+  - source_repository: /Users/yiyi/github/novelos
+    source_path: backend/plugins/worldbuilding/skills/architecture-narrative-promise/prompt.md
+    source_commit: 902d7e62f55bc8bc2862e2b9574b5ee2f5f33403
+    source_hash: sha256:3fd7756cd485c2c39346000ce4508132b0d392e2cec27d2210e9cd5fcdb16ec0
+    license: user-authorized
+migration_note: 归并期待管理与叙事承诺 Prompt，限定为全书期待与兑现节点设计。

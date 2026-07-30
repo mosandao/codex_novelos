@@ -129,6 +129,93 @@ priority: 100
             )["valid"]
         )
 
+    def test_contract_yaml_loading_and_lightweight_search(self) -> None:
+        package_dir = self.root / "wave-a" / "scene-dialogue"
+        (package_dir / "contract.yaml").write_text(
+            """contract_version: 1
+inputs:
+  - contract: fundamental_rules
+    cardinality: one
+outputs:
+  - growth_and_resource_system
+invariants:
+  - 不得创建主角免费例外
+forbidden_actions:
+  - commit_authority
+""",
+            encoding="utf-8",
+        )
+        search_res = self.store.search(stage="write", asset="scene")
+        self.assertNotIn("contract", search_res["candidates"][0])
+        self.assertNotIn("inputs", search_res["candidates"][0])
+
+        pkg_info = self.store.get("scene-dialogue")
+        self.assertEqual("novelos://catalog/scene-dialogue/contract", pkg_info["resources"]["contract"])
+        content = self.store.get_resource("scene-dialogue", "contract")
+        self.assertIn("fundamental_rules", content)
+
+    def test_invalid_contract_yaml_rejected(self) -> None:
+        package_dir = self.root / "wave-a" / "scene-dialogue"
+        (package_dir / "contract.yaml").write_text("contract_version: 1\nunknown_field: true\n", encoding="utf-8")
+        with self.assertRaisesRegex(NovelOSError, "contract 字段不合法"):
+            self.store.search()
+
+    def test_invalid_contract_cardinality_rejected(self) -> None:
+        package_dir = self.root / "wave-a" / "scene-dialogue"
+        (package_dir / "contract.yaml").write_text(
+            """contract_version: 1
+inputs:
+  - contract: test
+    cardinality: invalid_cardinality
+outputs: []
+invariants: []
+forbidden_actions: []
+""",
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(NovelOSError, "contract input cardinality 非法"):
+            self.store.search()
+
+    def test_duplicate_string_in_contract_rejected(self) -> None:
+        package_dir = self.root / "wave-a" / "scene-dialogue"
+        (package_dir / "contract.yaml").write_text(
+            """contract_version: 1
+inputs: []
+outputs:
+  - dup
+  - dup
+invariants: []
+forbidden_actions: []
+""",
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(NovelOSError, "outputs 存在重复字符串"):
+            self.store.search()
+
+    def test_contract_yaml_change_invalidates_snapshot(self) -> None:
+        package_dir = self.root / "wave-a" / "scene-dialogue"
+        (package_dir / "contract.yaml").write_text(
+            """contract_version: 1
+inputs: []
+outputs: [a]
+invariants: []
+forbidden_actions: []
+""",
+            encoding="utf-8",
+        )
+        snap1 = self.store.search()["snapshot_hash"]
+        (package_dir / "contract.yaml").write_text(
+            """contract_version: 1
+inputs: []
+outputs: [b]
+invariants: []
+forbidden_actions: []
+""",
+            encoding="utf-8",
+        )
+        snap2 = self.store.search()["snapshot_hash"]
+        self.assertNotEqual(snap1, snap2)
+
 
 if __name__ == "__main__":
     unittest.main()

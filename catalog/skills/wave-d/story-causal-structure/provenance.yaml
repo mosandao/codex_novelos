@@ -1,0 +1,7 @@
+origin: adapted
+source_repository: /Users/yiyi/github/novelos
+source_path: backend/plugins/worldbuilding/skills/architecture-causal-plot/prompt.md
+source_commit: 902d7e62f55bc8bc2862e2b9574b5ee2f5f33403
+source_hash: sha256:e98d50a736cba695eb892f4510f9794d4edbef4a3aaf239081ced794709847e2
+license: user-authorized
+migration_note: 适配旧工程 architecture-causal-plot Prompt，限定为因果链与状态推演。

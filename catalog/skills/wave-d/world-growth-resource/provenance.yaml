@@ -1,0 +1,7 @@
+origin: adapted
+source_repository: /Users/yiyi/github/novelos
+source_path: backend/plugins/worldbuilding/skills/architecture-ap2/prompt.md
+source_commit: 902d7e62f55bc8bc2862e2b9574b5ee2f5f33403
+source_hash: sha256:b78f6d9d663f2dcb6c9785b03be06631c1a8dbae727dfb97cc203a3e8c2bc714
+license: user-authorized
+migration_note: 适配旧工程 architecture-ap2 Prompt，限定为能力成长与资源消耗契约生成。

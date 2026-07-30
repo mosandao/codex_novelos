@@ -1,0 +1,19 @@
+name: prose-revision
+description: 小说正文局部重写、叙事润色与 AI 腔诊断修正方法
+stage: write
+asset: chapter
+capability: revise
+lifecycle: experiment
+version: 1.0.0
+genres: []
+risk: P1
+output_contract: free_text
+priority: 20
+use_when:
+- 需要在写作阶段对现有章节草稿进行局部重写润色或去除机械痕迹时
+avoid_when:
+- 需要完整起草全新章节正文时
+tags:
+- writing
+- prose-revision
+- rewrite

@@ -1,0 +1,13 @@
+origin: adapted
+source_repository: /Users/yiyi/github/novelos
+source_path: backend/plugins/worldbuilding/skills/architecture-pov-contract/prompt.md
+source_commit: 902d7e62f55bc8bc2862e2b9574b5ee2f5f33403
+source_hash: sha256:edb10ed3e19e6a3a9eb4f0bb3a51ec37e33151b8cfe7fe6e51abb9a894188baa
+license: user-authorized
+additional_sources:
+  - source_repository: /Users/yiyi/github/novelos
+    source_path: backend/plugins/worldbuilding/skills/architecture-tone/prompt.md
+    source_commit: 902d7e62f55bc8bc2862e2b9574b5ee2f5f33403
+    source_hash: sha256:22b694960d62ba970c01a3e474f971af595d647542c61ad19c113c75699093b9
+    license: user-authorized
+migration_note: 归并 POV 知识边界与基调 Prompt，限定为视角感知约束与叙事氛围规范。

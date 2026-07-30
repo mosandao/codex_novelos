@@ -1,0 +1,12 @@
+name: continuity-quality-review
+description: 章节连续性事实、伏笔与状态变更候选的独立审查
+stage: review
+asset: continuity
+capability: review
+lifecycle: active
+version: 1.0.0
+genres: []
+risk: P1
+output_contract: typed_result
+priority: 10
+tags: [continuity, review, receipt]

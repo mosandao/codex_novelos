@@ -1,0 +1,12 @@
+contract_version: 1
+inputs:
+  - contract: architecture
+    cardinality: one
+  - contract: strategy
+    cardinality: one
+outputs:
+  - growth_and_resource_system
+invariants:
+  - 不得创建主角免费例外
+forbidden_actions:
+  - commit_authority

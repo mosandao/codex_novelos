@@ -4,7 +4,7 @@
   ],
   "git_baseline_available": true,
   "prohibited_file_count": 0,
-  "prospective_file_count": 196,
+  "prospective_file_count": 311,
   "required_ignore_rules": [
     "!.env.example",
     "*.egg-info/",
@@ -30,5 +30,5 @@
   "schema_version": 1,
   "sensitive_file_count": 0,
   "status": "passed",
-  "tracked_file_count": 196
+  "tracked_file_count": 197
 }

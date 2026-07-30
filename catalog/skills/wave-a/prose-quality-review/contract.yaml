@@ -1,0 +1,11 @@
+contract_version: 1
+inputs:
+  - contract: chapter_draft
+    cardinality: one
+outputs:
+  - review_receipt
+invariants:
+  - 必须绑定不可变 subject_hash
+forbidden_actions:
+  - commit_authority
+  - modify_subject

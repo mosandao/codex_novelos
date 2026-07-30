@@ -1,0 +1,19 @@
+name: world-rule-system
+description: 底层规则体系与不可破边界设计方法
+stage: plan
+asset: world_contract
+capability: generate
+lifecycle: experiment
+version: 1.0.0
+genres: []
+risk: P1
+output_contract: document
+priority: 20
+use_when:
+- 需要在世界契约阶段建立超自然或物理法则的不可打破铁律时
+avoid_when:
+- 故事发生在完全无超自然法则的纯现实环境时
+tags:
+- worldbuilding
+- rule-system
+- constraints

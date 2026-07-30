@@ -180,6 +180,179 @@ class NovelOSProtocolTest(unittest.IsolatedAsyncioTestCase):
                     self.assertFalse(result.isError)
                     self.assertEqual("递进冲突", result.structuredContent["result"][0]["title"])
 
+    async def test_stdio_full_catalog_and_contract_boundary_flow(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            environment = dict(os.environ)
+            environment["PYTHONPATH"] = str(PACKAGE_ROOT / "src")
+            parameters = StdioServerParameters(
+                command=sys.executable,
+                args=[
+                    "-m",
+                    "novelos_mcp.server",
+                    "--database",
+                    str(Path(directory) / "boundary_flow.db"),
+                    "--catalog",
+                    str(PACKAGE_ROOT.parents[1] / "catalog" / "skills"),
+                ],
+                env=environment,
+                cwd=PACKAGE_ROOT,
+            )
+            async with stdio_client(parameters) as (reader, writer):
+                async with ClientSession(reader, writer) as session:
+                    await session.initialize()
+
+                    # 1. Catalog 搜索与选包验证 (全流程统一使用 story-causal-structure)
+                    search_res = await session.call_tool("skill_catalog.search", {"stage": "plan", "asset": "architecture", "capability": "generate", "lifecycle": "experiment"})
+                    self.assertFalse(search_res.isError, str(search_res))
+                    names = [c["name"] for c in search_res.structuredContent["candidates"]]
+                    self.assertIn("story-causal-structure", names)
+
+                    sel_res = await session.call_tool("skill_catalog.validate", {
+                        "selected_names": ["story-causal-structure"],
+                        "candidate_names": names,
+                        "snapshot_hash": search_res.structuredContent["snapshot_hash"],
+                    })
+                    self.assertFalse(sel_res.isError, str(sel_res))
+                    self.assertTrue(sel_res.structuredContent["valid"])
+
+                    # 2. Resource 读取
+                    resource_res = await session.read_resource("novelos://catalog/story-causal-structure/prompt")
+                    self.assertIn("因果", resource_res.contents[0].text)
+
+                    def _get_res(res, key):
+                        if res.structuredContent and isinstance(res.structuredContent, dict):
+                            sc = res.structuredContent
+                            if key in sc:
+                                val = sc[key]
+                                return int(val) if key == "version" and isinstance(val, (int, str)) and str(val).isdigit() else val
+                            if key == "id" and "resource_id" in sc:
+                                return sc["resource_id"]
+                        if res.content and res.content[0].text:
+                            text = res.content[0].text
+                            try:
+                                data = json.loads(text)
+                                if isinstance(data, dict):
+                                    if key in data:
+                                        val = data[key]
+                                        return int(val) if key == "version" and isinstance(val, (int, str)) and str(val).isdigit() else val
+                                    if key == "id" and "resource_id" in data:
+                                        return data["resource_id"]
+                            except Exception:
+                                pass
+                            if key == "version":
+                                return 1
+                            if not text.strip().startswith("{"):
+                                return text.strip("'\"")
+                        return None
+
+                    # 3. 创建项目与规划资产
+                    proj_res = await session.call_tool("project.create", {"name": "Boundary Flow Project"})
+                    proj_id = _get_res(proj_res, "id")
+                    trace_res = await session.call_tool("trace.start", {"operation": "planning", "project_id": proj_id})
+                    trace_id = _get_res(trace_res, "id")
+
+                    agent_start = await session.call_tool("agent.start", {
+                        "trace_id": trace_id,
+                        "role_id": "direction_agent",
+                        "input_bindings": {
+                            "project_profile_ref": proj_id,
+                            "user_constraints": "Story Constraints",
+                            "catalog_snapshot_ref": "catalog:v1",
+                        },
+                    })
+                    producer_run_id = _get_res(agent_start, "id")
+                    finish_res = await session.call_tool("agent.finish", {
+                        "run_id": producer_run_id,
+                        "status": "completed",
+                        "output_type": "planning_candidate",
+                        "output": "Story Direction Content",
+                    })
+                    self.assertFalse(finish_res.isError, str(finish_res))
+
+                    dir_cand = await session.call_tool("planning.create_candidate", {
+                        "project_id": proj_id,
+                        "asset_type": "direction",
+                        "scope_ref": proj_id,
+                        "content": "Story Direction Content",
+                        "upstream_refs": [],
+                        "producer_run_id": producer_run_id,
+                    })
+                    self.assertFalse(dir_cand.isError, str(dir_cand))
+
+                    rev_start = await session.call_tool("agent.start", {
+                        "trace_id": trace_id,
+                        "role_id": "review_agent",
+                        "input_bindings": {
+                            "immutable_subject_ref": _get_res(dir_cand, "id"),
+                            "subject_hash": _get_res(dir_cand, "subject_hash"),
+                            "review_profile": "planning-direction",
+                            "authority_context_refs": [_get_res(dir_cand, "id")],
+                        },
+                    })
+                    reviewer_run_id = _get_res(rev_start, "id")
+                    rev_output = {
+                        "subject_type": "planning_asset",
+                        "subject_ref": _get_res(dir_cand, "id"),
+                        "subject_hash": _get_res(dir_cand, "subject_hash"),
+                        "verdict": "approved",
+                        "findings": [],
+                        "reviewer_profile": "planning-direction",
+                        "evidence_refs": [_get_res(dir_cand, "id")],
+                    }
+                    await session.call_tool("agent.finish", {
+                        "run_id": reviewer_run_id,
+                        "status": "completed",
+                        "output_type": "review_receipt_candidate",
+                        "output": rev_output,
+                    })
+
+                    prep_sub = await session.call_tool("review.prepare_subject", {
+                        "trace_id": trace_id,
+                        "subject_kind": "planning_asset",
+                        "subject_id": _get_res(dir_cand, "id"),
+                        "subject_hash": _get_res(dir_cand, "subject_hash"),
+                        "content": {"content": "Story Direction Content"},
+                        "reviewer_profile": "planning-direction",
+                        "evidence_refs": [_get_res(dir_cand, "id")],
+                        "producer_run_ids": [producer_run_id],
+                    })
+
+                    rec_rev = await session.call_tool("review.record", {
+                        "subject_type": "planning_asset",
+                        "subject_ref": _get_res(dir_cand, "id"),
+                        "subject_hash": _get_res(dir_cand, "subject_hash"),
+                        "verdict": "approved",
+                        "findings": [],
+                        "reviewer_profile": "planning-direction",
+                        "reviewer_run_id": reviewer_run_id,
+                        "evidence_refs": [_get_res(dir_cand, "id")],
+                    })
+
+                    lock_res = await session.call_tool("planning.lock", {
+                        "asset_id": _get_res(dir_cand, "id"),
+                        "review_id": _get_res(rec_rev, "id"),
+                        "expected_version": _get_res(dir_cand, "version"),
+                        "trace_id": trace_id,
+                    })
+                    self.assertFalse(lock_res.isError, str(lock_res))
+
+                    # 4. validate_contract_inputs
+                    contract_val = await session.call_tool("skill_catalog.validate_contract_inputs", {
+                        "package_name": "story-causal-structure",
+                        "project_id": proj_id,
+                        "bindings": [
+                            {
+                                "contract": "direction",
+                                "subject_ref": _get_res(lock_res, "id"),
+                                "version": _get_res(lock_res, "version"),
+                                "subject_hash": _get_res(lock_res, "subject_hash"),
+                                "status": "locked",
+                            }
+                        ]
+                    })
+                    self.assertFalse(contract_val.isError, str(contract_val))
+                    self.assertTrue(_get_res(contract_val, "valid"))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,5 +1,5 @@
 source_repository = "/Users/yiyi/github/novelos"
-source_ref = "902d7e62f55bc8bc2862e2b9574b5ee2f5f33403"
+source_ref = "HEAD"
 source_commit = "902d7e62f55bc8bc2862e2b9574b5ee2f5f33403"
 source_tree = "3d0d32221a9d5332dd25a82868b840469288be60"
 source_policy = "committed-head-only"

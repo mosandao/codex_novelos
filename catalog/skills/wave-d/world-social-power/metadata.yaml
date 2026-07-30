@@ -1,0 +1,20 @@
+name: world-social-power
+description: 势力、制度、社会权力与阶层冲突设计方法
+stage: plan
+asset: world_contract
+capability: generate
+lifecycle: experiment
+version: 1.0.0
+genres: []
+risk: P1
+output_contract: document
+priority: 20
+use_when:
+- 需要在世界契约阶段设计势力利益博弈与阶层垄断时
+avoid_when:
+- 无社会势力参与的单人荒野求生场景时
+tags:
+- worldbuilding
+- society
+- power
+- faction

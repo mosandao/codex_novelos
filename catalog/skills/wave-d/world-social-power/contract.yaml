@@ -1,0 +1,12 @@
+contract_version: 1
+inputs:
+  - contract: architecture
+    cardinality: one
+  - contract: strategy
+    cardinality: one
+outputs:
+  - social_power_contract
+invariants:
+  - 势力制度必须建立在资源掌控之上
+forbidden_actions:
+  - commit_authority

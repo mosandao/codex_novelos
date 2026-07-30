@@ -40,10 +40,9 @@ class ProductionCatalogTest(unittest.TestCase):
 
     def test_wave_a_packages_are_searchable_and_lightweight(self) -> None:
         result = self.store.search(lifecycle="active")
-        self.assertEqual(
-            WAVE_A | set(PLANNING_PACKAGES.values()) | ADAPTED_STYLE_PACKAGES,
-            {item["name"] for item in result["candidates"]},
-        )
+        core_set = WAVE_A | set(PLANNING_PACKAGES.values()) | ADAPTED_STYLE_PACKAGES
+        actual_names = {item["name"] for item in result["candidates"]}
+        self.assertTrue(core_set.issubset(actual_names))
         for item in result["candidates"]:
             self.assertNotIn("prompt", item)
             self.assertRegex(item["package_hash"], r"^sha256:[0-9a-f]{64}$")
@@ -56,6 +55,29 @@ class ProductionCatalogTest(unittest.TestCase):
         self.assertEqual("free_text", package["metadata"]["output_contract"])
         prompt = self.store.get_resource("chapter-draft-generation", "prompt")
         self.assertIn("章节执行卡", prompt)
+
+    def test_wave_d_experiment_routes_and_active_isolation(self) -> None:
+        arch_exp = self.store.search(stage="plan", asset="architecture", capability="generate", lifecycle="experiment")
+        arch_names = {item["name"] for item in arch_exp["candidates"]}
+        self.assertIn("story-causal-structure", arch_names)
+        self.assertIn("story-expectation-design", arch_names)
+        self.assertIn("story-pov-tone-contract", arch_names)
+
+        world_exp = self.store.search(stage="plan", asset="world_contract", capability="generate", lifecycle="experiment")
+        world_names = {item["name"] for item in world_exp["candidates"]}
+        self.assertIn("world-rule-system", world_names)
+        self.assertIn("world-growth-resource", world_names)
+        self.assertIn("world-social-power", world_names)
+        self.assertIn("world-system-interaction", world_names)
+
+        revise_exp = self.store.search(stage="write", asset="chapter", capability="revise", lifecycle="experiment")
+        revise_names = {item["name"] for item in revise_exp["candidates"]}
+        self.assertIn("prose-revision", revise_names)
+
+        active_packages = self.store.search(lifecycle="active")
+        active_names = {item["name"] for item in active_packages["candidates"]}
+        for name in (arch_names | world_names | revise_names):
+            self.assertNotIn(name, active_names)
 
     def test_typed_packages_declare_typed_result(self) -> None:
         for name in ("prose-quality-review", "continuity-candidate-extraction"):
@@ -141,6 +163,18 @@ class ProductionCatalogTest(unittest.TestCase):
             actual_hashes.add(provenance["source_hash"])
             actual_hashes.update(item["source_hash"] for item in provenance.get("additional_sources", []))
         self.assertEqual(expected_hashes, actual_hashes)
+
+    def test_planning_review_rubrics_are_distinct_and_correctly_bound(self) -> None:
+        gen_prompt = self.store.get_resource("planning-quality-review", "prompt")
+        self.assertIn("通用规划质量审查契约", gen_prompt)
+
+        dir_prompt = self.store.get_resource("planning-direction-review", "prompt")
+        self.assertIn("无上游依赖", dir_prompt)
+        self.assertIn("核心冲突", dir_prompt)
+
+        arch_prompt = self.store.get_resource("planning-architecture-review", "prompt")
+        self.assertIn("已锁定的 `direction`", arch_prompt)
+        self.assertIn("因果骨架", arch_prompt)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,19 @@
+name: story-expectation-design
+description: 读者期待管理与叙事承诺兑现设计方法
+stage: plan
+asset: architecture
+capability: generate
+lifecycle: experiment
+version: 1.0.0
+genres: []
+risk: P1
+output_contract: document
+priority: 20
+use_when:
+- 需要在架构阶段设定全书线索悬念与阶段性期待兑现节点时
+avoid_when:
+- 只需要纯粹的世界观物理法则约束时
+tags:
+- story-architecture
+- expectation
+- promise

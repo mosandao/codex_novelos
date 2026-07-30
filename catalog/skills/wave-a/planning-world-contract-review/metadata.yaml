@@ -1,0 +1,15 @@
+name: planning-world-contract-review
+description: 势力与世界规则契约审查
+stage: review
+asset: world_contract
+capability: review
+lifecycle: active
+version: 1.0.0
+genres: []
+risk: P1
+output_contract: typed_result
+priority: 10
+tags:
+- review
+- planning
+- world_contract

@@ -1,0 +1,12 @@
+name: planning-cross-consistency-review
+description: 人物契约与世界契约之间的交叉一致性独立审查
+stage: review
+asset: planning
+capability: review
+lifecycle: active
+version: 1.0.0
+genres: []
+risk: P1
+output_contract: typed_result
+priority: 10
+tags: [planning, cross-consistency, review, receipt]

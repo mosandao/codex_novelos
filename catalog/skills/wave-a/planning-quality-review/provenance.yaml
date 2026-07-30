@@ -1,0 +1,7 @@
+origin: target-native
+source_repository: null
+source_path: null
+source_commit: null
+source_hash: null
+license: NovelOS-project
+migration_note: 根据 Review Receipt 和 planning Profile 契约独立编写，未复制 legacy Prompt。
