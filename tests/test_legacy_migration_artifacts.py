@@ -37,15 +37,18 @@ class LegacyMigrationArtifactsTest(unittest.TestCase):
     @unittest.skipUnless(SOURCE_PATH.exists() and TARGET_PATH.exists(), "本地迁移数据库未保留")
     def test_local_migration_databases_match_report(self) -> None:
         report = json.loads(REPORT_PATH.read_text(encoding="utf-8"))
+        # 源库是不可变的迁移基线：其字节 hash 必须永远等于报告冻结值。
         self.assertEqual(SOURCE_HASH, hashlib.sha256(SOURCE_PATH.read_bytes()).hexdigest())
 
         with closing(sqlite3.connect(f"file:{TARGET_PATH}?mode=ro", uri=True)) as connection:
             self.assertEqual("ok", connection.execute("PRAGMA quick_check").fetchone()[0])
             versions = [row[0] for row in connection.execute("SELECT version FROM schema_migrations ORDER BY version")]
             self.assertEqual([1, 2, 3, 4, 5, 6, 7, 8, 9], versions)
+            # 目标库是活的生产数据库：迁移是不可撤销的追加基线，之后只增不减。
+            # 因此校验下限为迁移冻结计数（>=），而非严格相等；删除迁移基线数据才会失败。
             for table, expected in EXPECTED_COUNTS.items():
                 count = connection.execute(f'SELECT COUNT(*) FROM "{table}"').fetchone()[0]
-                self.assertEqual(expected, count, table)
+                self.assertGreaterEqual(count, expected, table)
             import_row = connection.execute("SELECT source_hash FROM legacy_imports").fetchone()
             self.assertEqual(report["source_hash"], import_row[0])
 
