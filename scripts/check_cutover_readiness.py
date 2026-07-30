@@ -12,12 +12,14 @@ try:
     from check_repository_hygiene import DEFAULT_OUTPUT as HYGIENE_REPORT
     from check_repository_hygiene import build as build_hygiene
     from check_repository_hygiene import render as render_hygiene
+    from check_repository_hygiene import snapshot as snapshot_hygiene
     from summarize_agent_quality_results import DEFAULT_DATASET, DEFAULT_RESULTS, summary_is_current
 except ModuleNotFoundError:  # 作为 scripts 命名空间模块导入时使用。
     from scripts.check_cutover_plan import plan_is_valid
     from scripts.check_repository_hygiene import DEFAULT_OUTPUT as HYGIENE_REPORT
     from scripts.check_repository_hygiene import build as build_hygiene
     from scripts.check_repository_hygiene import render as render_hygiene
+    from scripts.check_repository_hygiene import snapshot as snapshot_hygiene
     from scripts.summarize_agent_quality_results import DEFAULT_DATASET, DEFAULT_RESULTS, summary_is_current
 
 
@@ -119,7 +121,10 @@ def build() -> dict[str, Any]:
         check=False,
     ).returncode == 0
     hygiene = build_hygiene()
-    hygiene_current = HYGIENE_REPORT.is_file() and HYGIENE_REPORT.read_text(encoding="utf-8") == render_hygiene(hygiene)
+    # 黄金文件只锁定结构性字段（剥离瞬时 git 计数），见 check_repository_hygiene.snapshot。
+    hygiene_current = HYGIENE_REPORT.is_file() and HYGIENE_REPORT.read_text(encoding="utf-8") == render_hygiene(
+        snapshot_hygiene(hygiene)
+    )
     quality_complete = bool(
         quality_evidence_valid
         and quality

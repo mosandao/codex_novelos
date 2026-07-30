@@ -143,6 +143,21 @@ def build(root: Path = ROOT) -> dict[str, Any]:
     }
 
 
+# 工作树瞬时计数：随开发者未跟踪文件、git 状态波动，不进入黄金快照比对。
+# 禁止产物检测仍由 ``build()`` 即时执行并经 ``prohibited_file_count`` 报告，
+# 因此剥离这两个计数不会放松安全门禁，只消除合法未跟踪文件造成的快照假阳性。
+INSTANTANEOUS_FIELDS = ("prospective_file_count", "tracked_file_count")
+
+
+def snapshot(payload: dict[str, Any]) -> dict[str, Any]:
+    """从 ``build()`` 结果派生结构性快照：剥离随工作树瞬时状态波动的计数。
+
+    安全语义不变——``build()`` 已对禁止产物和敏感文件 fail-closed，剥离的仅是
+    「此刻 git 跟踪/未跟踪文件总数」这两个诊断计数，避免开发者临时文件让黄金文件失配。
+    """
+    return {key: value for key, value in payload.items() if key not in INSTANTANEOUS_FIELDS}
+
+
 def render(payload: dict[str, Any]) -> str:
     return json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
 
@@ -153,9 +168,10 @@ def main() -> None:
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
     try:
-        content = render(build())
+        report = build()
     except (HygieneError, OSError, subprocess.SubprocessError, UnicodeDecodeError) as exc:
         raise SystemExit(str(exc)) from exc
+    content = render(snapshot(report))
     if args.check:
         if not args.output.is_file() or args.output.read_text(encoding="utf-8") != content:
             raise SystemExit(f"仓库卫生报告不是当前 prospective Git 文件集结果：{args.output}")
