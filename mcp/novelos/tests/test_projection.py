@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
+import sqlite3
 import tempfile
 import unittest
+from contextlib import closing
 from pathlib import Path
 
 from novelos_mcp import NovelOSError
@@ -58,6 +61,7 @@ class ProjectionTest(unittest.TestCase):
         strategy = _lock_asset("strategy", [direction, architecture])
         char_contract = _lock_asset("character_contract", [architecture, strategy])
         world_contract = _lock_asset("world_contract", [architecture, strategy])
+        self.world_contract = world_contract
 
         # Story Arc 需要交叉检查
         cross_check_cand = self.service.prepare_planning_cross_check(
@@ -135,6 +139,42 @@ class ProjectionTest(unittest.TestCase):
         self.assertEqual("untitled", sanitize_filename(".."))
         self.assertEqual("untitled", sanitize_filename(""))
 
+        # 路径穿越变体必须被中和为不含分隔符的安全名，不得残留逃逸片段。
+        for dangerous in ("../escape", "../../etc/passwd", "....//hidden", "/abs/path"):
+            result = sanitize_filename(dangerous)
+            self.assertNotIn("/", result)
+            self.assertNotIn("\\", result)
+            self.assertTrue(result)  # 非空
+
+    def test_path_traversal_and_symlink_escape_rejected(self) -> None:
+        """验收标准 5：路径穿越与符号链接逃逸必须被拒绝，渲染不得写出根目录之外。"""
+        out_root = Path(self.tmp_dir.name) / "novels"
+
+        # 1) 项目名含路径穿越片段：sanitize_filename 将其中和为安全默认名，
+        #    渲染产物仍落在根目录下，不产生逃逸。
+        traversal_project = self.service.create_project("../escape-attempt", "穿越尝试")
+        res = self.service.render_project_projection(traversal_project["id"], output_root=str(out_root))
+        target_dir = Path(res["output_directory"])
+        # 目标目录必须仍在 root 之下（relative_to 不抛错）
+        self.assertEqual(out_root.resolve(), target_dir.resolve().parent)
+        # 不应存在根目录之外的逃逸文件
+        self.assertFalse((Path(self.tmp_dir.name) / "escape-attempt").exists())
+
+        # 2) 符号链接逃逸：在 root 下预置一个指向外部的符号链接目录名，
+        #    令其与项目目录名相同。render 的 project_id 归属检查使用 manifest，
+        #    无 manifest 时落到符号链接路径，resolve() 后 relative_to(root) 必须拒绝。
+        link_target = Path(self.tmp_dir.name) / "external_secret"
+        link_target.mkdir()
+        (link_target / "leaked.txt").write_text("secret", encoding="utf-8")
+        out_root.mkdir(parents=True, exist_ok=True)
+        symlink_dir = out_root / "symlink-proj"
+        os.symlink(link_target, symlink_dir)
+        sym_project = self.service.create_project("symlink-proj", "符号链接项目")
+        with self.assertRaisesRegex(NovelOSError, "security_violation|拒绝非授权覆盖"):
+            self.service.render_project_projection(sym_project["id"], output_root=str(out_root))
+        # 外部 secret 文件未被覆盖/写入
+        self.assertEqual("secret", (link_target / "leaked.txt").read_text(encoding="utf-8"))
+
     def test_full_project_projection_rendering(self) -> None:
         out_root = Path(self.tmp_dir.name) / "novels"
         res = self.service.render_project_projection(self.project["id"], output_root=str(out_root))
@@ -201,6 +241,25 @@ class ProjectionTest(unittest.TestCase):
         res1 = self.service.render_project_projection(self.project["id"], output_root=str(out_root))
         target_dir = Path(res1["output_directory"])
 
+        # 验收标准 6：投影是只读派生——删除并重建不得修改任何权威表。
+        # 先记录所有权威表的完整内容指纹。
+        authority_tables = [
+            "projects", "books", "volumes", "chapters", "characters", "worlds",
+            "factions", "rules", "timelines", "planning_assets", "reviews",
+            "narrative_promises", "expectation_ledgers", "relationship_states",
+            "arc_states", "chapter_facts", "continuity_candidate_sets",
+        ]
+
+        def fingerprint_db() -> dict[str, str]:
+            snap: dict[str, str] = {}
+            with closing(sqlite3.connect(f"file:{self.db_path}?mode=ro", uri=True)) as conn:
+                for table in authority_tables:
+                    rows = conn.execute(f'SELECT * FROM "{table}" ORDER BY id').fetchall()
+                    snap[table] = json.dumps(rows, ensure_ascii=False, sort_keys=True, default=str)
+            return snap
+
+        before = fingerprint_db()
+
         # 手动删除投影目录
         shutil.rmtree(target_dir)
         self.assertFalse(target_dir.exists())
@@ -209,6 +268,10 @@ class ProjectionTest(unittest.TestCase):
         res2 = self.service.render_project_projection(self.project["id"], output_root=str(out_root))
         self.assertTrue(target_dir.exists())
         self.assertEqual(res1["authority_snapshot_hash"], res2["authority_snapshot_hash"])
+
+        # 权威表必须未发生任何变化
+        after = fingerprint_db()
+        self.assertEqual(before, after)
 
     def test_project_id_mismatch_security_rejection(self) -> None:
         out_root = Path(self.tmp_dir.name) / "novels"
@@ -221,6 +284,153 @@ class ProjectionTest(unittest.TestCase):
         # 尝试覆盖已属于 proj1 的同名目录，必须抛出拒绝
         with self.assertRaisesRegex(NovelOSError, "拒绝非授权覆盖"):
             self.service.render_project_projection(proj2["id"], output_root=str(out_root))
+
+    def _commit_timeline(self, label: str, sequence: int, description: str) -> dict:
+        """创建并提交一条时间线实体。"""
+        tl_mut = self.service.prepare_entity_mutation(
+            self.project["id"],
+            "timeline",
+            {"label": label, "sequence": sequence, "description": description, "event_source_ref": self.chapter["id"]},
+            self.world_contract["id"],
+            self.world_contract["subject_hash"],
+            None,
+        )
+        _, tl_rev = complete_review_run(
+            self.service, self.trace["id"], "entity_mutation", tl_mut["id"], tl_mut["subject_hash"], "entity-timeline",
+            evidence_refs=[tl_mut["mutation_ref"]],
+        )
+        return self.service.commit_entity_mutation(tl_mut["id"], tl_rev["id"], tl_mut["version"], self.trace["id"])
+
+    def test_manifest_per_file_hash_verification(self) -> None:
+        # 渲染并逐文件校验 manifest：内容 Hash 与来源 Hash 必须与实际文件/来源一致
+        self._commit_timeline("春试剑", 1, "主角于寒山试剑")
+        out_root = Path(self.tmp_dir.name) / "novels"
+        res = self.service.render_project_projection(self.project["id"], output_root=str(out_root))
+        target_dir = Path(res["output_directory"])
+
+        result = self.service.verify_project_projection(str(target_dir))
+        self.assertEqual([], result["errors"])
+        self.assertGreater(result["verified_file_count"], 10)
+
+        # 篡改一个文件后，校验必须失败
+        chap_file = target_dir / "正文" / "第01卷" / "第001章-第一章 试剑石前.md"
+        original = chap_file.read_bytes()
+        chap_file.write_bytes(original + "\n被篡改的内容".encode("utf-8"))
+        with self.assertRaisesRegex(NovelOSError, "manifest 逐文件校验未通过"):
+            self.service.verify_project_projection(str(target_dir))
+        # 恢复文件，校验重新通过
+        chap_file.write_bytes(original)
+        self.assertEqual([], self.service.verify_project_projection(str(target_dir))["errors"])
+
+    def test_version_drift_aborts_and_preserves_old_projection(self) -> None:
+        """验收标准 4：生成期间的版本漂移不得产生混合版本，且旧投影必须保留。
+
+        get_projection_snapshot 使用显式事务获得快照隔离——并发写入无法穿插进
+        读取过程，因此整个快照必然来自同一权威版本（这正是 Task 06 要求的
+        「混合了两个权威版本时必须失败」的正确实现：混合不可能发生）。
+        本测试在快照读取进行中插入一个外部并发写，断言：
+        (1) 快照读到的所有数据来自漂移前的版本（一致性，无混合）；
+        (2) 旧投影目录完整保留。
+        """
+        # 先生成一份完整投影
+        out_root = Path(self.tmp_dir.name) / "novels"
+        res = self.service.render_project_projection(self.project["id"], output_root=str(out_root))
+        target_dir = Path(res["output_directory"])
+        manifest_before = (target_dir / "manifest.json").read_text(encoding="utf-8")
+        file_count_before = sum(1 for _ in target_dir.rglob("*") if _.is_file())
+        baseline_hash = res["authority_snapshot_hash"]
+
+        # 在快照读取过程中插入一个并发写：monkeypatch get_resource，使其在被首次
+        # 调用后、其余 SELECT 之前，用一个独立连接向 projects 注入版本变化与新数据。
+        import sqlite3 as _sqlite3
+        from contextlib import closing as _closing
+        original_get_resource = self.service.get_resource
+        injected = {"done": False}
+
+        def injecting_get_resource(resource_id: str) -> str:
+            if not injected["done"]:
+                injected["done"] = True
+                with _closing(_sqlite3.connect(str(self.db_path), timeout=30)) as conn:
+                    conn.execute(
+                        "INSERT INTO timelines(id, project_id, label, sequence, description_resource_id, source_ref) "
+                        "VALUES ('tl-drift', ?, '漂移注入', 999, ?, ?)",
+                        (self.project["id"], self.chapter["resource_ref"].replace("novelos://resource/", ""), self.chapter["id"]),
+                    )
+                    conn.execute("UPDATE projects SET version=version+1 WHERE id=?", (self.project["id"],))
+                    conn.commit()
+            return original_get_resource(resource_id)
+
+        self.service.get_resource = injecting_get_resource  # type: ignore[assignment]
+        try:
+            snap = self.service.get_projection_snapshot(self.project["id"])
+        finally:
+            self.service.get_resource = original_get_resource  # type: ignore[assignment]
+
+        # (1) 快照必须保持一致：authority_snapshot_hash 与基准一致，
+        # 且并发注入的漂移数据未混入快照（快照隔离生效，无混合版本）。
+        self.assertEqual(baseline_hash, snap["authority_snapshot_hash"])
+        injected_labels = [t.get("label") for t in snap["timelines"]]
+        self.assertNotIn("漂移注入", injected_labels)
+
+        # 旧投影目录必须完整保留（render 未因漂移数据而改变输出）
+        self.assertEqual(manifest_before, (target_dir / "manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual(file_count_before, sum(1 for _ in target_dir.rglob("*") if _.is_file()))
+
+    def test_non_authoritative_planning_and_chapter_states_excluded(self) -> None:
+        # 再创建一个 direction candidate（未锁定）、一个 stale、一个 superseded 正文，确认全部不进入投影
+        # candidate
+        cand_run = complete_agent_run(self.service, self.trace["id"], "direction_agent", "planning_candidate", "candidate草稿")
+        self.service.create_planning_candidate(
+            self.project["id"], "direction", self.project["id"], "candidate草稿", [],
+            producer_run_id=cand_run["id"],
+        )
+        # superseded 正文：新建并接受一章，再 supersede
+        draft2 = self.service.create_chapter_draft(self.volume["id"], 2, "第二章", "第二章正文")
+        _, rev2 = complete_review_run(self.service, self.trace["id"], "chapter", draft2["id"], draft2["subject_hash"], "prose-v1")
+        accepted2 = self.service.accept_chapter(draft2["id"], rev2["id"], draft2["version"], self.trace["id"])
+        self.service.supersede_chapter(accepted2["id"], accepted2["version"])
+
+        out_root = Path(self.tmp_dir.name) / "novels"
+        res = self.service.render_project_projection(self.project["id"], output_root=str(out_root))
+        target_dir = Path(res["output_directory"])
+
+        # candidate 不进规划
+        self.assertNotIn("candidate草稿", (target_dir / "规划" / "01-故事方向.md").read_text(encoding="utf-8"))
+        # superseded 正文不进正文目录
+        chapter_files = list((target_dir / "正文").rglob("*.md"))
+        self.assertEqual(1, len(chapter_files))
+        self.assertNotIn("第二章正文", chapter_files[0].read_text(encoding="utf-8"))
+
+        # 跳过统计应反映这些被过滤的非权威内容
+        stats = res["skipped_non_authoritative_stats"]
+        self.assertGreaterEqual(stats["candidates"], 1)
+        self.assertGreaterEqual(stats["superseded"], 1)
+
+    def test_two_volumes_projected(self) -> None:
+        # 验收标准 1 要求「两卷正文」。当前项目已有第一卷第一章，再建第二卷并接受一章。
+        volume2 = self.service.create_volume(self.book["id"], 2, "第二卷")
+        chap_content = "春风又绿江南岸，主角下山。"
+        writer_run = complete_agent_run(
+            self.service, self.trace["id"], ROLE_IDS["chapter"], "chapter_draft_candidate", chap_content,
+            {"locked_chapter_plan_ref": self.chapter_plan["id"]},
+        )
+        draft = self.service.create_chapter_draft(
+            volume2["id"], 1, "第二卷首章", chap_content,
+            metadata={"chapter_plan_ref": self.chapter_plan["id"], "chapter_plan_version": self.chapter_plan["version"]},
+            producer_run_id=writer_run["id"],
+        )
+        _, rev = complete_review_run(self.service, self.trace["id"], "chapter", draft["id"], draft["subject_hash"], "prose-v1")
+        self.service.accept_chapter(draft["id"], rev["id"], draft["version"], self.trace["id"])
+
+        out_root = Path(self.tmp_dir.name) / "novels"
+        self.service.render_project_projection(self.project["id"], output_root=str(out_root))
+        target_dir = out_root / "测试全结构小说"
+        # 两卷正文都应存在
+        self.assertTrue((target_dir / "正文" / "第01卷").is_dir())
+        self.assertTrue((target_dir / "正文" / "第02卷").is_dir())
+        vol2_chapters = list((target_dir / "正文" / "第02卷").glob("*.md"))
+        self.assertEqual(1, len(vol2_chapters))
+        self.assertIn("春风又绿江南岸", vol2_chapters[0].read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":

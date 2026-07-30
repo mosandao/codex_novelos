@@ -73,6 +73,7 @@ Character 与 World 可以有同时运行的独立 run。Story Arc 前必须创�
 3. MCP 在目标根目录内创建临时同级目录，按固定规则生成中文 Markdown 结构和 `manifest.json`。
 4. MCP 校验每个文件 Hash、来源 ID/版本/Hash、路径边界和快照未漂移后，原子替换同一项目的旧投影。
 5. Main 向用户返回实际目录、Authority Snapshot Hash、文件数和被跳过的非权威内容统计。
+6. 可随时调用 `projection.verify_manifest` 独立校验已生成目录：逐文件重算 SHA-256 并核对 `manifest.json` 中记录的 `source_hash`，篡改或不一致即失败。
 
 拒绝路径：目标目录属于其他项目、名称清理失败、路径或符号链接逃逸、生成期间权威版本变化、Resource Hash 不匹配或无法原子完成时，不得留下部分新投影，也不得修改 SQLite。
 

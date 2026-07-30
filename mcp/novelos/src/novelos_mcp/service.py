@@ -2538,97 +2538,179 @@ class NovelOSService:
 
     def get_projection_snapshot(self, project_id: str) -> dict[str, Any]:
         with self.database.read() as connection:
-            project = self._get(connection, "projects", project_id)
-            initial_version = project["version"]
+            # 显式开启只读事务以获得快照隔离：整个读取期间所有 SELECT
+            # 看到事务开始时的数据库快照，并发写不会穿插进来造成混合版本。
+            connection.execute("BEGIN")
+            try:
+                return self._read_projection_snapshot(connection, project_id)
+            finally:
+                connection.rollback()
 
-            # 读取仅 locked 的规划资产 (含 volume_outline 和 chapter_plan)
-            planning_rows = connection.execute(
-                "SELECT * FROM planning_assets WHERE project_id=? AND status='locked' ORDER BY asset_type",
-                (project_id,),
-            ).fetchall()
-            planning_assets = {}
-            volume_outlines = []
-            chapter_plans = []
-            for row in planning_rows:
-                r = self._row(row)
-                res_id = r["resource_ref"].replace("novelos://resource/", "")
-                r["content"] = self.get_resource(res_id)
-                atype = r["asset_type"]
-                planning_assets[atype] = r
-                if atype == "volume_outline":
-                    volume_outlines.append(r)
-                elif atype == "chapter_plan":
-                    chapter_plans.append(r)
+    def _read_projection_snapshot(self, connection: sqlite3.Connection, project_id: str) -> dict[str, Any]:
+        project = self._get(connection, "projects", project_id)
+        initial_version = project["version"]
 
-            # 读取仅 accepted 的正文
-            chap_rows = connection.execute(
-                """
-                SELECT c.*, v.number AS volume_number, v.title AS volume_title
-                FROM chapters c
-                JOIN volumes v ON c.volume_id = v.id
-                JOIN books b ON v.book_id = b.id
-                WHERE b.project_id=? AND c.status='accepted'
-                ORDER BY v.number, c.number
-                """,
-                (project_id,),
-            ).fetchall()
-            chapters = []
-            for r in chap_rows:
-                item = self._row(r)
-                res_id = item["resource_ref"].replace("novelos://resource/", "")
-                item["content"] = self.get_resource(res_id)
-                chapters.append(item)
+        # 读取规划资产，同时统计被跳过的非权威状态（candidate/stale/superseded）。
+        planning_rows = connection.execute(
+            "SELECT * FROM planning_assets WHERE project_id=? AND status='locked' ORDER BY asset_type",
+            (project_id,),
+        ).fetchall()
+        planning_assets = {}
+        volume_outlines = []
+        chapter_plans = []
+        for row in planning_rows:
+            r = self._row(row)
+            res_id = r["resource_ref"].replace("novelos://resource/", "")
+            r["content"] = self.get_resource(res_id)
+            atype = r["asset_type"]
+            planning_assets[atype] = r
+            if atype == "volume_outline":
+                volume_outlines.append(r)
+            elif atype == "chapter_plan":
+                chapter_plans.append(r)
 
-            # 读取实体
-            char_rows = connection.execute(
-                "SELECT * FROM characters WHERE project_id=? ORDER BY name",
-                (project_id,),
-            ).fetchall()
-            characters = [self._row(r) for r in char_rows]
+        # 统计被过滤的非权威规划资产数量
+        skipped_candidates = connection.execute(
+            "SELECT COUNT(*) FROM planning_assets WHERE project_id=? AND status='candidate'",
+            (project_id,),
+        ).fetchone()[0]
+        skipped_stale = connection.execute(
+            "SELECT COUNT(*) FROM planning_assets WHERE project_id=? AND status='stale'",
+            (project_id,),
+        ).fetchone()[0]
+        skipped_superseded = connection.execute(
+            "SELECT COUNT(*) FROM planning_assets WHERE project_id=? AND status='superseded'",
+            (project_id,),
+        ).fetchone()[0]
+        # 统计被过滤的非 accepted 正文（draft/superseded）
+        skipped_draft_chapters = connection.execute(
+            """
+            SELECT COUNT(*) FROM chapters c
+            JOIN volumes v ON c.volume_id = v.id
+            JOIN books b ON v.book_id = b.id
+            WHERE b.project_id=? AND c.status='draft'
+            """,
+            (project_id,),
+        ).fetchone()[0]
+        skipped_superseded_chapters = connection.execute(
+            """
+            SELECT COUNT(*) FROM chapters c
+            JOIN volumes v ON c.volume_id = v.id
+            JOIN books b ON v.book_id = b.id
+            WHERE b.project_id=? AND c.status='superseded'
+            """,
+            (project_id,),
+        ).fetchone()[0]
 
-            world_rows = connection.execute(
-                "SELECT * FROM worlds WHERE project_id=? ORDER BY name",
-                (project_id,),
-            ).fetchall()
-            worlds = [self._row(r) for r in world_rows]
+        # 读取仅 accepted 的正文
+        chap_rows = connection.execute(
+            """
+            SELECT c.*, v.number AS volume_number, v.title AS volume_title
+            FROM chapters c
+            JOIN volumes v ON c.volume_id = v.id
+            JOIN books b ON v.book_id = b.id
+            WHERE b.project_id=? AND c.status='accepted'
+            ORDER BY v.number, c.number
+            """,
+            (project_id,),
+        ).fetchall()
+        chapters = []
+        for r in chap_rows:
+            item = self._row(r)
+            res_id = item["resource_ref"].replace("novelos://resource/", "")
+            item["content"] = self.get_resource(res_id)
+            chapters.append(item)
 
-            # 读取 6 大连续性账本
-            np_rows = connection.execute(
-                "SELECT * FROM narrative_promises WHERE project_id=? ORDER BY id", (project_id,)
-            ).fetchall()
-            el_rows = connection.execute(
-                "SELECT * FROM expectation_ledgers WHERE project_id=? ORDER BY id", (project_id,)
-            ).fetchall()
-            rs_rows = connection.execute(
-                "SELECT * FROM relationship_states WHERE project_id=? ORDER BY id", (project_id,)
-            ).fetchall()
-            as_rows = connection.execute(
-                "SELECT * FROM arc_states WHERE project_id=? ORDER BY id", (project_id,)
-            ).fetchall()
-            # 再次查验版本漂移
-            current_project = self._get(connection, "projects", project_id)
-            if current_project["version"] != initial_version:
-                raise NovelOSError("version_drift", "在快照读取期间发现项目版本漂移，拒绝生成快照")
+        # 读取实体
+        char_rows = connection.execute(
+            "SELECT * FROM characters WHERE project_id=? ORDER BY name",
+            (project_id,),
+        ).fetchall()
+        characters = [self._row(r) for r in char_rows]
 
-            snapshot_payload = {
-                "project": self._row(project),
-                "planning_assets": planning_assets,
-                "volume_outlines": volume_outlines,
-                "chapter_plans": chapter_plans,
-                "chapters": chapters,
-                "characters": characters,
-                "worlds": worlds,
-                "narrative_promises": [self._row(r) for r in np_rows],
-                "expectation_ledgers": [self._row(r) for r in el_rows],
-                "relationship_states": [self._row(r) for r in rs_rows],
-                "arc_states": [self._row(r) for r in as_rows],
-            }
-            snapshot_hash = content_hash(_json(snapshot_payload))
-            snapshot_payload["authority_snapshot_hash"] = snapshot_hash
-            return snapshot_payload
+        world_rows = connection.execute(
+            "SELECT * FROM worlds WHERE project_id=? ORDER BY name",
+            (project_id,),
+        ).fetchall()
+        worlds = [self._row(r) for r in world_rows]
+
+        # 读取时间线账本
+        timeline_rows = connection.execute(
+            "SELECT * FROM timelines WHERE project_id=? ORDER BY sequence, label", (project_id,)
+        ).fetchall()
+        timelines = []
+        for r in timeline_rows:
+            item = self._row(r)
+            res_id = item["description_ref"].replace("novelos://resource/", "")
+            item["description"] = self.get_resource(res_id)
+            timelines.append(item)
+
+        # 读取连续性账本
+        np_rows = connection.execute(
+            "SELECT * FROM narrative_promises WHERE project_id=? ORDER BY id", (project_id,)
+        ).fetchall()
+        el_rows = connection.execute(
+            "SELECT * FROM expectation_ledgers WHERE project_id=? ORDER BY id", (project_id,)
+        ).fetchall()
+        rs_rows = connection.execute(
+            "SELECT * FROM relationship_states WHERE project_id=? ORDER BY id", (project_id,)
+        ).fetchall()
+        as_rows = connection.execute(
+            "SELECT * FROM arc_states WHERE project_id=? ORDER BY id", (project_id,)
+        ).fetchall()
+        # 读取正文事实账本
+        fact_rows = connection.execute(
+            "SELECT * FROM chapter_facts WHERE project_id=? AND status='accepted' ORDER BY id",
+            (project_id,),
+        ).fetchall()
+        fact_records = []
+        for r in fact_rows:
+            item = self._row(r)
+            res_id = item["description_ref"].replace("novelos://resource/", "")
+            item["description"] = self.get_resource(res_id)
+            fact_records.append(item)
+
+        # 再次查验版本漂移（快照隔离下并发写已无法穿插，此处为防御性二次校验）
+        current_project = self._get(connection, "projects", project_id)
+        if current_project["version"] != initial_version:
+            raise NovelOSError("version_drift", "在快照读取期间发现项目版本漂移，拒绝生成快照")
+
+        skipped_non_authoritative_stats = {
+            "candidates": skipped_candidates,
+            "stale": skipped_stale,
+            "superseded": skipped_superseded + skipped_superseded_chapters,
+            "draft_chapters": skipped_draft_chapters,
+        }
+        # authority_snapshot_hash 只覆盖权威业务内容，不含运行时的跳过统计，
+        # 否则非权威内容的增删会破坏两次投影之间的确定性 Hash。
+        snapshot_payload = {
+            "project": self._row(project),
+            "planning_assets": planning_assets,
+            "volume_outlines": volume_outlines,
+            "chapter_plans": chapter_plans,
+            "chapters": chapters,
+            "characters": characters,
+            "worlds": worlds,
+            "timelines": timelines,
+            "narrative_promises": [self._row(r) for r in np_rows],
+            "expectation_ledgers": [self._row(r) for r in el_rows],
+            "relationship_states": [self._row(r) for r in rs_rows],
+            "arc_states": [self._row(r) for r in as_rows],
+            "fact_records": fact_records,
+        }
+        snapshot_hash = content_hash(_json(snapshot_payload))
+        snapshot_payload["authority_snapshot_hash"] = snapshot_hash
+        snapshot_payload["skipped_non_authoritative_stats"] = skipped_non_authoritative_stats
+        return snapshot_payload
 
     def render_project_projection(self, project_id: str, output_root: str = "novels") -> dict[str, Any]:
         from novelos_mcp.projection import ProjectionEngine
 
         engine = ProjectionEngine(root_dir=output_root)
         return engine.render(self, project_id)
+
+    def verify_project_projection(self, project_directory: str) -> dict[str, Any]:
+        """逐文件校验已生成的投影目录，校验其 manifest 中记录的内容 Hash 与来源 Hash。"""
+        from novelos_mcp.projection import ProjectionEngine
+
+        return ProjectionEngine.verify_manifest(project_directory)

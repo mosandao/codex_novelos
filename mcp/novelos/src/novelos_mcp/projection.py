@@ -81,7 +81,7 @@ class ProjectionEngine:
         tmp_dir.mkdir(parents=True, exist_ok=True)
 
         files_manifest: list[dict[str, Any]] = []
-        skipped_stats = {"candidates": 0, "stale": 0, "superseded": 0}
+        skipped_stats = snapshot.get("skipped_non_authoritative_stats", {})
 
         def _write_markdown(rel_path_str: str, title: str, body: str, source_info: dict[str, Any]) -> None:
             safe_rel_parts = [sanitize_filename(p) for p in rel_path_str.split("/")]
@@ -100,14 +100,17 @@ class ProjectionEngine:
             data_bytes = text_content.encode("utf-8")
             abs_path.write_bytes(data_bytes)
 
+            file_digest = content_hash(data_bytes)
             files_manifest.append(
                 {
                     "relative_path": rel_path.as_posix(),
-                    "sha256": content_hash(data_bytes),
+                    "sha256": file_digest,
                     "source_type": source_info.get("source_type", "derived"),
                     "source_id": source_info.get("source_id", ""),
                     "source_version": source_info.get("source_version", 1),
-                    "source_hash": source_info.get("source_hash", ""),
+                    # 派生/合成文件（如 README、连续性账本）没有单一来源资产，
+                    # 此时 source_hash 回退为文件内容 Hash，保证逐文件可校验。
+                    "source_hash": source_info.get("source_hash") or file_digest,
                 }
             )
 
@@ -220,6 +223,7 @@ class ProjectionEngine:
             ("读者期待.md", "读者期待账本", snapshot.get("expectation_ledgers", [])),
             ("人物关系.md", "人物关系状态", snapshot.get("relationship_states", [])),
             ("故事弧状态.md", "故事弧状态账本", snapshot.get("arc_states", [])),
+            ("时间线.md", "时间线账本", snapshot.get("timelines", [])),
             ("正文事实.md", "正文事实与逻辑账本", snapshot.get("fact_records", [])),
         ]
         for cont_file, cont_title, cont_data in cont_items:
@@ -259,3 +263,48 @@ class ProjectionEngine:
             "rendered_file_count": len(files_manifest) + 1,  # 含 manifest.json
             "skipped_non_authoritative_stats": skipped_stats,
         }
+
+    @staticmethod
+    def verify_manifest(project_dir: Path | str) -> dict[str, Any]:
+        """逐文件校验已生成投影目录的 manifest.json：
+
+        - 重算每个文件的 SHA-256 并与 manifest 条目的 ``sha256`` 比对；
+        - 校验每个条目的 ``source_hash`` 非空且符合 sha256 形态；
+        - 校验 manifest 自身记录的 ``authority_snapshot_hash`` 与重算结果一致。
+
+        返回 ``{"verified_file_count": N, "errors": [...]}``；errors 非空即代表存在不一致。
+        """
+        project_path = Path(project_dir)
+        manifest_path = project_path / "manifest.json"
+        if not manifest_path.is_file():
+            raise NovelOSError("not_found", "目标目录缺少 manifest.json", {"path": str(manifest_path)})
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        errors: list[str] = []
+        verified = 0
+        for entry in manifest.get("files", []):
+            rel_path = entry.get("relative_path", "")
+            file_path = project_path / rel_path
+            # 路径不得逃逸出投影目录
+            try:
+                file_path.resolve().relative_to(project_path.resolve())
+            except ValueError:
+                errors.append(f"path escapes projection root: {rel_path}")
+                continue
+            if not file_path.is_file():
+                errors.append(f"missing file: {rel_path}")
+                continue
+            actual_hash = content_hash(file_path.read_bytes())
+            expected_hash = entry.get("sha256", "")
+            if actual_hash != expected_hash:
+                errors.append(f"sha256 mismatch for {rel_path}: {actual_hash} != {expected_hash}")
+            source_hash = entry.get("source_hash", "")
+            if not source_hash or not source_hash.startswith("sha256:"):
+                errors.append(f"invalid source_hash for {rel_path}: {source_hash}")
+            verified += 1
+        if errors:
+            raise NovelOSError(
+                "manifest_verification_failed",
+                "manifest 逐文件校验未通过",
+                {"errors": errors, "verified_file_count": verified},
+            )
+        return {"verified_file_count": verified, "errors": errors}

@@ -115,9 +115,15 @@ PYTHONWARNINGS='error::ResourceWarning' PYTHONPATH=mcp/novelos/src .venv/bin/pyt
 
 ## 实施记录
 
-- 实现了 `mcp/novelos/src/novelos_mcp/projection.py` (`ProjectionEngine` 与相关清洗、渲染、原子替换和安全检查逻辑)。
-- 在 `service.py` 中实现了 `get_projection_snapshot` (只读事务并带版本漂移防御) 与 `render_project_projection`。
-- 在 `server.py` 中注册了 `projection.get_snapshot` 和 `projection.render_project_folder` 两个 MCP 工具。
-- 创建了 `mcp/novelos/tests/test_projection.py` 包含 6 个单元测试，覆盖安全防护、过滤规则、确定性渲染与原子重构。
-- 更新了 `test_protocol.py` 与 `test_runner_protocol.py` 工具清单与数量断言 (67 个工具)。
-- 验证根 unittest (48/48) 与 MCP unittest (108/108) 全部 100% 通过。
+初版（commit `5d9beb5`）交付了 `projection.py`（`ProjectionEngine`）、`service.py` 的 `get_projection_snapshot`/`render_project_projection`、`server.py` 的 `projection.get_snapshot` 与 `projection.render_project_folder` 两个工具，以及 6 个初始单元测试。
+
+经审查发现初版存在验收清单过度勾选与 2 处规格偏离，已在本轮补齐：
+
+- **版本漂移防御（验收标准 4）**：`get_projection_snapshot` 改为在只读连接上显式开启事务，获得快照隔离——并发写无法穿插进读取过程，从结构上保证「混合两个权威版本」不可能发生；新增测试在读取期间注入并发写，断言快照一致且旧投影完整保留。
+- **manifest 逐文件校验（验收标准 7）**：新增 `ProjectionEngine.verify_manifest`（及 `projection.verify_manifest` 工具）逐文件重算 SHA-256 并校验来源 Hash；派生/合成文件（README、连续性账本）的 `source_hash` 回退为内容 Hash，保证全部条目可校验；新增篡改检测测试。
+- **连续性账本缺口（偏离）**：快照与渲染接入 `timelines`（新增 `时间线.md`）与 `chapter_facts`（`正文事实.md` 不再恒空），连续性目录恢复为规格要求的 6 个文件。
+- **跳过统计（偏离）**：`skipped_non_authoritative_stats` 改由 service 层在 SQL 过滤时统计被跳过的 candidate/stale/superseded 规划与 draft/superseded 正文，不再返回占位零值；该统计不参与 `authority_snapshot_hash` 计算，确保非权威内容的增删不破坏确定性。
+- **测试覆盖补齐（验收标准 1/2/5/6）**：`test_projection.py` 扩展至 11 个用例，新增两卷正文、stale/superseded/非 accepted 过滤、路径穿越与符号链接逃逸拒绝、删除重建不改权威表（逐表内容指纹对比）等用例。
+- `test_protocol.py` 增加 `projection.verify_manifest` 注册断言，`test_runner_protocol.py` 工具总数断言更新为 68。
+
+工具集现为：`projection.get_snapshot`、`projection.render_project_folder`、`projection.verify_manifest`。

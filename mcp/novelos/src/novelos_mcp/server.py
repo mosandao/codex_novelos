@@ -138,6 +138,7 @@ def create_server(
         "review.get": service.get_review,
         "projection.get_snapshot": service.get_projection_snapshot,
         "projection.render_project_folder": service.render_project_projection,
+        "projection.verify_manifest": service.verify_project_projection,
     }
     for name, handler in tools.items():
         server.tool(name=name)(handler)
