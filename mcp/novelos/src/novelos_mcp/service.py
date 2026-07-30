@@ -2535,3 +2535,100 @@ class NovelOSService:
     def _validate_page(limit: int, offset: int) -> None:
         if not 1 <= limit <= 200 or offset < 0:
             raise NovelOSError("invalid_pagination", "limit 必须为 1..200 且 offset >= 0")
+
+    def get_projection_snapshot(self, project_id: str) -> dict[str, Any]:
+        with self.database.read() as connection:
+            project = self._get(connection, "projects", project_id)
+            initial_version = project["version"]
+
+            # 读取仅 locked 的规划资产 (含 volume_outline 和 chapter_plan)
+            planning_rows = connection.execute(
+                "SELECT * FROM planning_assets WHERE project_id=? AND status='locked' ORDER BY asset_type",
+                (project_id,),
+            ).fetchall()
+            planning_assets = {}
+            volume_outlines = []
+            chapter_plans = []
+            for row in planning_rows:
+                r = self._row(row)
+                res_id = r["resource_ref"].replace("novelos://resource/", "")
+                r["content"] = self.get_resource(res_id)
+                atype = r["asset_type"]
+                planning_assets[atype] = r
+                if atype == "volume_outline":
+                    volume_outlines.append(r)
+                elif atype == "chapter_plan":
+                    chapter_plans.append(r)
+
+            # 读取仅 accepted 的正文
+            chap_rows = connection.execute(
+                """
+                SELECT c.*, v.number AS volume_number, v.title AS volume_title
+                FROM chapters c
+                JOIN volumes v ON c.volume_id = v.id
+                JOIN books b ON v.book_id = b.id
+                WHERE b.project_id=? AND c.status='accepted'
+                ORDER BY v.number, c.number
+                """,
+                (project_id,),
+            ).fetchall()
+            chapters = []
+            for r in chap_rows:
+                item = self._row(r)
+                res_id = item["resource_ref"].replace("novelos://resource/", "")
+                item["content"] = self.get_resource(res_id)
+                chapters.append(item)
+
+            # 读取实体
+            char_rows = connection.execute(
+                "SELECT * FROM characters WHERE project_id=? ORDER BY name",
+                (project_id,),
+            ).fetchall()
+            characters = [self._row(r) for r in char_rows]
+
+            world_rows = connection.execute(
+                "SELECT * FROM worlds WHERE project_id=? ORDER BY name",
+                (project_id,),
+            ).fetchall()
+            worlds = [self._row(r) for r in world_rows]
+
+            # 读取 6 大连续性账本
+            np_rows = connection.execute(
+                "SELECT * FROM narrative_promises WHERE project_id=? ORDER BY id", (project_id,)
+            ).fetchall()
+            el_rows = connection.execute(
+                "SELECT * FROM expectation_ledgers WHERE project_id=? ORDER BY id", (project_id,)
+            ).fetchall()
+            rs_rows = connection.execute(
+                "SELECT * FROM relationship_states WHERE project_id=? ORDER BY id", (project_id,)
+            ).fetchall()
+            as_rows = connection.execute(
+                "SELECT * FROM arc_states WHERE project_id=? ORDER BY id", (project_id,)
+            ).fetchall()
+            # 再次查验版本漂移
+            current_project = self._get(connection, "projects", project_id)
+            if current_project["version"] != initial_version:
+                raise NovelOSError("version_drift", "在快照读取期间发现项目版本漂移，拒绝生成快照")
+
+            snapshot_payload = {
+                "project": self._row(project),
+                "planning_assets": planning_assets,
+                "volume_outlines": volume_outlines,
+                "chapter_plans": chapter_plans,
+                "chapters": chapters,
+                "characters": characters,
+                "worlds": worlds,
+                "narrative_promises": [self._row(r) for r in np_rows],
+                "expectation_ledgers": [self._row(r) for r in el_rows],
+                "relationship_states": [self._row(r) for r in rs_rows],
+                "arc_states": [self._row(r) for r in as_rows],
+            }
+            snapshot_hash = content_hash(_json(snapshot_payload))
+            snapshot_payload["authority_snapshot_hash"] = snapshot_hash
+            return snapshot_payload
+
+    def render_project_projection(self, project_id: str, output_root: str = "novels") -> dict[str, Any]:
+        from novelos_mcp.projection import ProjectionEngine
+
+        engine = ProjectionEngine(root_dir=output_root)
+        return engine.render(self, project_id)

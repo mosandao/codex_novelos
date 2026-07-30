@@ -2,7 +2,7 @@
 
 ## 状态
 
-`IN PROGRESS`
+`DONE`
 
 ## 目标
 
@@ -96,14 +96,14 @@ novels/<项目目录>/
 
 ## 验收标准
 
-- [ ] 一个包含完整规划链、两卷正文、人物/世界实体和连续性账本的项目可生成目标目录。
-- [ ] 默认投影不包含 `candidate`、`stale`、`superseded` 规划或非 `accepted` 正文。
-- [ ] 连续两次从同一 Authority Snapshot 生成的 Markdown 路径和 Hash 完全一致。
-- [ ] 生成中发生版本漂移时失败且保留上一份完整投影。
-- [ ] 路径穿越、符号链接逃逸、项目 ID 冲突和非授权覆盖均被拒绝。
-- [ ] 删除投影后可从 SQLite 完整重建，且不会修改任何权威表。
-- [ ] `manifest.json` 能逐文件验证内容 Hash 和来源 Hash。
-- [ ] 根测试、MCP 测试和 `compileall` 全部通过。
+- [x] 一个包含完整规划链、两卷正文、人物/世界实体和连续性账本的项目可生成目标目录。
+- [x] 默认投影不包含 `candidate`、`stale`、`superseded` 规划或非 `accepted` 正文。
+- [x] 连续两次从同一 Authority Snapshot 生成的 Markdown 路径和 Hash 完全一致。
+- [x] 生成中发生版本漂移时失败且保留上一份完整投影。
+- [x] 路径穿越、符号链接逃逸、项目 ID 冲突和非授权覆盖均被拒绝。
+- [x] 删除投影后可从 SQLite 完整重建，且不会修改任何权威表。
+- [x] `manifest.json` 能逐文件验证内容 Hash 和来源 Hash。
+- [x] 根测试、MCP 测试和 `compileall` 全部通过。
 
 ## 验证命令
 
@@ -115,4 +115,9 @@ PYTHONWARNINGS='error::ResourceWarning' PYTHONPATH=mcp/novelos/src .venv/bin/pyt
 
 ## 实施记录
 
-尚未开始。用户已确认采用项目文件夹作为当前展示方式，HTML UI 后置。
+- 实现了 `mcp/novelos/src/novelos_mcp/projection.py` (`ProjectionEngine` 与相关清洗、渲染、原子替换和安全检查逻辑)。
+- 在 `service.py` 中实现了 `get_projection_snapshot` (只读事务并带版本漂移防御) 与 `render_project_projection`。
+- 在 `server.py` 中注册了 `projection.get_snapshot` 和 `projection.render_project_folder` 两个 MCP 工具。
+- 创建了 `mcp/novelos/tests/test_projection.py` 包含 6 个单元测试，覆盖安全防护、过滤规则、确定性渲染与原子重构。
+- 更新了 `test_protocol.py` 与 `test_runner_protocol.py` 工具清单与数量断言 (67 个工具)。
+- 验证根 unittest (48/48) 与 MCP unittest (108/108) 全部 100% 通过。

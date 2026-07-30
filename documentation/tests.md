@@ -13,7 +13,7 @@
 | Entity 修改 | 五类 Entity 都必须经过来源绑定候选与 Review | `test_entity_mutations.py` | existing |
 | 连续性晋升 | Authority Snapshot、Hash、Review 和单事务 | `test_service.py`、`test_pure_codex_workflow.py` | existing |
 | 权威追溯 | 五类提交原子绑定 Trace/subject/Receipt；跨 Trace 拒绝；项目覆盖审计 | `test_pure_codex_workflow.py`、`test_agent_workflows.py` | existing |
-| MCP 协议 | stdio 初始化、63 个工具、公开写接口和 Resource Template | `test_protocol.py` | existing |
+| MCP 协议 | stdio 初始化、67 个工具、公开写接口和 Resource Template | `test_protocol.py` | existing |
 | 数据迁移 | 固定来源 Hash、计数、目标对账和前向 Migration | `tests/test_legacy_migration_artifacts.py`、`test_migrations.py` | existing |
 | Seed 接入门禁 | 授权副本与合成数据均验证 seed/inventory、文件/表/Schema/内容 Hash、sidecar、运行后篡改、只读写拒绝和 stdio 查询 | `test_seed_integrity.py`、`test_protocol.py` | existing |
 | Skill/Catalog | 6 个顶层 Skill、37 个 Catalog 包（29 个 active + 8 个 experiment）、来源和 typed Schema | `tests/test_project_skills.py`、Catalog tests | existing |

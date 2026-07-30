@@ -32,7 +32,7 @@ class UnifiedRunnerProtocolTest(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual("novelos", initialized.serverInfo.name)
                     tools = await session.list_tools()
                     names = {tool.name for tool in tools.tools}
-                    self.assertEqual(65, len(names))
+                    self.assertEqual(67, len(names))
                     self.assertIn("agent.start", names)
                     self.assertIn("planning.prepare_cross_check", names)
                     self.assertIn("skill_catalog.validate_contract_inputs", names)

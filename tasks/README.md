@@ -6,7 +6,7 @@
 
 | Task | 状态 | 下一步 |
 |---|---|---|
-| [Task 06：用户项目文件夹投影](./06_user_project_projection.md) | `IN PROGRESS` | 实现只读快照、确定性 Markdown 投影、清单和安全替换 |
+| (暂无) | - | - |
 
 ## 延期工作
 
@@ -26,6 +26,7 @@
 | [Task 03](./03_skill_catalog_migration.md) | 完成六个顶层 Skill 和 Catalog 迁移 |
 | [Task 04](./04_agent_workflows_quality.md) | 完成 Agent 契约与工作流；质量实验单独延期 |
 | [Task 05](./05_cutover_cleanup.md) | 完成纯 Codex 切换、旧 Runtime 清理和交付 |
+| [Task 06](./06_user_project_projection.md) | 完成用户项目 Markdown 文件夹派生投影、原子渲染与 156 项全量自动化测试 |
 | [Task 07](./07_prompt_catalog_expansion.md) | 完成 08 (F1-F6) 治理、三方 Hash 校验与 150 项全量自动化测试 |
 
 ## 目录边界

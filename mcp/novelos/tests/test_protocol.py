@@ -57,6 +57,8 @@ class NovelOSProtocolTest(unittest.IsolatedAsyncioTestCase):
                     self.assertIn("trace.audit_authority", names)
                     self.assertIn("entity.prepare_mutation", names)
                     self.assertIn("entity.commit_mutation", names)
+                    self.assertIn("projection.get_snapshot", names)
+                    self.assertIn("projection.render_project_folder", names)
                     self.assertNotIn("character.upsert", names)
                     self.assertNotIn("world.upsert", names)
                     self.assertNotIn("faction.upsert", names)

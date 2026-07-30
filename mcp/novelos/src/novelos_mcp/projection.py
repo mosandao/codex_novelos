@@ -1,0 +1,261 @@
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+import re
+import shutil
+import uuid
+from pathlib import Path
+from typing import Any
+
+from novelos_mcp import NovelOSError
+
+PROJECTION_FORMAT_VERSION = 1
+GENERATOR_VERSION = "1.0.0"
+
+# 不允许出现在文件名中的控制字符与保留字符
+ILLEGAL_CHAR_PATTERN = re.compile(r'[\x00-\x1f\x7f\\/:*?"<>|]')
+
+
+def sanitize_filename(name: str, default: str = "untitled") -> str:
+    """清理并校验目录/文件名，防止路径逃逸、控制字符与空文件名。"""
+    if not name:
+        return default
+    # 替换非法字符
+    cleaned = ILLEGAL_CHAR_PATTERN.sub("_", name).strip()
+    # 移除首尾点号与空格
+    cleaned = cleaned.strip(". ")
+    # 拒绝穿越路径
+    if not cleaned or cleaned in ("..", ".") or ".." in cleaned:
+        return default
+    return cleaned
+
+
+def content_hash(data: bytes | str) -> str:
+    if isinstance(data, str):
+        data = data.encode("utf-8")
+    return f"sha256:{hashlib.sha256(data).hexdigest()}"
+
+
+class ProjectionEngine:
+    def __init__(self, root_dir: Path | str = "novels") -> None:
+        self.root_dir = Path(root_dir).resolve()
+
+    def render(self, service: Any, project_id: str) -> dict[str, Any]:
+        """将项目的 SQLite 权威快照单向原子渲染为 Markdown 展示文件夹。"""
+        # 1. 从 Service 获取版本一致的权威只读快照
+        snapshot = service.get_projection_snapshot(project_id)
+        project_title = snapshot["project"].get("name") or snapshot["project"].get("title") or "Untitled"
+        project_version = snapshot["project"]["version"]
+        authority_snapshot_hash = snapshot["authority_snapshot_hash"]
+
+        dir_name = sanitize_filename(project_title, default=f"project_{project_id}")
+        target_dir = (self.root_dir / dir_name).resolve()
+
+        # 安全防逃逸校验
+        try:
+            target_dir.relative_to(self.root_dir)
+        except ValueError as exc:
+            raise NovelOSError("security_violation", "目标渲染路径超出许可根目录范围", {"path": str(target_dir)}) from exc
+
+        # 检查是否目标目录已存在，若存在需核查 project_id 归属
+        if target_dir.exists():
+            manifest_file = target_dir / "manifest.json"
+            if manifest_file.is_file():
+                try:
+                    old_manifest = json.loads(manifest_file.read_text(encoding="utf-8"))
+                    old_project_id = old_manifest.get("project_id")
+                    if old_project_id and old_project_id != project_id:
+                        raise NovelOSError(
+                            "security_violation",
+                            "目标目录已存在且属于其他项目，拒绝非授权覆盖",
+                            {"target_dir": str(target_dir), "existing_project_id": old_project_id, "request_project_id": project_id},
+                        )
+                except json.JSONDecodeError:
+                    pass
+
+        # 2. 在同级建立临时构建目录
+        self.root_dir.mkdir(parents=True, exist_ok=True)
+        tmp_dir = self.root_dir / f".tmp_{dir_name}_{uuid.uuid4().hex}"
+        tmp_dir.mkdir(parents=True, exist_ok=True)
+
+        files_manifest: list[dict[str, Any]] = []
+        skipped_stats = {"candidates": 0, "stale": 0, "superseded": 0}
+
+        def _write_markdown(rel_path_str: str, title: str, body: str, source_info: dict[str, Any]) -> None:
+            safe_rel_parts = [sanitize_filename(p) for p in rel_path_str.split("/")]
+            rel_path = Path(*safe_rel_parts)
+            abs_path = tmp_dir / rel_path
+
+            # 确认不产生软链接或逃逸
+            try:
+                abs_path.resolve().relative_to(tmp_dir.resolve())
+            except ValueError as exc:
+                raise NovelOSError("security_violation", "渲染路径发生非法逃逸", {"path": str(rel_path)}) from exc
+
+            abs_path.parent.mkdir(parents=True, exist_ok=True)
+
+            text_content = f"# {title}\n\n{body}\n" if title else f"{body}\n"
+            data_bytes = text_content.encode("utf-8")
+            abs_path.write_bytes(data_bytes)
+
+            files_manifest.append(
+                {
+                    "relative_path": rel_path.as_posix(),
+                    "sha256": content_hash(data_bytes),
+                    "source_type": source_info.get("source_type", "derived"),
+                    "source_id": source_info.get("source_id", ""),
+                    "source_version": source_info.get("source_version", 1),
+                    "source_hash": source_info.get("source_hash", ""),
+                }
+            )
+
+        # A. 渲染 README.md
+        readme_body = (
+            f"此文件夹为 NovelOS 项目《{project_title}》派生的用户只读投影。\n\n"
+            "> [!IMPORTANT]\n"
+            "> **只读提示**：本目录由 NovelOS 权威数据库单向渲染，可随时安全删除并重新生成。"
+            "在本地编辑器中直接修改 Markdown 文件**不会回写**数据库，也不影响权威创作状态。\n\n"
+            f"- **项目 ID**：`{project_id}`\n"
+            f"- **项目版本**：`v{project_version}`\n"
+            f"- **权威快照 Hash**：`{authority_snapshot_hash}`\n"
+        )
+        _write_markdown("README.md", f"《{project_title}》项目展示视图", readme_body, {"source_type": "project_readme", "source_id": project_id})
+
+        # B. 渲染 规划/ 目录 (01-故事方向 ~ 06-故事弧)
+        planning_map = {
+            "direction": "01-故事方向.md",
+            "architecture": "02-故事架构.md",
+            "strategy": "03-全书战略.md",
+            "character_contract": "04-人物契约.md",
+            "world_contract": "05-世界契约.md",
+            "story_arc": "06-故事弧.md",
+        }
+        for asset_type, filename in planning_map.items():
+            asset_item = snapshot["planning_assets"].get(asset_type)
+            if asset_item:
+                _write_markdown(
+                    f"规划/{filename}",
+                    f"规划：{asset_type}",
+                    asset_item["content"],
+                    {
+                        "source_type": "planning_asset",
+                        "source_id": asset_item["id"],
+                        "source_version": asset_item["version"],
+                        "source_hash": asset_item["subject_hash"],
+                    },
+                )
+
+        # C. 渲染 大纲/ 目录 (卷纲 / 章纲)
+        for vol in snapshot.get("volume_outlines", []):
+            v_num = vol.get("volume_number") or vol.get("number", 1)
+            v_title = vol.get("title", f"第{v_num:02d}卷")
+            _write_markdown(
+                f"大纲/第{v_num:02d}卷-卷纲.md",
+                f"第 {v_num} 卷卷纲：{v_title}",
+                vol.get("content", ""),
+                {
+                    "source_type": "volume_outline",
+                    "source_id": vol["id"],
+                    "source_version": vol["version"],
+                    "source_hash": vol["subject_hash"],
+                },
+            )
+
+        for plan in snapshot.get("chapter_plans", []):
+            c_num = plan.get("chapter_number") or plan.get("number", 1)
+            c_title = plan.get("title", f"第{c_num:03d}章")
+            _write_markdown(
+                f"大纲/第01卷-章纲.md",
+                f"章节执行卡：{c_title}",
+                plan.get("content", ""),
+                {
+                    "source_type": "chapter_plan",
+                    "source_id": plan["id"],
+                    "source_version": plan["version"],
+                    "source_hash": plan["subject_hash"],
+                },
+            )
+
+        # D. 渲染 正文/ 目录 (按卷分层: 第01卷/第001章-章节标题.md)
+        for ch in snapshot.get("chapters", []):
+            v_num = ch.get("volume_number") or ch.get("number", 1)
+            c_num = ch.get("chapter_number") or ch.get("number", 1)
+            c_title = sanitize_filename(ch.get("title", "未命名章节"))
+            _write_markdown(
+                f"正文/第{v_num:02d}卷/第{c_num:03d}章-{c_title}.md",
+                ch.get("title", f"第 {c_num} 章"),
+                ch.get("content", ""),
+                {
+                    "source_type": "chapter",
+                    "source_id": ch["id"],
+                    "source_version": ch.get("version", 1),
+                    "source_hash": ch["subject_hash"],
+                },
+            )
+
+        # E. 渲染 人物/ & 世界/ 实体目录
+        for char in snapshot.get("characters", []):
+            c_name = sanitize_filename(char["name"])
+            _write_markdown(
+                f"人物/{c_name}.md",
+                char["name"],
+                f"**描述**：{char.get('description', '')}\n\n**人物弧**：{char.get('arc_summary', '')}",
+                {"source_type": "character", "source_id": char["id"], "source_version": char["version"], "source_hash": char.get("subject_hash", "")},
+            )
+
+        for world in snapshot.get("worlds", []):
+            w_name = sanitize_filename(world["name"])
+            _write_markdown(
+                f"世界/{w_name}.md",
+                world["name"],
+                f"**规则/设定**：{world.get('description', '')}",
+                {"source_type": "world", "source_id": world["id"], "source_version": world["version"], "source_hash": world.get("subject_hash", "")},
+            )
+
+        # F. 渲染 连续性/ 账本目录 (6 大主题)
+        cont_items = [
+            ("伏笔与叙事承诺.md", "叙事承诺账本", snapshot.get("narrative_promises", [])),
+            ("读者期待.md", "读者期待账本", snapshot.get("expectation_ledgers", [])),
+            ("人物关系.md", "人物关系状态", snapshot.get("relationship_states", [])),
+            ("故事弧状态.md", "故事弧状态账本", snapshot.get("arc_states", [])),
+            ("正文事实.md", "正文事实与逻辑账本", snapshot.get("fact_records", [])),
+        ]
+        for cont_file, cont_title, cont_data in cont_items:
+            cont_text = json.dumps(cont_data, indent=2, ensure_ascii=False) if cont_data else "*尚无相关记录*"
+            _write_markdown(
+                f"连续性/{cont_file}",
+                cont_title,
+                cont_text,
+                {"source_type": "continuity_ledger", "source_id": cont_file, "source_version": 1, "source_hash": content_hash(cont_text)},
+            )
+
+        # G. 校验生成 manifest.json 账本
+        manifest_payload = {
+            "projection_format_version": PROJECTION_FORMAT_VERSION,
+            "project_id": project_id,
+            "project_title": project_title,
+            "project_version": project_version,
+            "authority_snapshot_hash": authority_snapshot_hash,
+            "generator_version": GENERATOR_VERSION,
+            "file_count": len(files_manifest),
+            "files": sorted(files_manifest, key=lambda x: x["relative_path"]),
+        }
+        manifest_bytes = json.dumps(manifest_payload, indent=2, ensure_ascii=False).encode("utf-8")
+        manifest_path = tmp_dir / "manifest.json"
+        manifest_path.write_bytes(manifest_bytes)
+
+        # H. 原子覆盖替换旧投影目录
+        if target_dir.exists():
+            shutil.rmtree(target_dir)
+        tmp_dir.rename(target_dir)
+
+        return {
+            "project_id": project_id,
+            "project_title": project_title,
+            "output_directory": str(target_dir),
+            "authority_snapshot_hash": authority_snapshot_hash,
+            "rendered_file_count": len(files_manifest) + 1,  # 含 manifest.json
+            "skipped_non_authoritative_stats": skipped_stats,
+        }
