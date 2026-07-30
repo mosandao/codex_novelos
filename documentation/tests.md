@@ -16,7 +16,7 @@
 | MCP 协议 | stdio 初始化、63 个工具、公开写接口和 Resource Template | `test_protocol.py` | existing |
 | 数据迁移 | 固定来源 Hash、计数、目标对账和前向 Migration | `tests/test_legacy_migration_artifacts.py`、`test_migrations.py` | existing |
 | Seed 接入门禁 | 授权副本与合成数据均验证 seed/inventory、文件/表/Schema/内容 Hash、sidecar、运行后篡改、只读写拒绝和 stdio 查询 | `test_seed_integrity.py`、`test_protocol.py` | existing |
-| Skill/Catalog | 6 个顶层 Skill、17 个 Catalog 包、来源和 typed Schema | `tests/test_project_skills.py`、Catalog tests | existing |
+| Skill/Catalog | 6 个顶层 Skill、37 个 Catalog 包（29 个 active + 8 个 experiment）、来源和 typed Schema | `tests/test_project_skills.py`、Catalog tests | existing |
 | 质量数据集 | 40+10+10+10 输入、70 case 执行清单、合法 Spawn、盲评 Rubric | `tests/test_agent_quality_dataset.py` | existing |
 | 质量结果证据 | 完整覆盖、输入/evidence Hash、run/Receipt 隔离、自动解盲决策、篡改拒绝 | `tests/test_agent_quality_results.py` | existing |
 | 切换删除清单 | 旧 Runtime/入口/配置/测试完整覆盖、替代证据、两阶段断言、遗漏引用扫描 | `tests/test_cutover_plan.py` | existing |
