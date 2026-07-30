@@ -1,4 +1,5 @@
 {
+  "archive_note": "该 schema 阶段的本地备份 db 已被 schema9-backup 取代并移除；此处的指纹与 restore_drill 结果为当时迁移归档证据，不再可本地重验。",
   "backup_file_hash": "sha256:7c258ae0e3644af5a4b4d1b33274ae9a2ce49addfbcfd011afd8ca092881e6d2",
   "backup_path": "/Users/yiyi/Documents/codex_novelos/data/migration/novelos-v2-schema8-backup.db",
   "logical_snapshot": {
@@ -50,5 +51,6 @@
   "restore_drill": "passed",
   "schema_version": 1,
   "source_file_hash": "sha256:df3c7c45ec0703c3bb542c7a5fedb5ac6ad8b0c4f0d065f722469f302af85e5d",
-  "source_path": "/Users/yiyi/Documents/codex_novelos/data/novelos-v2.db"
+  "source_path": "/Users/yiyi/Documents/codex_novelos/data/novelos-v2.db",
+  "status": "archived"
 }

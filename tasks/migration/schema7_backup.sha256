@@ -1,1 +1,3 @@
-95bbf405600eba1d7beee2fe8ef3a6a18483616389b340843657f79f2223d3eb  data/migration/novelos-v2-pre-schema7.db
+# 该 sha256 记录的 novelos-v2-pre-schema7.db 备份已被 schema9-backup 取代并移除。
+# 保留此指纹作为迁移历史归档；db 不再存在于 data/migration/。
+95bbf405600eba1d7beee2fe8ef3a6a18483616389b340843657f79f2223d3eb  data/migration/novelos-v2-pre-schema7.db (archived)
