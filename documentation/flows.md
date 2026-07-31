@@ -1,5 +1,23 @@
 # 关键流程
 
+## 项目创建向导
+
+参与者：用户、主控智能体、MCP Apps 宿主、NovelOS MCP。
+
+1. Main 在支持 MCP Apps 的宿主中调用 `project.wizard.render`；宿主加载
+   `ui://novelos/project-wizard.html`，而不是直接以 `file://` 打开仓库文件。
+2. 用户填写项目名、频道、平台、规模和一级题材；页面依据一级题材显示静态的二级方向候选。
+   二级方向可多选，主情绪基调可多选，美学风格最多两项，创作资料可留空且最多 10,000 字。
+3. 页面调用 `project.wizard.submit`。MCP 只接受固定频道、平台、规模、一级题材和该题材
+   对应的二级方向，拒绝已移除的自定义项、知乎盐选、无效字段或跨题材二级方向。
+4. MCP 创建项目容器，写入 `metadata.project_setup`（`creation_context` 与 `taxonomy`），并刷新
+   默认 `novels/<项目目录>/` 投影。
+5. Main 读取该约束，启动 Trace，并按规划资产流程创建方向智能体；向导不会生成、锁定或提交
+   Story Direction 及其下游资产。
+
+拒绝路径：直接本地预览页面没有 MCP Apps 通信桥，不能创建项目；参数不符合表单契约时，
+`project.wizard.submit` 不写入项目；前端选择不替代规划、审查或 authority commit 门禁。
+
 ## 规划资产
 
 参与者：主控智能体、对应规划资产 Agent、独立 审查智能体。
@@ -69,8 +87,8 @@ Character 与 World 可以有同时运行的独立 run。Story Arc 前必须创�
 参与者：用户、主控智能体、NovelOS MCP。
 
 1. Main 先定位精确 `project_id`，请求 MCP 生成项目级 Authority Snapshot。
-2. MCP 只选择 `locked` 规划、`accepted` 正文、当前 Authority Entity 和已晋升连续性状态，长内容通过 Resource ref 读取。
-3. MCP 在目标根目录内创建临时同级目录，按固定规则生成中文 Markdown 结构和 `manifest.json`。
+2. MCP 将 `locked` 规划、`accepted` 正文、当前 Authority Entity 和已晋升连续性状态写入权威视图；同时读取候选、非权威规划/正文、完成 Agent 输出和 locked 规划溯源，用于隔离的 `候选/`、`产出/` 和 `档案/` 目录。长内容通过 Resource ref 读取。
+3. MCP 在目标根目录内创建临时同级目录，按固定规则生成中文 Markdown 结构、全过程档案和 `manifest.json`。
 4. MCP 校验每个文件 Hash、来源 ID/版本/Hash、路径边界和快照未漂移后，原子替换同一项目的旧投影。
 5. Main 向用户返回实际目录、Authority Snapshot Hash、文件数和被跳过的非权威内容统计。
 6. 可随时调用 `projection.verify_manifest` 独立校验已生成目录：逐文件重算 SHA-256 并核对 `manifest.json` 中记录的 `source_hash`，篡改或不一致即失败。
@@ -78,3 +96,17 @@ Character 与 World 可以有同时运行的独立 run。Story Arc 前必须创�
 拒绝路径：目标目录属于其他项目、名称清理失败、路径或符号链接逃逸、生成期间权威版本变化、Resource Hash 不匹配或无法原子完成时，不得留下部分新投影，也不得修改 SQLite。
 
 投影是单向用户视图。用户直接编辑 Markdown 不触发数据库写入；未来如需导入，必须另建候选、差异审查和权威提交流程。
+
+## 删除项目
+
+参与者：用户、主控智能体、NovelOS MCP。
+
+1. Main 先读取项目，取得精确 `project_id` 与当前 `expected_version`。
+2. Main 调用 `project.delete`。MCP 在删除前后均校验乐观版本、项目没有运行中的 Trace，
+   且不存在该项目的 `authority_commits`。
+3. MCP 仅删除默认输出根目录下同名、非符号链接且 `manifest.json` 中 `project_id` 匹配的投影目录。
+4. 投影处理成功后，MCP 在事务中删除项目容器及级联业务数据；已完成 Trace 和 Agent run 审计记录
+   仍保留，但解除项目关联。
+
+拒绝路径：版本已变化、存在活动 Trace、已有权威提交、投影缺少/无法解析 manifest、manifest 属于
+其他项目或路径不安全时均拒绝删除，不得部分删除权威数据。

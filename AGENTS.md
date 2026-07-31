@@ -92,13 +92,42 @@ Character 与 World 可以并行生成，但进入 Story Arc 前必须完成交�
 
 项目创建或产生任意候选、草稿、审查、规划、正文 Agent 输出后，Main Agent 必须调用
 `projection.render_project_folder` 刷新 `novels/<项目目录>/`。`规划/` 与 `正文/` 保持
-当前权威版本视图；`产出/` 必须保留全部状态的规划与正文产出，以及完成的 Agent 原始
-输出。投影是单向派生内容，直接编辑其中 Markdown 不会回写权威存储。
+当前权威版本视图；`候选/` 保留兼容的候选诊断视图；`产出/` 必须保留全部状态的
+规划与正文产出，以及完成的 Agent 原始输出；`档案/` 展示已锁定规划资产的生产、
+独立审查和 authority commit 溯源。投影是单向派生内容，直接编辑其中 Markdown 不会回写
+权威存储。
 
-项目创建可由 `project.wizard.render` 提供的 MCP Apps 表单收集频道、平台、规模、题材、
-按一级题材展示的 LLM 预生成二级方向、可多选创作偏好和用户创作资料。表单只创建项目
-容器和记录 `project_setup` 约束；主控智能体必须读取这些约束，再按正式规划流程路由方向
-智能体。页面不得直接生成、锁定或提交规划资产。
+### 项目创建向导
+
+`project.wizard.render` 为 MCP Apps 宿主提供 `ui://novelos/project-wizard.html` 资源。Main
+使用它创建项目时，必须按以下顺序执行：
+
+1. 通过支持 MCP Apps 的宿主调用 `project.wizard.render` 并打开资源，不把仓库中的
+   `file://.../project-wizard.html` 预览页当作可提交入口。
+2. 由用户填写项目名、频道、目标平台、作品规模、一级题材、二级方向、主情绪基调、美学风格
+   和可选创作资料；宿主提交 `project.wizard.submit`。
+3. 从提交返回的项目读取 `metadata.project_setup`，将其作为正式 Story Direction 的约束输入；
+   启动 Trace 后，再按正常流程路由方向智能体。
+4. `project.wizard.submit` 已在创建后刷新默认投影；后续任何候选、草稿、审查或 Agent
+   输出仍必须再次刷新投影。
+
+向导的频道、平台、规模和一级题材为固定选项；二级方向按一级题材显示 18 个静态、LLM
+预生成候选，不在提交时调用 LLM，也不接受自定义方向。`emotional_tones` 可多选，
+`aesthetic_styles` 最多两项，`reference_material` 为可选多行资料，最多 10,000 个字符。
+“知乎盐选”、所有“自定义”选项和自定义字数均不属于 V2 契约。本地 `file://` 页面只能
+检查样式和静态联动，因没有 MCP Apps 通信桥而不能创建项目。
+
+向导只创建项目容器并记录 `project_setup` 约束；页面不得直接生成、锁定或提交规划资产，
+也不得跳过 Trace、Agent、Review 或 authority commit 门禁。
+
+### 删除项目
+
+项目尚无权威提交且不存在运行中的 Trace 时，Main 才可调用
+`project.delete(project_id, expected_version, output_root)`。`expected_version` 必须与当前
+项目版本一致；服务端会再次检查活动 Trace 和 `authority_commits`。删除前只会移除同名、
+非符号链接且 `manifest.json` 中 `project_id` 匹配的派生投影，随后级联删除项目容器
+及其业务数据。已完成的 Trace 和 Agent 审计记录保留，但解除项目关联。任一检查失败时不得
+删除投影或权威数据。
 
 V1 只注册一个名为 `novelos` 的 stdio MCP Server。Memory、Planning、Catalog、Review 和 Trace 是同一 Server 内的工具命名空间，不拆成多个 MCP 进程。
 

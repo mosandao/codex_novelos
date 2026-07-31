@@ -13,7 +13,8 @@
 | Entity 修改 | 五类 Entity 都必须经过来源绑定候选与 Review | `test_entity_mutations.py` | existing |
 | 连续性晋升 | Authority Snapshot、Hash、Review 和单事务 | `test_service.py`、`test_pure_codex_workflow.py` | existing |
 | 权威追溯 | 五类提交原子绑定 Trace/subject/Receipt；跨 Trace 拒绝；项目覆盖审计 | `test_pure_codex_workflow.py`、`test_agent_workflows.py` | existing |
-| MCP 协议 | stdio 初始化、68 个工具、公开写接口和 Resource Template | `test_protocol.py` | existing |
+| 项目创建与删除 | V2 向导字段、静态题材二级方向、本地预览限制、项目删除的 Trace/投影门禁 | `test_project_wizard.py`、`test_core_tools.py` | existing |
+| MCP 协议 | stdio 初始化、71 个工具、项目创建向导 Resource、公开写接口和 Resource Template | `test_protocol.py`、`test_runner_protocol.py` | existing |
 | 数据迁移 | 固定来源 Hash、计数、目标对账和前向 Migration | `tests/test_legacy_migration_artifacts.py`、`test_migrations.py` | existing |
 | Seed 接入门禁 | 授权副本与合成数据均验证 seed/inventory、文件/表/Schema/内容 Hash、sidecar、运行后篡改、只读写拒绝和 stdio 查询 | `test_seed_integrity.py`、`test_protocol.py` | existing |
 | Skill/Catalog | 6 个顶层 Skill、37 个 Catalog 包（29 个 active + 8 个 experiment）、来源和 typed Schema | `tests/test_project_skills.py`、Catalog tests | existing |
@@ -25,7 +26,7 @@
 | 迁移汇总 | 来源、Legacy、Catalog、seed、质量实验和切换门禁动态重建；统计篡改失败关闭 | `migration_summary.json`、`test_migration_summary.py` | existing |
 | 仓库产物卫生 | prospective Git 文件集、忽略规则、生成物和本地敏感文件失败关闭 | `hygiene.json`、`test_repository_hygiene.py` | existing |
 
-当前本地门禁为根测试 48 个、MCP 测试 113 个（合计 161 个测试）、Migration/Catalog manifest、Agent 质量录制器/数据集/结果证据、seed inventory、迁移汇总、备份/导出恢复、仓库卫生、cutover plan/readiness 和 `compileall` 检查。仓库没有 CI，这些检查目前不自动阻止合并。
+当前本地门禁为根测试 49 个、MCP 测试 121 个（合计 170 个测试）、Migration/Catalog manifest、Agent 质量录制器/数据集/结果证据、seed inventory、迁移汇总、备份/导出恢复、仓库卫生、cutover plan/readiness 和 `compileall` 检查。仓库没有 CI，这些检查目前不自动阻止合并。
 
 ## 已提出但未完成
 

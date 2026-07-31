@@ -25,7 +25,8 @@ class ShippingArtifactsTest(unittest.TestCase):
         architecture = (DOCUMENTATION / "architecture.md").read_text(encoding="utf-8")
         for name in expected - {"architecture.md"}:
             self.assertIn(f"./{name}", architecture)
-        self.assertIn("没有 UI、账号体系、网络服务、邮件、定时任务或公开 SEO 页面", architecture)
+        self.assertIn("没有独立 HTTP/Web 前端、账号体系、网络服务、邮件、定时任务或公开 SEO 页面", architecture)
+        self.assertIn("ui://novelos/project-wizard.html", architecture)
 
     def test_new_runner_targets_only_unified_mcp_and_pins_authorized_seed(self) -> None:
         runner = (ROOT / "scripts" / "run_novelos_mcp.sh").read_text(encoding="utf-8")
