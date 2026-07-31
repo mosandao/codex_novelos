@@ -42,14 +42,62 @@ class ProjectionEngine:
     def __init__(self, root_dir: Path | str = "novels") -> None:
         self.root_dir = Path(root_dir).resolve()
 
-    def render(self, service: Any, project_id: str, include_candidates: bool = False) -> dict[str, Any]:
+    def remove_project_projection(self, project_id: str, project_name: str) -> dict[str, Any]:
+        """删除归属于指定项目的派生投影，拒绝触及无 manifest 或其他项目目录。"""
+        dir_name = sanitize_filename(project_name, default=f"project_{project_id}")
+        target_dir = self.root_dir / dir_name
+        if not target_dir.exists():
+            return {"removed": False, "project_directory": str(target_dir)}
+        if target_dir.is_symlink():
+            raise NovelOSError("security_violation", "拒绝删除符号链接投影目录", {"path": str(target_dir)})
+        try:
+            target_dir.resolve().relative_to(self.root_dir)
+        except ValueError as exc:
+            raise NovelOSError("security_violation", "投影删除路径超出许可根目录范围", {"path": str(target_dir)}) from exc
+
+        manifest_file = target_dir / "manifest.json"
+        if not manifest_file.is_file():
+            raise NovelOSError("projection_delete_blocked", "投影目录缺少 manifest，拒绝删除", {"path": str(target_dir)})
+        try:
+            manifest = json.loads(manifest_file.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            raise NovelOSError("projection_delete_blocked", "投影 manifest 无法解析，拒绝删除", {"path": str(target_dir)}) from exc
+        if manifest.get("project_id") != project_id:
+            raise NovelOSError(
+                "projection_delete_blocked",
+                "投影目录属于其他项目，拒绝删除",
+                {"path": str(target_dir), "existing_project_id": manifest.get("project_id"), "request_project_id": project_id},
+            )
+
+        shutil.rmtree(target_dir)
+        return {"removed": True, "project_directory": str(target_dir)}
+
+    def render(
+        self,
+        service: Any,
+        project_id: str,
+        include_candidates: bool = True,
+        include_all_outputs: bool = True,
+    ) -> dict[str, Any]:
         """将项目的 SQLite 权威快照单向原子渲染为 Markdown 展示文件夹。
 
-        include_candidates=True 时开启显式诊断模式，额外把未锁定的 candidate
-        规划资产渲染到独立的 候选/ 子目录，不与权威视图的 locked 资产混淆。
+        默认将全部产出写入独立的“产出/”目录；当前权威内容仍只写入“规划/”和
+        “正文/”。include_candidates 保留兼容性候选视图，include_all_outputs 可在
+        需要纯权威快照时关闭全过程档案。
         """
         # 1. 从 Service 获取版本一致的权威只读快照
-        snapshot = service.get_projection_snapshot(project_id, include_candidates=include_candidates)
+        try:
+            snapshot = service.get_projection_snapshot(
+                project_id,
+                include_candidates=include_candidates,
+                include_all_outputs=include_all_outputs,
+            )
+        except TypeError as exc:
+            # 已启动的 MCP 进程可能暂时持有旧版 Service；保留候选投影能力，
+            # 待进程重启后自动启用完整“产出/”快照。
+            if "include_all_outputs" not in str(exc):
+                raise
+            snapshot = service.get_projection_snapshot(project_id, include_candidates=include_candidates)
         project_title = snapshot["project"].get("name") or snapshot["project"].get("title") or "Untitled"
         project_version = snapshot["project"]["version"]
         authority_snapshot_hash = snapshot["authority_snapshot_hash"]
@@ -272,7 +320,66 @@ class ProjectionEngine:
                     },
                 )
 
-        # F3. 创作全过程档案（默认模式也渲染）：为每个 locked 规划资产渲染溯源链。
+        # F3. 全部非权威和中间产出。此处保留候选、失效、被替代、草稿，以及
+        # 每个完成的临时 Agent 原始输出；它们与当前权威视图物理隔离。
+        if include_all_outputs:
+            output_display = {
+                "direction": "01-故事方向", "architecture": "02-故事架构",
+                "strategy": "03-全书战略", "character_contract": "04-人物契约",
+                "world_contract": "05-世界契约", "story_arc": "06-故事弧",
+                "volume_outline": "卷纲", "chapter_plan": "章纲",
+            }
+            for asset in snapshot.get("planning_output_assets", []):
+                asset_type = asset.get("asset_type", "planning")
+                status = sanitize_filename(asset.get("status", "unknown"))
+                label = output_display.get(asset_type, asset_type)
+                revision = asset.get("revision", 1)
+                identifier = sanitize_filename(asset.get("id", "asset").split(":")[-1][:8])
+                _write_markdown(
+                    f"产出/规划/{status}/{label}-r{revision}-{identifier}.md",
+                    f"{label} {status} 产出（r{revision}）",
+                    asset.get("content", ""),
+                    {
+                        "source_type": "planning_output", "source_id": asset["id"],
+                        "source_version": asset.get("version", 1),
+                        "source_hash": asset.get("subject_hash") or content_hash(asset.get("content", "")),
+                    },
+                )
+            for chapter in snapshot.get("chapter_output_drafts", []):
+                status = sanitize_filename(chapter.get("status", "unknown"))
+                volume_number = chapter.get("volume_number") or 1
+                chapter_number = chapter.get("number") or 1
+                title = sanitize_filename(chapter.get("title", "未命名章节"))
+                identifier = sanitize_filename(chapter.get("id", "chapter").split(":")[-1][:8])
+                _write_markdown(
+                    f"产出/正文/{status}/第{volume_number:02d}卷-第{chapter_number:03d}章-{title}-{identifier}.md",
+                    f"{chapter.get('title', '未命名章节')}（{status}）",
+                    chapter.get("content", ""),
+                    {
+                        "source_type": "chapter_output", "source_id": chapter["id"],
+                        "source_version": chapter.get("version", 1),
+                        "source_hash": chapter.get("subject_hash") or content_hash(chapter.get("content", "")),
+                    },
+                )
+            for run in snapshot.get("agent_outputs", []):
+                role_id = sanitize_filename(run.get("role_id", "agent"))
+                run_name = sanitize_filename(run.get("id", "run").replace(":", "-"))
+                body = (
+                    f"> 状态：`{run.get('status', '')}`  | 输出类型：`{run.get('output_type', '')}`\n"
+                    f"> Trace：`{run.get('trace_id', '')}`\n\n"
+                    f"{run.get('content', '')}"
+                )
+                _write_markdown(
+                    f"产出/智能体/{role_id}/{run_name}.md",
+                    f"{role_id} 产出",
+                    body,
+                    {
+                        "source_type": "agent_output", "source_id": run["id"],
+                        "source_version": 1, "source_hash": content_hash(run.get("content", "")),
+                    },
+                )
+
+        # F4. 创作全过程档案（默认模式也渲染）：为每个 locked 规划资产渲染溯源链。
         # 档案是已锁定资产的过程记录（谁产、谁审、审出什么、凭什么锁定），属于权威视图
         # 的一部分。走旁路 key（planning_provenance），不参与 authority_snapshot_hash。
         provenance_display = {

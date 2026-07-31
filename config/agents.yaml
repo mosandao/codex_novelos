@@ -71,7 +71,7 @@ review_profile_routes:
 
 roles:
   main_agent:
-    display_name: Main Agent
+    display_name: 主控智能体
     kind: main
     lifecycle: persistent
     owned_asset_type: null
@@ -90,7 +90,7 @@ roles:
     must_destroy: false
 
   direction_agent:
-    display_name: Direction Agent
+    display_name: 方向智能体
     kind: planning_asset
     lifecycle: temporary
     owned_asset_type: direction
@@ -109,7 +109,7 @@ roles:
     must_destroy: true
 
   architecture_agent:
-    display_name: Architecture Agent
+    display_name: 架构智能体
     kind: planning_asset
     lifecycle: temporary
     owned_asset_type: architecture
@@ -129,7 +129,7 @@ roles:
     must_destroy: true
 
   strategy_agent:
-    display_name: Strategy Agent
+    display_name: 策略智能体
     kind: planning_asset
     lifecycle: temporary
     owned_asset_type: strategy
@@ -150,7 +150,7 @@ roles:
     must_destroy: true
 
   character_agent:
-    display_name: Character Agent
+    display_name: 人物智能体
     kind: planning_asset
     lifecycle: temporary
     owned_asset_type: character_contract
@@ -172,7 +172,7 @@ roles:
     must_destroy: true
 
   world_agent:
-    display_name: World Agent
+    display_name: 世界观智能体
     kind: planning_asset
     lifecycle: temporary
     owned_asset_type: world_contract
@@ -194,7 +194,7 @@ roles:
     must_destroy: true
 
   story_arc_agent:
-    display_name: Story Arc Agent
+    display_name: 故事弧智能体
     kind: planning_asset
     lifecycle: temporary
     owned_asset_type: story_arc
@@ -218,7 +218,7 @@ roles:
     must_destroy: true
 
   volume_planner:
-    display_name: Volume Planner
+    display_name: 卷规划智能体
     kind: planning_asset
     lifecycle: temporary
     owned_asset_type: volume_outline
@@ -239,7 +239,7 @@ roles:
     must_destroy: true
 
   chapter_planner:
-    display_name: Chapter Planner
+    display_name: 章节规划智能体
     kind: planning_asset
     lifecycle: temporary
     owned_asset_type: chapter_plan
@@ -260,7 +260,7 @@ roles:
     must_destroy: true
 
   writer_agent:
-    display_name: Writer Agent
+    display_name: 写作智能体
     kind: production
     lifecycle: temporary
     owned_asset_type: null
@@ -281,7 +281,7 @@ roles:
     must_destroy: true
 
   review_agent:
-    display_name: Review Agent
+    display_name: 审查智能体
     kind: review
     lifecycle: temporary
     owned_asset_type: null
@@ -300,7 +300,7 @@ roles:
     must_destroy: true
 
   context_builder:
-    display_name: Context Builder
+    display_name: 上下文构建智能体
     kind: context
     lifecycle: temporary
     owned_asset_type: null

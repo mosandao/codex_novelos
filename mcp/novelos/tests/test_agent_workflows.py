@@ -102,7 +102,7 @@ class AgentWorkflowTest(unittest.TestCase):
 
     def test_planning_run_owns_exact_asset_and_output(self) -> None:
         base = self.service.create_planning_candidate(
-            self.project["id"], "direction", "base", "既有方向", [], "Direction Agent"
+            self.project["id"], "direction", "base", "既有方向", [], "方向智能体"
         )
         _, base_review = complete_review_run(
             self.service,
@@ -136,7 +136,7 @@ class AgentWorkflowTest(unittest.TestCase):
                 self.project["id"],
                 "direction",
                 self.project["id"],
-                "被 Main Agent 改写的内容",
+                "被 主控智能体 改写的内容",
                 [],
                 producer_run_id=run["id"],
             )
@@ -148,12 +148,12 @@ class AgentWorkflowTest(unittest.TestCase):
             [],
             producer_run_id=run["id"],
         )
-        self.assertEqual("Direction Agent", candidate["producer_role"])
+        self.assertEqual("方向智能体", candidate["producer_role"])
         self.assertEqual(run["id"], candidate["producer_run_id"])
 
     def test_change_proposal_must_target_transitive_upstream(self) -> None:
         direction = self.service.create_planning_candidate(
-            self.project["id"], "direction", self.project["id"], "上游方向", [], "Direction Agent"
+            self.project["id"], "direction", self.project["id"], "上游方向", [], "方向智能体"
         )
         _, direction_review = complete_review_run(
             self.service,
@@ -243,7 +243,7 @@ class AgentWorkflowTest(unittest.TestCase):
 
     def test_lock_rejected_without_isolation_evidence(self) -> None:
         # 缺隔离凭据的 self-produced run 必须被 lock 拒绝（防御性校验）。
-        # 复刻 Main Agent 自审的真实路径：直接 start_agent_run 不传 isolation_evidence。
+        # 复刻 主控智能体 自审的真实路径：直接 start_agent_run 不传 isolation_evidence。
         role = self.service.agent_contracts.get("direction_agent")
         producer_run = self.service.start_agent_run(
             self.trace["id"],

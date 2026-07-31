@@ -60,14 +60,14 @@ PLANNING_UPSTREAM_TYPES: dict[str, frozenset[str]] = {
 }
 
 PLANNING_PRODUCERS = {
-    "direction": "Direction Agent",
-    "architecture": "Architecture Agent",
-    "strategy": "Strategy Agent",
-    "character_contract": "Character Agent",
-    "world_contract": "World Agent",
-    "story_arc": "Story Arc Agent",
-    "volume_outline": "Volume Planner",
-    "chapter_plan": "Chapter Planner",
+    "direction": "方向智能体",
+    "architecture": "架构智能体",
+    "strategy": "策略智能体",
+    "character_contract": "人物智能体",
+    "world_contract": "世界观智能体",
+    "story_arc": "故事弧智能体",
+    "volume_outline": "卷规划智能体",
+    "chapter_plan": "章节规划智能体",
 }
 
 PLANNING_REVIEW_PROFILES = {
@@ -182,7 +182,7 @@ class NovelOSService:
                 connection,
                 trace_id,
                 "resource.create",
-                "Main Agent",
+                "主控智能体",
                 "completed",
                 [],
                 [resource_ref],
@@ -271,7 +271,7 @@ class NovelOSService:
                 connection,
                 trace_id,
                 "review.subject.prepare",
-                "Main Agent",
+                "主控智能体",
                 "completed",
                 evidence_refs,
                 [subject_id, f"novelos://resource/{resource_id}"],
@@ -532,6 +532,44 @@ class NovelOSService:
             )
             return self._row(self._get(connection, "projects", project_id))
 
+    def delete_project(
+        self,
+        project_id: str,
+        expected_version: int,
+        output_root: str = "novels",
+    ) -> dict[str, Any]:
+        """删除无权威提交、无活动 Trace 的项目及其派生投影。"""
+        if isinstance(expected_version, bool) or not isinstance(expected_version, int):
+            raise NovelOSError("invalid_argument", "expected_version 必须是整数", {"field": "expected_version"})
+        if not isinstance(output_root, str) or not output_root.strip():
+            raise NovelOSError("invalid_argument", "output_root 必须是非空路径", {"field": "output_root"})
+
+        with self.database.read() as connection:
+            current = self._get(connection, "projects", project_id)
+            self._check_version(current, expected_version)
+            self._assert_project_deletable(connection, project_id)
+            project = self._row(current)
+
+        # 投影是可再生的派生视图，因此先在已验证归属后移除；失败时不触及权威数据。
+        from novelos_mcp.projection import ProjectionEngine
+
+        projection = ProjectionEngine(output_root).remove_project_projection(project_id, project["name"])
+
+        with self.database.transaction() as connection:
+            current = self._get(connection, "projects", project_id)
+            self._check_version(current, expected_version)
+            self._assert_project_deletable(connection, project_id)
+            deleted = self._project_delete_counts(connection, project_id)
+            connection.execute("DELETE FROM projects WHERE id=?", (project_id,))
+
+        return {
+            "id": project_id,
+            "name": project["name"],
+            "deleted": True,
+            "deleted_records": deleted,
+            "projection": projection,
+        }
+
     def create_book(self, project_id: str, title: str, description: str = "") -> dict[str, Any]:
         return self._create_child("books", "book", "project_id", project_id, {"title": _require_text(title, "title"), "description": description})
 
@@ -565,7 +603,7 @@ class NovelOSService:
         if number < 1:
             raise NovelOSError("invalid_argument", "number 必须大于 0", {"field": "number"})
         if metadata and metadata.get("chapter_plan_ref") and producer_run_id is None:
-            raise NovelOSError("producer_run_required", "绑定 Chapter Plan 的完整章节必须来自 Writer Agent run")
+            raise NovelOSError("producer_run_required", "绑定 Chapter Plan 的完整章节必须来自 写作智能体 run")
         with self.database.transaction() as connection:
             self._get(connection, "volumes", volume_id)
             if producer_run_id is not None:
@@ -813,7 +851,7 @@ class NovelOSService:
             if review["reviewer_profile"] != expected_profile:
                 raise NovelOSError("invalid_review_profile", "交叉审查 Profile 不匹配", {"expected": expected_profile})
             if not review["reviewer_run_id"]:
-                raise NovelOSError("reviewer_run_required", "交叉审查必须绑定独立 Review Agent run")
+                raise NovelOSError("reviewer_run_required", "交叉审查必须绑定独立 审查智能体 run")
             if review["verdict"] != "approved" or any(
                 item.get("severity") == "blocking" for item in json.loads(review["findings_json"])
             ):
@@ -1069,7 +1107,7 @@ class NovelOSService:
                 connection,
                 trace_id,
                 "planning.withdraw",
-                "Main Agent",
+                "主控智能体",
                 "completed",
                 [asset_id],
                 [],
@@ -1593,7 +1631,7 @@ class NovelOSService:
                 connection,
                 trace_id,
                 "agent.spawn",
-                "Main Agent",
+                "主控智能体",
                 "completed",
                 input_refs,
                 [run_id],
@@ -1663,7 +1701,7 @@ class NovelOSService:
                 connection,
                 str(run["trace_id"]),
                 "agent.destroy",
-                "Main Agent",
+                "主控智能体",
                 "completed" if status == "completed" else "failed",
                 [run_id],
                 [f"novelos://resource/{result_resource_id}"],
@@ -1886,8 +1924,8 @@ class NovelOSService:
         """归一化隔离执行凭据。
 
         凭据用于在权威提交（lock/accept/promote）路径证明 producer/reviewer run
-        来自独立的 sub-agent 而非 Main Agent 自审。这是声明性证明（非密码学证明）：
-        真实隔离仍由 Main Agent 用独立 Codex Task 创建 sub-agent 兑现。存为 JSON 文本。
+        来自独立的 sub-agent 而非 主控智能体 自审。这是声明性证明（非密码学证明）：
+        真实隔离仍由 主控智能体 用独立 Codex Task 创建 sub-agent 兑现。存为 JSON 文本。
         """
         if evidence is None:
             return None
@@ -2168,10 +2206,10 @@ class NovelOSService:
             or run["role_id"] != "writer_agent"
             or run["output_type"] != "chapter_draft_candidate"
         ):
-            raise NovelOSError("invalid_producer_run", "章节草稿必须来自已完成的 Writer Agent run")
+            raise NovelOSError("invalid_producer_run", "章节草稿必须来自已完成的 写作智能体 run")
         resource = self._get(connection, "resources", str(run["output_resource_id"]))
         if bytes(resource["content"]).decode("utf-8") != content:
-            raise NovelOSError("hash_mismatch", "章节正文与 Writer Agent run 输出不一致")
+            raise NovelOSError("hash_mismatch", "章节正文与 写作智能体 run 输出不一致")
 
     def _validate_change_proposal_targets(
         self,
@@ -2214,9 +2252,9 @@ class NovelOSService:
     ) -> None:
         run = self._get(connection, "agent_runs", run_id)
         if run["status"] != "completed" or run["role_id"] != "review_agent":
-            raise NovelOSError("invalid_reviewer_run", "Review 必须来自已完成的 Review Agent run")
+            raise NovelOSError("invalid_reviewer_run", "Review 必须来自已完成的 审查智能体 run")
         if run["output_type"] != "review_receipt_candidate":
-            raise NovelOSError("invalid_reviewer_run", "Review Agent output_type 非法")
+            raise NovelOSError("invalid_reviewer_run", "审查智能体 output_type 非法")
         bindings = json.loads(run["input_bindings_json"])
         if (
             bindings["immutable_subject_ref"] != subject_ref
@@ -2250,7 +2288,7 @@ class NovelOSService:
                 producer = self._get(connection, "agent_runs", producer_run_id)
                 if producer["id"] == run["id"] or producer["context_id"] == run["context_id"]:
                     raise NovelOSError(
-                        "review_context_not_isolated", "评测 Producer 与 Review Agent 必须使用隔离上下文"
+                        "review_context_not_isolated", "评测 Producer 与 审查智能体 必须使用隔离上下文"
                     )
         producer_run_id: str | None = None
         if subject_type == "planning_asset":
@@ -2260,7 +2298,7 @@ class NovelOSService:
         if producer_run_id:
             producer = self._get(connection, "agent_runs", str(producer_run_id))
             if producer["context_id"] == run["context_id"] or producer["id"] == run["id"]:
-                raise NovelOSError("review_context_not_isolated", "生产 Agent 与 Review Agent 必须使用隔离上下文")
+                raise NovelOSError("review_context_not_isolated", "生产 Agent 与 审查智能体 必须使用隔离上下文")
 
     def _validate_cross_check_sources(self, connection: sqlite3.Connection, check: sqlite3.Row) -> None:
         for prefix, expected_type in (("character", "character_contract"), ("world", "world_contract")):
@@ -2309,18 +2347,18 @@ class NovelOSService:
             )
         reviewer_run_id = review["reviewer_run_id"]
         if not reviewer_run_id:
-            raise NovelOSError("reviewer_run_required", "权威提交必须绑定独立 Review Agent run")
+            raise NovelOSError("reviewer_run_required", "权威提交必须绑定独立 审查智能体 run")
         reviewer = self._get(connection, "agent_runs", str(reviewer_run_id))
         if (
             reviewer["trace_id"] != trace_id
             or reviewer["role_id"] != "review_agent"
             or reviewer["status"] != "completed"
         ):
-            raise NovelOSError("trace_review_mismatch", "Review Agent run 必须在同一 Trace 中完成")
+            raise NovelOSError("trace_review_mismatch", "审查智能体 run 必须在同一 Trace 中完成")
         if not self._decode_isolation_evidence(reviewer["isolation_evidence"]):
             raise NovelOSError(
                 "missing_isolation_evidence",
-                "权威提交的 Review Agent run 缺少隔离执行凭据",
+                "权威提交的 审查智能体 run 缺少隔离执行凭据",
                 {"run_id": str(reviewer_run_id), "role": "reviewer"},
             )
         if producer_run_id is not None:
@@ -2366,7 +2404,7 @@ class NovelOSService:
             connection,
             trace_id,
             action,
-            "Main Agent",
+            "主控智能体",
             "completed",
             [subject_ref, review_id],
             [result_ref],
@@ -2619,6 +2657,74 @@ class NovelOSService:
         if int(row["version"]) != expected_version:
             raise NovelOSError("stale_version", "版本已变化", {"expected": expected_version, "actual": row["version"]})
 
+    @staticmethod
+    def _assert_project_deletable(connection: sqlite3.Connection, project_id: str) -> None:
+        running_traces = connection.execute(
+            "SELECT id FROM traces WHERE project_id=? AND status='running' ORDER BY id",
+            (project_id,),
+        ).fetchall()
+        if running_traces:
+            raise NovelOSError(
+                "project_delete_blocked",
+                "项目存在运行中的 Trace，不能删除",
+                {"project_id": project_id, "trace_ids": [row["id"] for row in running_traces]},
+            )
+        authority_commits = connection.execute(
+            "SELECT id FROM authority_commits WHERE project_id=? ORDER BY id",
+            (project_id,),
+        ).fetchall()
+        if authority_commits:
+            raise NovelOSError(
+                "project_delete_blocked",
+                "项目已有权威提交，不能物理删除",
+                {"project_id": project_id, "authority_commit_ids": [row["id"] for row in authority_commits]},
+            )
+
+    @staticmethod
+    def _project_delete_counts(connection: sqlite3.Connection, project_id: str) -> dict[str, int]:
+        direct_tables = (
+            "planning_assets",
+            "planning_cross_checks",
+            "characters",
+            "worlds",
+            "factions",
+            "rules",
+            "timelines",
+            "chapter_facts",
+            "continuity_candidate_sets",
+            "narrative_promises",
+            "expectation_ledgers",
+            "relationship_states",
+            "arc_states",
+            "entity_mutations",
+        )
+        counts = {
+            table: int(connection.execute(f"SELECT COUNT(*) FROM {table} WHERE project_id=?", (project_id,)).fetchone()[0])
+            for table in direct_tables
+        }
+        counts["books"] = int(connection.execute("SELECT COUNT(*) FROM books WHERE project_id=?", (project_id,)).fetchone()[0])
+        counts["volumes"] = int(
+            connection.execute(
+                "SELECT COUNT(*) FROM volumes JOIN books ON books.id=volumes.book_id WHERE books.project_id=?",
+                (project_id,),
+            ).fetchone()[0]
+        )
+        counts["chapters"] = int(
+            connection.execute(
+                "SELECT COUNT(*) FROM chapters JOIN volumes ON volumes.id=chapters.volume_id "
+                "JOIN books ON books.id=volumes.book_id WHERE books.project_id=?",
+                (project_id,),
+            ).fetchone()[0]
+        )
+        counts["traces_detached"] = int(connection.execute("SELECT COUNT(*) FROM traces WHERE project_id=?", (project_id,)).fetchone()[0])
+        counts["agent_runs_retained"] = int(
+            connection.execute(
+                "SELECT COUNT(*) FROM agent_runs JOIN traces ON traces.id=agent_runs.trace_id WHERE traces.project_id=?",
+                (project_id,),
+            ).fetchone()[0]
+        )
+        return counts
+
     @classmethod
     def _require_expected_version(cls, row: sqlite3.Row, expected_version: int | None) -> None:
         if expected_version is None:
@@ -2630,18 +2736,26 @@ class NovelOSService:
         if not 1 <= limit <= 200 or offset < 0:
             raise NovelOSError("invalid_pagination", "limit 必须为 1..200 且 offset >= 0")
 
-    def get_projection_snapshot(self, project_id: str, include_candidates: bool = False) -> dict[str, Any]:
+    def get_projection_snapshot(
+        self, project_id: str, include_candidates: bool = True, include_all_outputs: bool = True
+    ) -> dict[str, Any]:
         with self.database.read() as connection:
             # 显式开启只读事务以获得快照隔离：整个读取期间所有 SELECT
             # 看到事务开始时的数据库快照，并发写不会穿插进来造成混合版本。
             connection.execute("BEGIN")
             try:
-                return self._read_projection_snapshot(connection, project_id, include_candidates=include_candidates)
+                return self._read_projection_snapshot(
+                    connection, project_id, include_candidates=include_candidates, include_all_outputs=include_all_outputs
+                )
             finally:
                 connection.rollback()
 
     def _read_projection_snapshot(
-        self, connection: sqlite3.Connection, project_id: str, include_candidates: bool = False
+        self,
+        connection: sqlite3.Connection,
+        project_id: str,
+        include_candidates: bool = True,
+        include_all_outputs: bool = True,
     ) -> dict[str, Any]:
         project = self._get(connection, "projects", project_id)
         initial_version = project["version"]
@@ -2812,6 +2926,59 @@ class NovelOSService:
                 item["content"] = self.get_resource(res_id)
                 planning_candidate_assets.append(item)
             snapshot_payload["planning_candidate_assets"] = planning_candidate_assets
+        if include_all_outputs:
+            # 展示目录的“产出/”保留所有状态，供用户查看工作过程；它不参与
+            # authority_snapshot_hash，也不改变“规划/”“正文/”中的当前权威语义。
+            planning_output_rows = connection.execute(
+                "SELECT * FROM planning_assets WHERE project_id=? AND status!='locked' ORDER BY asset_type, revision, id",
+                (project_id,),
+            ).fetchall()
+            planning_outputs = []
+            for row in planning_output_rows:
+                item = self._row(row)
+                res_id = item["resource_ref"].replace("novelos://resource/", "")
+                item["content"] = self.get_resource(res_id)
+                planning_outputs.append(item)
+
+            chapter_output_rows = connection.execute(
+                """
+                SELECT c.*, v.number AS volume_number, v.title AS volume_title
+                FROM chapters c
+                JOIN volumes v ON c.volume_id = v.id
+                JOIN books b ON v.book_id = b.id
+                WHERE b.project_id=? AND c.status!='accepted'
+                ORDER BY v.number, c.number, c.id
+                """,
+                (project_id,),
+            ).fetchall()
+            chapter_outputs = []
+            for row in chapter_output_rows:
+                item = self._row(row)
+                res_id = item["resource_ref"].replace("novelos://resource/", "")
+                item["content"] = self.get_resource(res_id)
+                chapter_outputs.append(item)
+
+            agent_output_rows = connection.execute(
+                """
+                SELECT agent_runs.* FROM agent_runs
+                JOIN traces ON traces.id=agent_runs.trace_id
+                WHERE traces.project_id=? AND agent_runs.status='completed'
+                  AND agent_runs.output_resource_id IS NOT NULL
+                ORDER BY agent_runs.created_at, agent_runs.id
+                """,
+                (project_id,),
+            ).fetchall()
+            agent_outputs = []
+            for row in agent_output_rows:
+                item = self._row(row)
+                output_ref = item.get("output_ref")
+                if not output_ref:
+                    continue
+                item["content"] = self.get_resource(output_ref.replace("novelos://resource/", ""))
+                agent_outputs.append(item)
+            snapshot_payload["planning_output_assets"] = planning_outputs
+            snapshot_payload["chapter_output_drafts"] = chapter_outputs
+            snapshot_payload["agent_outputs"] = agent_outputs
         # 创作全过程档案（旁路 key，不进 snapshot_payload 哈希）：为每个 locked 规划资产
         # 收集溯源链（producer run → review + findings → reviewer run → authority commit）。
         # 这些数据已存 DB，此处只是组装成对外可读视图，让用户追溯资产如何锁定。
@@ -2870,12 +3037,21 @@ class NovelOSService:
         return snapshot_payload
 
     def render_project_projection(
-        self, project_id: str, output_root: str = "novels", include_candidates: bool = False
+        self,
+        project_id: str,
+        output_root: str = "novels",
+        include_candidates: bool = True,
+        include_all_outputs: bool = True,
     ) -> dict[str, Any]:
         from novelos_mcp.projection import ProjectionEngine
 
         engine = ProjectionEngine(root_dir=output_root)
-        return engine.render(self, project_id, include_candidates=include_candidates)
+        return engine.render(
+            self,
+            project_id,
+            include_candidates=include_candidates,
+            include_all_outputs=include_all_outputs,
+        )
 
     def verify_project_projection(self, project_directory: str) -> dict[str, Any]:
         """逐文件校验已生成的投影目录，校验其 manifest 中记录的内容 Hash 与来源 Hash。"""

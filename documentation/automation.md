@@ -2,16 +2,16 @@
 
 ## 所有权
 
-Codex Main Agent 是唯一自动化编排者。NovelOS 不运行后台 worker、cron、Webhook 或自主循环；业务 Agent 只能在用户任务期间由 Main 按需创建，完成一次结果后销毁。
+Codex 主控智能体 是唯一自动化编排者。NovelOS 不运行后台 worker、cron、Webhook 或自主循环；业务 Agent 只能在用户任务期间由 Main 按需创建，完成一次结果后销毁。
 
 ## Agent 清单
 
 | 类别 | 触发 | 输出 | 副作用 |
 |---|---|---|---|
 | 8 个规划资产 Agent | 需要创建或修订对应权威资产 | `planning_candidate`、change proposal | 无；Main 登记候选 |
-| Writer Agent | 完整章节、长场景或需隔离创作上下文 | `chapter_draft_candidate` | 无；Main 创建草稿 |
-| Review Agent | 规划锁定、章节接受、Entity 提交、连续性晋升前 | `review_receipt_candidate` | 无；Main 记录 Review |
-| Context Builder | 跨卷、多线、事实冲突或上下文溢出 | `context_package` | 无 |
+| 写作智能体 | 完整章节、长场景或需隔离创作上下文 | `chapter_draft_candidate` | 无；Main 创建草稿 |
+| 审查智能体 | 规划锁定、章节接受、Entity 提交、连续性晋升前 | `review_receipt_candidate` | 无；Main 记录 Review |
+| 上下文构建智能体 | 跨卷、多线、事实冲突或上下文溢出 | `context_package` | 无 |
 
 精确角色、最小输入、输出类型、Catalog 包、Review Profile、spawn gate 和工具白名单位于 `config/agents.yaml`。
 
@@ -38,7 +38,7 @@ Reviewer run 必须读取不可变 subject ref、精确 `subject_hash`、Review 
 
 Agent 质量实验使用 `review.prepare_subject` 构造不含执行模式的不可变盲评包。MCP 绑定已完成 Producer runs 和输出 refs，Review Receipt 额外绑定结构化 assessment Resource；该 Receipt 只用于评测证据，不具备小说权威提交权限。
 
-完整 70-case 实验当前延期。延期期间 Writer 只处理完整章节、长场景或明确需要隔离上下文的写作；Context Builder 只在 `complexity_reasons` 命中跨卷、多线、事实冲突或上下文溢出时创建。已完成的部分 case 仅作为恢复证据，不用于宣称胜率或改变路由。
+完整 70-case 实验当前延期。延期期间 Writer 只处理完整章节、长场景或明确需要隔离上下文的写作；上下文构建智能体 只在 `complexity_reasons` 命中跨卷、多线、事实冲突或上下文溢出时创建。已完成的部分 case 仅作为恢复证据，不用于宣称胜率或改变路由。
 
 Character/World 交叉审查将两个 locked 资产的 ID、版本和 Hash 组成独立 subject；Story Arc 只能消费已批准且仍有效的检查。
 

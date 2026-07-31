@@ -206,8 +206,8 @@ class ProjectionTest(unittest.TestCase):
         self.assertEqual(res["authority_snapshot_hash"], manifest["authority_snapshot_hash"])
         self.assertTrue(len(manifest["files"]) >= 10)
 
-    def test_non_authoritative_content_excluded(self) -> None:
-        # 创建未锁定的 candidate 规划资产，确保不会进入投影
+    def test_non_authoritative_content_archived(self) -> None:
+        # 创建未锁定的 candidate：不进入当前权威规划，但必须进入全过程产出档案。
         cand_run = complete_agent_run(self.service, self.trace["id"], "direction_agent", "planning_candidate", "未锁定的草稿方向")
         cand_draft = self.service.create_planning_candidate(
             self.project["id"],
@@ -224,6 +224,10 @@ class ProjectionTest(unittest.TestCase):
         dir_content = (target_dir / "规划" / "01-故事方向.md").read_text(encoding="utf-8")
         self.assertNotIn("未锁定的草稿方向", dir_content)
         self.assertIn("direction 规划内容正文", dir_content)
+        self.assertIn(
+            "未锁定的草稿方向",
+            "\n".join(item.read_text(encoding="utf-8") for item in (target_dir / "产出").rglob("*.md")),
+        )
 
     def test_deterministic_rendering(self) -> None:
         out_root = Path(self.tmp_dir.name) / "novels"
@@ -249,10 +253,10 @@ class ProjectionTest(unittest.TestCase):
         )
         out_root = Path(self.tmp_dir.name) / "novels"
 
-        # 默认模式：候选不进目录，且无 候选/ 子目录。
+        # 默认模式：候选不进入当前权威规划，但会保存在候选与全过程产出目录。
         res_default = self.service.render_project_projection(self.project["id"], output_root=str(out_root))
         target_default = Path(res_default["output_directory"])
-        self.assertFalse((target_default / "候选").exists())
+        self.assertTrue((target_default / "候选").exists())
         locked_default = (target_default / "规划" / "01-故事方向.md").read_text(encoding="utf-8")
         self.assertNotIn("诊断模式专属候选方向", locked_default)
         self.assertIn("direction 规划内容正文", locked_default)
@@ -484,8 +488,8 @@ class ProjectionTest(unittest.TestCase):
         self.assertEqual(manifest_before, (target_dir / "manifest.json").read_text(encoding="utf-8"))
         self.assertEqual(file_count_before, sum(1 for _ in target_dir.rglob("*") if _.is_file()))
 
-    def test_non_authoritative_planning_and_chapter_states_excluded(self) -> None:
-        # 再创建一个 direction candidate（未锁定）、一个 stale、一个 superseded 正文，确认全部不进入投影
+    def test_non_authoritative_planning_and_chapter_states_archived(self) -> None:
+        # 创建 candidate 和 superseded 正文：当前权威视图不混入，产出目录必须保留。
         # candidate
         cand_run = complete_agent_run(self.service, self.trace["id"], "direction_agent", "planning_candidate", "candidate草稿")
         self.service.create_planning_candidate(
@@ -502,14 +506,18 @@ class ProjectionTest(unittest.TestCase):
         res = self.service.render_project_projection(self.project["id"], output_root=str(out_root))
         target_dir = Path(res["output_directory"])
 
-        # candidate 不进规划
+        # candidate 不进当前规划
         self.assertNotIn("candidate草稿", (target_dir / "规划" / "01-故事方向.md").read_text(encoding="utf-8"))
-        # superseded 正文不进正文目录
+        # superseded 正文不进当前正文目录
         chapter_files = list((target_dir / "正文").rglob("*.md"))
         self.assertEqual(1, len(chapter_files))
         self.assertNotIn("第二章正文", chapter_files[0].read_text(encoding="utf-8"))
 
-        # 跳过统计应反映这些被过滤的非权威内容
+        archive = "\n".join(item.read_text(encoding="utf-8") for item in (target_dir / "产出").rglob("*.md"))
+        self.assertIn("candidate草稿", archive)
+        self.assertIn("第二章正文", archive)
+
+        # 跳过统计仍用于说明当前权威视图排除了哪些状态。
         stats = res["skipped_non_authoritative_stats"]
         self.assertGreaterEqual(stats["candidates"], 1)
         self.assertGreaterEqual(stats["superseded"], 1)

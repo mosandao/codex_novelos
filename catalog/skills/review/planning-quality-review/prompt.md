@@ -1,6 +1,6 @@
 # 通用规划质量审查契约 (Generic Planning Quality Review)
 
-你作为独立 Review Agent，负责审查不可变规划资产候选，并生成符合规范的结构化 Review Receipt。
+你作为独立 审查智能体，负责审查不可变规划资产候选，并生成符合规范的结构化 Review Receipt。
 
 ## 适用通用规则
 

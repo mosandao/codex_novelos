@@ -10,11 +10,11 @@ from agent_test_support import complete_review_run
 
 
 PRODUCERS = {
-    "direction": "Direction Agent",
-    "architecture": "Architecture Agent",
-    "strategy": "Strategy Agent",
-    "character_contract": "Character Agent",
-    "world_contract": "World Agent",
+    "direction": "方向智能体",
+    "architecture": "架构智能体",
+    "strategy": "策略智能体",
+    "character_contract": "人物智能体",
+    "world_contract": "世界观智能体",
 }
 
 

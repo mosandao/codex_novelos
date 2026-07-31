@@ -59,6 +59,9 @@ class NovelOSProtocolTest(unittest.IsolatedAsyncioTestCase):
                     self.assertIn("entity.commit_mutation", names)
                     self.assertIn("projection.get_snapshot", names)
                     self.assertIn("projection.render_project_folder", names)
+                    self.assertIn("project.wizard.render", names)
+                    self.assertIn("project.wizard.submit", names)
+                    self.assertNotIn("project.wizard.suggest_secondary_directions", names)
                     self.assertIn("projection.verify_manifest", names)
                     self.assertNotIn("character.upsert", names)
                     self.assertNotIn("world.upsert", names)
@@ -66,6 +69,14 @@ class NovelOSProtocolTest(unittest.IsolatedAsyncioTestCase):
                     self.assertNotIn("rule.upsert", names)
                     self.assertNotIn("timeline.upsert", names)
                     by_name = {tool.name: tool for tool in tools.tools}
+                    self.assertEqual(
+                        "ui://novelos/project-wizard.html",
+                        by_name["project.wizard.render"].meta["ui"]["resourceUri"],
+                    )
+                    wizard_model = await session.call_tool("project.wizard.render", {})
+                    self.assertFalse(wizard_model.isError, wizard_model.content)
+                    self.assertEqual(2, wizard_model.structuredContent["form_version"])
+                    self.assertIn("西方玄幻", wizard_model.structuredContent["options"]["secondary_directions_by_primary_genre"]["奇幻"])
                     self.assertIn(
                         "producer_run_id",
                         by_name["planning.create_candidate"].inputSchema["required"],
@@ -144,6 +155,30 @@ class NovelOSProtocolTest(unittest.IsolatedAsyncioTestCase):
                         },
                         {str(template.uriTemplate) for template in templates.resourceTemplates},
                     )
+                    resources = await session.list_resources()
+                    self.assertIn("ui://novelos/project-wizard.html", {str(resource.uri) for resource in resources.resources})
+                    wizard = await session.read_resource("ui://novelos/project-wizard.html")
+                    self.assertIn("新建小说项目", wizard.contents[0].text)
+
+                    wizard_title = f"向导协议项目-{Path(directory).name}"
+                    wizard_result = await session.call_tool(
+                        "project.wizard.submit",
+                        {
+                            "setup": {
+                                "title": wizard_title,
+                                "channel": "女频",
+                                "platform": "晋江",
+                                "scale": "中篇（100-300万字）",
+                                "primary_genre": "悬疑",
+                                "secondary_directions": ["推理悬疑"],
+                                "emotional_tones": ["悬疑紧张", "冷峻克制"],
+                                "aesthetic_styles": ["民俗志怪"],
+                                "reference_material": "案件线索应遵守公平推理。",
+                            }
+                        },
+                    )
+                    self.assertFalse(wizard_result.isError, wizard_result.content)
+                    self.assertEqual(wizard_title, wizard_result.structuredContent["project"]["name"])
 
     async def test_stdio_validates_seed_inventory_before_knowledge_query(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

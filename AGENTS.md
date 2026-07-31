@@ -2,7 +2,7 @@
 
 ## 角色
 
-作为本仓库唯一长期存在的 Main Agent。理解用户需求、规划任务、选择最小执行方式，并汇总结果。
+作为本仓库唯一长期存在的 主控智能体。理解用户需求、规划任务、选择最小执行方式，并汇总结果。
 
 ## 路由顺序
 
@@ -14,28 +14,28 @@
 
 不要为数据库访问、文件访问或单次工具调用创建 Agent。收集结果后立即销毁临时 Agent。
 
-对于可锁定、可版本化的规划资产，必须创建负责该资产的规划 Agent。探索性讨论、解释和不保存的局部建议可以由 Main Agent 加载 Skill 直接完成。
+对于可锁定、可版本化的规划资产，必须创建负责该资产的规划 Agent。探索性讨论、解释和不保存的局部建议可以由 主控智能体 加载 Skill 直接完成。
 
 ## Agent 规划
 
-只有 Main Agent 长期存在。下表定义的是可按需实例化的职责模板，不是每次任务都要启动的固定团队。其余 Agent 只在目标产物需要独立上下文、明确资产所有权或独立审查时创建，返回候选结果后销毁。
+只有 主控智能体 长期存在。下表定义的是可按需实例化的职责模板，不是每次任务都要启动的固定团队。其余 Agent 只在目标产物需要独立上下文、明确资产所有权或独立审查时创建，返回候选结果后销毁。
 
-Agent 的机器可校验业务契约以 `config/agents.yaml` 为唯一来源。该文件定义角色标识、生命周期、最小输入、工具白名单、唯一资产所有权、精确上游、Catalog 包、Review Profile 和销毁要求；`AGENTS.md` 只解释路由原则，不复制完整配置。当前 Codex 未提供经本项目验证的项目级自定义 Agent 声明格式，因此不得创建或宣称 `.codex/agents/*.toml` 是官方配置。临时 Agent 由 Main Agent 使用当前 Codex 的协作能力按需创建，项目配置只负责业务校验。
+Agent 的机器可校验业务契约以 `config/agents.yaml` 为唯一来源。该文件定义角色标识、生命周期、最小输入、工具白名单、唯一资产所有权、精确上游、Catalog 包、Review Profile 和销毁要求；`AGENTS.md` 只解释路由原则，不复制完整配置。当前 Codex 未提供经本项目验证的项目级自定义 Agent 声明格式，因此不得创建或宣称 `.codex/agents/*.toml` 是官方配置。临时 Agent 由 主控智能体 使用当前 Codex 的协作能力按需创建，项目配置只负责业务校验。
 
 ### 规划资产 Agent
 
-当前角色清单共 12 类：1 个常驻 Main Agent、8 个临时规划资产 Agent，以及 Writer、Review、Context Builder 3 个临时执行角色。这个数字表示可用职责模板，不表示一次请求会同时创建 12 个 Agent。
+当前角色清单共 12 类：1 个常驻 主控智能体、8 个临时规划资产 Agent，以及 Writer、Review、上下文构建智能体 3 个临时执行角色。这个数字表示可用职责模板，不表示一次请求会同时创建 12 个 Agent。
 
 | Agent | 负责的资产或结果 | 主要上游 |
 |---|---|---|
-| Direction Agent | 故事方向、核心冲突、主角驱动力和读者承诺 | Project Profile、用户约束；无规划资产上游 |
-| Architecture Agent | 叙事机制、冲突引擎、结构形态和规则边界 | 已锁定 Story Direction |
-| Strategy Agent | 全书阶段目标、不可逆状态变化和推进策略 | 已锁定 Story Direction、Architecture |
-| Character Agent | 核心人物、人物弧和关系契约 | 已锁定 Architecture、Story Strategy |
-| World Agent | 势力、制度、资源、地点和世界规则实现契约 | 已锁定 Architecture、Story Strategy |
-| Story Arc Agent | 跨卷故事弧、卷级职责、成长与伏笔分配 | 已锁定 Strategy、Character、World；已批准交叉审查 |
-| Volume Planner | 单卷目标、转折、章节序列和卷末状态 | 已锁定 Story Arc；当前 Canon |
-| Chapter Planner | 章节执行卡、场景目标、进入与退出状态 | 已锁定 Volume Outline；近期 Canon |
+| 方向智能体 | 故事方向、核心冲突、主角驱动力和读者承诺 | Project Profile、用户约束；无规划资产上游 |
+| 架构智能体 | 叙事机制、冲突引擎、结构形态和规则边界 | 已锁定 Story Direction |
+| 策略智能体 | 全书阶段目标、不可逆状态变化和推进策略 | 已锁定 Story Direction、Architecture |
+| 人物智能体 | 核心人物、人物弧和关系契约 | 已锁定 Architecture、Story Strategy |
+| 世界观智能体 | 势力、制度、资源、地点和世界规则实现契约 | 已锁定 Architecture、Story Strategy |
+| 故事弧智能体 | 跨卷故事弧、卷级职责、成长与伏笔分配 | 已锁定 Strategy、Character、World；已批准交叉审查 |
+| 卷规划智能体 | 单卷目标、转折、章节序列和卷末状态 | 已锁定 Story Arc；当前 Canon |
+| 章节规划智能体 | 章节执行卡、场景目标、进入与退出状态 | 已锁定 Volume Outline；近期 Canon |
 
 规划 Agent 的粒度按“可独立确认、版本化和失效的权威资产”确定，而不是按一次对话或一个 Prompt 确定。满足以下全部条件时才新增规划 Agent：
 
@@ -52,13 +52,13 @@ Architecture、Strategy 和 Story Arc 必须保持为三个资产层级：Archit
 
 | Agent | 创建条件 | 输出 |
 |---|---|---|
-| Writer Agent | 完整章节、长场景或需要隔离创作上下文 | 正文候选 |
-| Review Agent | 权威资产锁定、正文接受或连续性晋升前需要独立复核 | 绑定 `subject_hash` 的 Review Receipt |
-| Context Builder | 跨卷、多线、事实冲突或上下文超出单次 Memory Skill 可控范围 | 精选上下文包和遗漏风险 |
+| 写作智能体 | 完整章节、长场景或需要隔离创作上下文 | 正文候选 |
+| 审查智能体 | 权威资产锁定、正文接受或连续性晋升前需要独立复核 | 绑定 `subject_hash` 的 Review Receipt |
+| 上下文构建智能体 | 跨卷、多线、事实冲突或上下文超出单次 Memory Skill 可控范围 | 精选上下文包和遗漏风险 |
 
-Writer、Review 和 Context Builder 不拥有规划资产。Review Agent 通过不同 Review Profile 复用同一隔离审查角色，不按资产类型继续拆成多个 Reviewer。
+Writer、Review 和 上下文构建智能体 不拥有规划资产。审查智能体 通过不同 Review Profile 复用同一隔离审查角色，不按资产类型继续拆成多个 Reviewer。
 
-完整 70-case 质量实验当前按用户决定延期。实验完成前采用保守路由：Writer Agent 只用于完整章节、长场景或明确需要隔离创作上下文的任务；Context Builder 只用于跨卷、多线、事实冲突或上下文溢出。现有部分实验结果不构成质量结论，也不得据此扩大触发范围。
+完整 70-case 质量实验当前按用户决定延期。实验完成前采用保守路由：写作智能体 只用于完整章节、长场景或明确需要隔离创作上下文的任务；上下文构建智能体 只用于跨卷、多线、事实冲突或上下文溢出。现有部分实验结果不构成质量结论，也不得据此扩大触发范围。
 
 规划资产依赖顺序为：
 
@@ -72,21 +72,33 @@ Story Direction
   -> Chapter Plan
 ```
 
-Character 与 World 可以并行生成，但进入 Story Arc 前必须完成交叉一致性审查。Main Agent 只创建完成当前目标所需的最短 Agent 链；已有有效且非 `stale` 的上游资产时直接复用，不重新运行前序 Agent。
+Character 与 World 可以并行生成，但进入 Story Arc 前必须完成交叉一致性审查。主控智能体 只创建完成当前目标所需的最短 Agent 链；已有有效且非 `stale` 的上游资产时直接复用，不重新运行前序 Agent。
 
-每个规划 Agent 只能创建或修订自己负责的候选资产。发现上游问题时，返回变更提案和影响范围，由 Main Agent 路由给上游资产所有者；不得在下游输出中隐式重写上游。上游新版本确认后，MCP 必须将受影响的下游资产标记为 `stale`，不得自动重生成。
+每个规划 Agent 只能创建或修订自己负责的候选资产。发现上游问题时，返回变更提案和影响范围，由 主控智能体 路由给上游资产所有者；不得在下游输出中隐式重写上游。上游新版本确认后，MCP 必须将受影响的下游资产标记为 `stale`，不得自动重生成。
 
-临时 Agent 必须按 `config/schemas/agent-result.schema.json` 返回 typed result。跨层问题必须放入符合 `config/schemas/change-proposal.schema.json` 的 `change_proposals`，不得混入本层候选正文。只有 Main Agent 可以把候选登记到 MCP、记录 Review Receipt 或执行锁定、接受、晋升和权威提交。
+临时 Agent 必须按 `config/schemas/agent-result.schema.json` 返回 typed result。跨层问题必须放入符合 `config/schemas/change-proposal.schema.json` 的 `change_proposals`，不得混入本层候选正文。只有 主控智能体 可以把候选登记到 MCP、记录 Review Receipt 或执行锁定、接受、晋升和权威提交。
 
-锁定规划、批准交叉审查、接受章节、提交 Entity 和晋升连续性时，Main Agent 必须提供当前项目仍在运行的 `trace_id`。生产 run、Reviewer run 和权威提交必须属于同一 Trace；MCP 在提交事务内写入 `authority_commits` 和 Trace step，禁止事后手工补记冒充追溯证据。
+锁定规划、批准交叉审查、接受章节、提交 Entity 和晋升连续性时，主控智能体 必须提供当前项目仍在运行的 `trace_id`。生产 run、Reviewer run 和权威提交必须属于同一 Trace；MCP 在提交事务内写入 `authority_commits` 和 Trace step，禁止事后手工补记冒充追溯证据。
 
 ## 分层边界
 
-- Main Agent：负责任务规划、Agent 路由、最终决策和结果汇总，不拥有业务规划资产。
+- 主控智能体：负责任务规划、Agent 路由、最终决策和结果汇总，不拥有业务规划资产。
 - 业务 Agent：只负责临时的领域推理和候选产物，不拥有提交权限。
 - Skill：封装可复用工作流和领域方法，不负责持久化或生命周期管理。
 - MCP：访问数据库、文件、Git、浏览器和外部 API 的唯一入口。
 - Storage：只负责持久化，不包含 Prompt、路由或推理。
+
+## 用户投影
+
+项目创建或产生任意候选、草稿、审查、规划、正文 Agent 输出后，Main Agent 必须调用
+`projection.render_project_folder` 刷新 `novels/<项目目录>/`。`规划/` 与 `正文/` 保持
+当前权威版本视图；`产出/` 必须保留全部状态的规划与正文产出，以及完成的 Agent 原始
+输出。投影是单向派生内容，直接编辑其中 Markdown 不会回写权威存储。
+
+项目创建可由 `project.wizard.render` 提供的 MCP Apps 表单收集频道、平台、规模、题材、
+按一级题材展示的 LLM 预生成二级方向、可多选创作偏好和用户创作资料。表单只创建项目
+容器和记录 `project_setup` 约束；主控智能体必须读取这些约束，再按正式规划流程路由方向
+智能体。页面不得直接生成、锁定或提交规划资产。
 
 V1 只注册一个名为 `novelos` 的 stdio MCP Server。Memory、Planning、Catalog、Review 和 Trace 是同一 Server 内的工具命名空间，不拆成多个 MCP 进程。
 
@@ -101,7 +113,7 @@ V1 只注册一个名为 `novelos` 的 stdio MCP Server。Memory、Planning、Ca
 3. 保存前使用 `$novel-review` 审查草稿。
 4. 通过 NovelOS MCP 的 `chapter.*` 和 `memory.*` 工具保存审查通过的内容与记忆。
 
-生成正式章节前，使用 Chapter Planner 根据已确认卷纲生成章节执行卡。若目标只是局部改句且不改变章节状态，可以由 Main Agent 直接使用 `$novel-writing`，不创建 Chapter Planner 或 Writer Agent。
+生成正式章节前，使用 章节规划智能体 根据已确认卷纲生成章节执行卡。若目标只是局部改句且不改变章节状态，可以由 主控智能体 直接使用 `$novel-writing`，不创建 章节规划智能体 或 写作智能体。
 
 ## 验证
 

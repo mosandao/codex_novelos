@@ -4,7 +4,7 @@
 
 ## 完成结论
 
-- Codex Main Agent 是唯一常驻 Agent，也是唯一权威提交者。
+- Codex 主控智能体 是唯一常驻 Agent，也是唯一权威提交者。
 - 业务 Agent 均为临时上下文，只产出候选；Skill 只提供方法，不持久化。
 - 单一 `novelos` MCP 是 SQLite、文件、Git、浏览器和外部 API 的唯一访问边界。
 - SQLite 保存权威状态；长内容保存为不可变 Resource，控制数据使用严格 Schema、版本和 Hash。
@@ -15,7 +15,7 @@
 
 ## 验收结果
 
-- [x] 唯一 Main Agent、临时业务 Agent、Skill、MCP 和 Storage 职责无冲突。
+- [x] 唯一 主控智能体、临时业务 Agent、Skill、MCP 和 Storage 职责无冲突。
 - [x] 每类规划资产有唯一候选生产者，所有权威写入有唯一提交者。
 - [x] 临时 Agent 无法直接修改 Storage 或 Canon。
 - [x] 最终生产路径不存在 Python 与 Codex 两套 Agent Runtime。

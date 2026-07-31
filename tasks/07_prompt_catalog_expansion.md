@@ -38,7 +38,7 @@
 ## 架构决策
 
 - 迁移目标是 `catalog/skills/`，不复制 `PluginKernel`、`plugin.toml`、热加载 API 或 Skill 编辑器。
-- Main Agent 和现有临时业务 Agent 的职责不因 Prompt 数量增长而拆分；专项能力通过 Catalog 选择和组合，不建立一 Prompt 一 Agent 的映射。
+- 主控智能体 和现有临时业务 Agent 的职责不因 Prompt 数量增长而拆分；专项能力通过 Catalog 选择和组合，不建立一 Prompt 一 Agent 的映射。
 - 顶层 Skill 继续只负责工作流；Catalog 保存细粒度创作方法；MCP 负责确定性校验、版本、Hash、状态和权限。
 - Catalog 搜索只返回轻量 metadata。Prompt、Contract、Schema 和 examples 只在选择后按需读取。
 - 普通创作方法使用 `free_text` 或 `document`；只有边界敏感、需机器消费或需失败关闭的结果使用 `typed_result` 和 JSON Schema。
@@ -48,7 +48,7 @@
 
 ### 1. 故事架构方法
 
-为 Architecture Agent 提供可选方法，而不是增加新的架构 Agent：
+为 架构智能体 提供可选方法，而不是增加新的架构 Agent：
 
 - 持续冲突与压力升级；
 - 因果链与不可跳过的状态变化；
@@ -58,7 +58,7 @@
 
 ### 2. 世界契约方法
 
-为 World Agent 提供按项目需要选择的方法：
+为 世界观智能体 提供按项目需要选择的方法：
 
 - 底层法则与不可破边界；
 - 能力进入、训练、成长和硬上限；
@@ -84,7 +84,7 @@
 
 ### 4. Review 方法
 
-- Review Agent 保持单一临时角色，根据 `review_profile` 加载一个或多个 Review Catalog 包。
+- 审查智能体 保持单一临时角色，根据 `review_profile` 加载一个或多个 Review Catalog 包。
 - 规划审查至少区分内部一致性、上游忠实度、Architecture grounding 和跨资产一致性。
 - 多个审查维度可以组合执行，但必须绑定同一不可变 `subject_hash`；不得用多个 Prompt 自报结果替代 Review Receipt。
 - `review_agent.catalog_package` 不再固定为正文审查包，应由 subject 类型和 Profile 确定。
@@ -139,7 +139,7 @@
 - [x] 来源固定提交和工作树新增 Prompt 被分别盘点，不混用来源 Hash。
 - [x] 每个来源 Prompt 都有明确且与 provenance 一致的 disposition，授权未确认和实验内容默认不进入生产候选。
 - [x] Catalog 可按需读取可选 Contract Resource，普通搜索结果不包含完整 Prompt、Schema 或 Contract。
-- [x] Review Agent 能按 subject 类型和 `review_profile` 选择规划、正文或连续性审查方法，不再固定绑定正文审查包。
+- [x] 审查智能体 能按 subject 类型和 `review_profile` 选择规划、正文或连续性审查方法，不再固定绑定正文审查包。
 - [x] 来源 Python 不被生产 Catalog 导入或执行。
 - [x] exact ref、版本、状态、pointer 和 cardinality 等确定性边界由 MCP 校验并具有失败关闭测试。
 - [x] 故事架构、世界契约和写作各至少有一组专项方法通过真实路由、边界和质量验证。

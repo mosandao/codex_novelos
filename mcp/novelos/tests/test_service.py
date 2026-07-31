@@ -186,16 +186,16 @@ class NovelOSServiceTest(unittest.TestCase):
     def test_trace_is_ordered_append_only_and_cannot_reopen(self) -> None:
         trace = self.service.start_trace("chapter-continuation", self.project["id"])
         first = self.service.record_trace_step(
-            trace["id"], "agent.spawn", "Main Agent", "completed", output_refs=["agent:writer"]
+            trace["id"], "agent.spawn", "主控智能体", "completed", output_refs=["agent:writer"]
         )
         second = self.service.record_trace_step(
-            trace["id"], "tool.call", "Writer Agent", "completed", input_refs=["chapter-plan:1"]
+            trace["id"], "tool.call", "写作智能体", "completed", input_refs=["chapter-plan:1"]
         )
         self.assertEqual((1, 2), (first["sequence"], second["sequence"]))
         finished = self.service.finish_trace(trace["id"], "completed")
         self.assertEqual("completed", finished["status"])
         with self.assertRaisesRegex(NovelOSError, "invalid_state"):
-            self.service.record_trace_step(trace["id"], "agent.destroy", "Main Agent", "completed")
+            self.service.record_trace_step(trace["id"], "agent.destroy", "主控智能体", "completed")
         self.assertEqual(2, len(self.service.get_trace(trace["id"])["steps"]))
 
 
@@ -249,7 +249,7 @@ class NovelOSServiceContractValidationTest(unittest.TestCase):
             self.project["id"],
             "Story direction content",
             [],
-            "Direction Agent",
+            "方向智能体",
         )
         _, review = complete_review_run(
             self.service,
@@ -282,7 +282,7 @@ class NovelOSServiceContractValidationTest(unittest.TestCase):
             self.project["id"],
             "Story direction content",
             [],
-            "Direction Agent",
+            "方向智能体",
         )
         _, review = complete_review_run(
             self.service,
@@ -317,7 +317,7 @@ class NovelOSServiceContractValidationTest(unittest.TestCase):
             self.project["id"],
             "Story direction content v2 modified",
             [],
-            "Direction Agent",
+            "方向智能体",
         )
         _, review2 = complete_review_run(
             self.service,
@@ -348,7 +348,7 @@ class NovelOSServiceContractValidationTest(unittest.TestCase):
             self.project["id"],
             "Story direction content",
             [],
-            "Direction Agent",
+            "方向智能体",
         )
         with self.assertRaises(NovelOSError) as cm:
             self.service.validate_contract_inputs("story-causal-structure", self.project["id"], [
@@ -371,7 +371,7 @@ class NovelOSServiceContractValidationTest(unittest.TestCase):
             other_proj["id"],
             "Story direction content",
             [],
-            "Direction Agent",
+            "方向智能体",
         )
         _, review = complete_review_run(
             self.service,
@@ -428,7 +428,7 @@ class NovelOSServiceContractValidationTest(unittest.TestCase):
             self.project["id"],
             "Story direction content",
             [],
-            "Direction Agent",
+            "方向智能体",
         )
         _, review = complete_review_run(
             self.service,
@@ -458,7 +458,7 @@ class NovelOSServiceContractValidationTest(unittest.TestCase):
             self.project["id"],
             "Story direction content",
             [],
-            "Direction Agent",
+            "方向智能体",
         )
         _, review = complete_review_run(
             self.service,
@@ -508,7 +508,7 @@ class NovelOSServiceContractValidationTest(unittest.TestCase):
             self.project["id"],
             "Direction content",
             [],
-            "Direction Agent",
+            "方向智能体",
         )
         _, rev1 = complete_review_run(
             self.service,
@@ -526,7 +526,7 @@ class NovelOSServiceContractValidationTest(unittest.TestCase):
             self.project["id"],
             "Architecture content",
             [{"asset_id": locked_dir["id"], "version": locked_dir["version"]}],
-            "Architecture Agent",
+            "架构智能体",
         )
         _, review = complete_review_run(
             self.service,
@@ -581,7 +581,7 @@ class NovelOSServiceContractValidationTest(unittest.TestCase):
             self.project["id"],
             "Story direction content",
             [],
-            "Direction Agent",
+            "方向智能体",
         )
         _, review = complete_review_run(
             self.service,

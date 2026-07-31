@@ -8,6 +8,12 @@ from typing import Any
 from mcp.server.fastmcp import FastMCP
 
 from novelos_mcp.service import NovelOSService
+from novelos_mcp.project_wizard import (
+    WIZARD_OPTIONS,
+    WIZARD_URI,
+    normalize_project_setup,
+    project_wizard_html,
+)
 
 
 def create_server(
@@ -70,11 +76,21 @@ def create_server(
             assessment,
         )
 
+    def render_project_wizard() -> dict[str, Any]:
+        return {"form_version": 2, "options": WIZARD_OPTIONS}
+
+    def submit_project_wizard(setup: dict[str, Any]) -> dict[str, Any]:
+        name, description, metadata = normalize_project_setup(setup)
+        project = service.create_project(name, description, metadata)
+        projection = service.render_project_projection(project["id"])
+        return {"project": project, "projection": projection}
+
     tools: dict[str, Any] = {
         "project.create": service.create_project,
         "project.get": service.get_project,
         "project.list": service.list_projects,
         "project.update": service.update_project,
+        "project.delete": service.delete_project,
         "book.create": service.create_book,
         "book.get": service.get_book,
         "book.list": service.list_books,
@@ -142,6 +158,21 @@ def create_server(
     }
     for name, handler in tools.items():
         server.tool(name=name)(handler)
+
+    server.tool(
+        name="project.wizard.render",
+        title="打开项目创建向导",
+        description="渲染小说项目创建向导；用户选择频道、平台、规模、题材和创作偏好。",
+        meta={"ui": {"resourceUri": WIZARD_URI}},
+    )(render_project_wizard)
+    server.tool(
+        name="project.wizard.submit",
+        title="提交项目创建向导",
+        description="校验项目向导选择、创建项目并刷新项目投影。",
+    )(submit_project_wizard)
+    @server.resource(WIZARD_URI, mime_type="text/html;profile=mcp-app")
+    def project_wizard_resource() -> str:
+        return project_wizard_html()
 
     @server.resource("novelos://resource/{resource_id}")
     def resource(resource_id: str) -> str:

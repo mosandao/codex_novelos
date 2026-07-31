@@ -28,14 +28,14 @@ class PlanningAssetTest(unittest.TestCase):
         cross_check_id: str | None = None,
     ) -> dict[str, Any]:
         producers = {
-            "direction": "Direction Agent",
-            "architecture": "Architecture Agent",
-            "strategy": "Strategy Agent",
-            "character_contract": "Character Agent",
-            "world_contract": "World Agent",
-            "story_arc": "Story Arc Agent",
-            "volume_outline": "Volume Planner",
-            "chapter_plan": "Chapter Planner",
+            "direction": "方向智能体",
+            "architecture": "架构智能体",
+            "strategy": "策略智能体",
+            "character_contract": "人物智能体",
+            "world_contract": "世界观智能体",
+            "story_arc": "故事弧智能体",
+            "volume_outline": "卷规划智能体",
+            "chapter_plan": "章节规划智能体",
         }
         return self.service.create_planning_candidate(
             self.project["id"],
@@ -86,7 +86,7 @@ class PlanningAssetTest(unittest.TestCase):
     def test_asset_type_has_unique_producer_and_exact_upstream_types(self) -> None:
         with self.assertRaisesRegex(NovelOSError, "invalid_producer"):
             self.service.create_planning_candidate(
-                self.project["id"], "direction", self.scope, "内容", [], "Architecture Agent"
+                self.project["id"], "direction", self.scope, "内容", [], "架构智能体"
             )
         with self.assertRaisesRegex(NovelOSError, "invalid_upstream"):
             self._candidate("architecture", "缺少方向", [])

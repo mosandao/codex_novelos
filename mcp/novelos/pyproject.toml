@@ -17,4 +17,4 @@ novelos-migrate-legacy = "novelos_mcp.legacy:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-novelos_mcp = ["storage/*.sql", "storage/migrations/*.sql"]
+novelos_mcp = ["storage/*.sql", "storage/migrations/*.sql", "ui/*.html"]

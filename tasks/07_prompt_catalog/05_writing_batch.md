@@ -24,7 +24,7 @@
 
 ## 禁止修改
 
-- Writer Agent 数量、章节接受流程、Review Receipt、Storage 和来源仓库。
+- 写作智能体 数量、章节接受流程、Review Receipt、Storage 和来源仓库。
 - `writer-generate-v2`、`chapter-review-v2` 等实验包。
 - 将“humanizer”实现为统一短句、同义词替换或删除所有口语特征。
 - 让 Writer 自己批准正文或让 Review Prompt 重写正文。

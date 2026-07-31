@@ -10,7 +10,7 @@
 
 ## 目标
 
-解除 Review Agent 对 `prose-quality-review` 的固定绑定，由 MCP 根据精确 `review_profile` 返回允许使用的 Catalog 包。未知 Profile 必须失败关闭。
+解除 审查智能体 对 `prose-quality-review` 的固定绑定，由 MCP 根据精确 `review_profile` 返回允许使用的 Catalog 包。未知 Profile 必须失败关闭。
 
 ## 允许修改
 
@@ -64,7 +64,7 @@ review_profile_routes:
 - `review_agent.catalog_package` 改为 `null`。
 - `read_only_tools` 与 `review_tools` 增加 `skill_catalog.review_route`。
 
-Review Agent 使用已有 `review_profile` 调用 Route 工具，不改变 `minimum_inputs`。延期的 `agent-quality-blind-comparison` 评测继续使用自身固定 rubric，不纳入生产权威 Profile 路由。
+审查智能体 使用已有 `review_profile` 调用 Route 工具，不改变 `minimum_inputs`。延期的 `agent-quality-blind-comparison` 评测继续使用自身固定 rubric，不纳入生产权威 Profile 路由。
 
 ## 新增 Catalog 包
 
@@ -80,13 +80,13 @@ Review Agent 使用已有 `review_profile` 调用 Route 工具，不改变 `mini
 6. `accept_chapter()` 只接受 `prose-v1`，`promote_reviewed_continuity()` 只接受 `continuity-v1`；现有规划、交叉审查和实体提交继续使用各自已有的精确 Profile 门禁。
 7. 测试八类规划、交叉审查、五类实体、正文和连续性的精确映射；测试未知 Profile、缺包、非 active 包、重复包和固定 `catalog_package` 被拒绝。
 8. 更新临时工具白名单测试以显式允许只读后缀 `review_route`；生产 Catalog 测试由“全部包等于固定集合”改为“核心包是 active 集合的子集且所有 active 包合法”。
-9. 更新纯 Codex 工作流测试：Review Agent 启动后按精确 Profile 解析 Route，再加载返回的 Prompt refs；不改变 Agent 的最小输入字段。
+9. 更新纯 Codex 工作流测试：审查智能体 启动后按精确 Profile 解析 Route，再加载返回的 Prompt refs；不改变 Agent 的最小输入字段。
 
 ## 停止条件
 
 - 任一路由包不存在或不是 `active`。
 - 需要通过猜测 subject 文本选择 Profile。
-- 为实现路由新增 Review Agent 或数据库表。
+- 为实现路由新增 审查智能体 或数据库表。
 
 ## 验证
 

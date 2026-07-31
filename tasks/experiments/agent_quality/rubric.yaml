@@ -71,7 +71,7 @@ context_builder_ab:
     - id: contradiction_detection
       weight: 0.35
       scale: five_point
-  routing_rule: 只有跨卷、多线、冲突事实或上下文溢出样本允许创建 Context Builder。
+  routing_rule: 只有跨卷、多线、冲突事实或上下文溢出样本允许创建 上下文构建智能体。
   retention_rule:
     minimum_clear_win_rate: 0.6
     clear_win_margin: 0.25

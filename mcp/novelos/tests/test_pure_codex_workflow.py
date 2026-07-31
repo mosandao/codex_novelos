@@ -12,14 +12,14 @@ from agent_test_support import complete_agent_run, complete_review_run
 ROOT = Path(__file__).resolve().parents[3]
 CATALOG_ROOT = ROOT / "catalog" / "skills"
 PRODUCERS = {
-    "direction": "Direction Agent",
-    "architecture": "Architecture Agent",
-    "strategy": "Strategy Agent",
-    "character_contract": "Character Agent",
-    "world_contract": "World Agent",
-    "story_arc": "Story Arc Agent",
-    "volume_outline": "Volume Planner",
-    "chapter_plan": "Chapter Planner",
+    "direction": "方向智能体",
+    "architecture": "架构智能体",
+    "strategy": "策略智能体",
+    "character_contract": "人物智能体",
+    "world_contract": "世界观智能体",
+    "story_arc": "故事弧智能体",
+    "volume_outline": "卷规划智能体",
+    "chapter_plan": "章节规划智能体",
 }
 PACKAGES = {
     "direction": "story-direction",
@@ -67,7 +67,7 @@ class PureCodexWorkflowTest(unittest.TestCase):
         self.service.record_trace_step(
             self.trace["id"],
             "catalog.select",
-            "Main Agent",
+            "主控智能体",
             "completed",
             output_refs=[prompt_ref],
             details={"selected": name},

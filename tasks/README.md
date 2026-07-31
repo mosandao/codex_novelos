@@ -14,7 +14,7 @@
 |---|---|---|
 | [70-case Agent 质量实验](./experiments/agent_quality/README.md) | `DEFERRED` | 按 `deferral.json` 完成剩余案例、独立盲评和可重算汇总 |
 
-延期不等于质量通过。在实验完成前，Writer 仅用于完整章节或长场景；Context Builder 仅用于跨卷、多线、事实冲突或上下文溢出。
+延期不等于质量通过。在实验完成前，Writer 仅用于完整章节或长场景；上下文构建智能体 仅用于跨卷、多线、事实冲突或上下文溢出。
 
 ## 历史完成项
 

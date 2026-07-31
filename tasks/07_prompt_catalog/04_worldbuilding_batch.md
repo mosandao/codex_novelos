@@ -7,7 +7,7 @@
 ## 前置
 
 - `03_review_profile_routing.md` 必须为 `DONE`。
-- `execution_manifest.csv` 中目标行必须由 Main Agent 在授权确认后改为 `status=ready`。
+- `execution_manifest.csv` 中目标行必须由 主控智能体 在授权确认后改为 `status=ready`。
 - 来源 commit 和 Prompt Hash 必须与 manifest 完全一致。
 
 ## 目标

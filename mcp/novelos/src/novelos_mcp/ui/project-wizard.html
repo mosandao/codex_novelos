@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NovelOS - 新建小说项目</title>
+  <style>
+    :root {
+      color: #193028;
+      background: #eff2ec;
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-synthesis: none;
+      --canvas: #eff2ec;
+      --paper: #fcfdf9;
+      --ink: #193028;
+      --muted: #68756e;
+      --line: #d6ddd3;
+      --soft: #f1f5ee;
+      --forest: #1b624a;
+      --forest-dark: #104635;
+      --coral: #b95135;
+      --coral-soft: #fff0e9;
+      --focus: #e49a41;
+    }
+
+    * { box-sizing: border-box; }
+    body { min-width: 320px; margin: 0; background: var(--canvas); }
+    button, input, textarea { font: inherit; }
+    button { cursor: pointer; }
+
+    .shell { width: min(1180px, calc(100% - 48px)); margin: 0 auto; padding: 36px 0 48px; }
+    .masthead { display: flex; align-items: end; justify-content: space-between; gap: 24px; padding: 0 2px 22px; border-bottom: 2px solid var(--ink); }
+    .brand { display: grid; gap: 5px; }
+    .eyebrow, .stage, .section-index, .sidebar-kicker { margin: 0; color: var(--forest); font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    h1 { margin: 0; color: var(--ink); font-family: Georgia, "Songti SC", "SimSun", serif; font-size: 35px; font-weight: 700; line-height: 1.1; letter-spacing: 0; }
+    .stage { padding-bottom: 4px; color: var(--muted); white-space: nowrap; }
+
+    .workspace { display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 34px; padding-top: 25px; }
+    .sidebar { align-self: start; padding-top: 8px; }
+    .sidebar-kicker { margin-bottom: 15px; }
+    .steps { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+    .step { display: grid; grid-template-columns: 24px 1fr; column-gap: 10px; align-items: start; padding: 10px 0; color: #8b9690; }
+    .step::before { display: grid; width: 22px; height: 22px; place-items: center; border: 1px solid currentColor; border-radius: 50%; content: attr(data-step); font-size: 11px; font-weight: 800; }
+    .step strong { font-size: 13px; line-height: 22px; }
+    .step small { grid-column: 2; margin-top: 2px; font-size: 12px; line-height: 1.45; }
+    .step.active { color: var(--forest); }
+    .step.active::before { border-color: var(--forest); background: var(--forest); color: #fff; }
+
+    .form-zone { overflow: hidden; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); box-shadow: 0 12px 28px rgba(30, 50, 39, .06); }
+    .form-intro { display: flex; align-items: start; justify-content: space-between; gap: 24px; padding: 25px 28px 23px; border-bottom: 1px solid var(--line); background: #f8faf5; }
+    .form-intro h2 { margin: 4px 0 0; color: var(--ink); font-size: 18px; line-height: 1.35; letter-spacing: 0; }
+    .form-intro p { max-width: 410px; margin: 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
+
+    fieldset { min-width: 0; margin: 0; padding: 25px 28px; border: 0; }
+    fieldset + fieldset { border-top: 1px solid var(--line); }
+    legend { width: 100%; padding: 0; }
+    .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 15px; }
+    .section-head h3 { margin: 0; color: var(--ink); font-size: 15px; line-height: 1.4; letter-spacing: 0; }
+    .section-index { color: var(--coral); font-size: 11px; }
+    .hint { margin: -3px 0 15px; color: var(--muted); font-size: 13px; line-height: 1.55; }
+    .required { color: var(--coral); }
+
+    .field-label { display: block; margin-bottom: 8px; color: var(--ink); font-size: 13px; font-weight: 750; }
+    input[type="text"], textarea { width: 100%; border: 1px solid #bdc8bf; border-radius: 5px; background: #fff; color: var(--ink); outline: none; transition: border-color 120ms ease, box-shadow 120ms ease; }
+    input[type="text"] { min-height: 44px; padding: 9px 12px; }
+    textarea { min-height: 126px; resize: vertical; padding: 11px 12px; line-height: 1.6; }
+    input[type="text"]::placeholder, textarea::placeholder { color: #98a39c; }
+    input[type="text"]:focus, textarea:focus { border-color: var(--forest); box-shadow: 0 0 0 3px rgba(27, 98, 74, .14); }
+
+    .split { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+    .choice-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+    .choice { position: relative; display: inline-flex; min-height: 34px; align-items: center; justify-content: center; padding: 6px 10px; border: 1px solid #cbd4cc; border-radius: 5px; background: #fff; color: #405047; font-size: 13px; line-height: 1.2; transition: border-color 120ms ease, background 120ms ease, color 120ms ease, transform 120ms ease; }
+    .choice:hover { border-color: #789685; color: var(--forest-dark); }
+    .choice:has(input:focus-visible) { outline: 3px solid rgba(228, 154, 65, .45); outline-offset: 2px; }
+    .choice:has(input:checked) { border-color: var(--forest); background: #e6f1e9; color: var(--forest-dark); font-weight: 750; }
+    .choice input { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    .choice-count { min-width: 3.2em; color: var(--muted); font-size: 12px; font-weight: 700; text-align: right; }
+
+    .direction-panel { min-height: 102px; padding: 14px; border: 1px dashed #bdc9bd; border-radius: 6px; background: var(--soft); }
+    .direction-placeholder { margin: 6px 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+    .direction-placeholder.ready { color: var(--forest-dark); }
+    .direction-panel .choice-grid { margin-top: 10px; }
+    .direction-panel .choice { background: var(--paper); }
+    .direction-panel .choice:has(input:checked) { background: var(--coral-soft); border-color: var(--coral); color: #81331f; }
+
+    .reference-label { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+    .reference-label small { color: var(--muted); font-size: 12px; font-weight: 500; }
+    .actionbar { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 18px 28px; border-top: 1px solid var(--line); background: #f8faf5; }
+    #status { min-height: 20px; color: var(--coral); font-size: 13px; line-height: 1.45; }
+    #status.success { color: var(--forest); }
+    .submit { min-width: 130px; min-height: 42px; border: 1px solid var(--forest-dark); border-radius: 5px; background: var(--forest); color: #fff; font-size: 14px; font-weight: 800; transition: background 120ms ease, transform 120ms ease; }
+    .submit:hover { background: var(--forest-dark); }
+    .submit:active { transform: translateY(1px); }
+    .submit:focus-visible { outline: 3px solid rgba(228, 154, 65, .6); outline-offset: 2px; }
+    .submit:disabled { cursor: wait; opacity: .65; }
+
+    @media (max-width: 860px) {
+      .workspace { grid-template-columns: 1fr; gap: 18px; }
+      .sidebar { display: none; }
+    }
+    @media (max-width: 620px) {
+      .shell { width: min(100% - 28px, 1180px); padding: 22px 0 32px; }
+      .masthead { align-items: start; flex-direction: column; gap: 8px; padding-bottom: 17px; }
+      h1 { font-size: 29px; }
+      .stage { padding-bottom: 0; }
+      .form-intro { display: block; padding: 21px 18px 19px; }
+      .form-intro p { margin-top: 10px; }
+      fieldset { padding: 21px 18px; }
+      .split { grid-template-columns: 1fr; gap: 22px; }
+      .section-head { align-items: start; }
+      .choice-count { padding-top: 2px; }
+      .actionbar { align-items: stretch; flex-direction: column; padding: 16px 18px; }
+      .submit { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="masthead">
+      <div class="brand">
+        <p class="eyebrow">NovelOS / Project Studio</p>
+        <h1>新建小说项目</h1>
+      </div>
+      <p class="stage">项目约束 · 01</p>
+    </header>
+
+    <main class="workspace">
+      <aside class="sidebar" aria-label="项目创建阶段">
+        <p class="sidebar-kicker">创作流程</p>
+        <ol class="steps">
+          <li class="step active" data-step="01"><strong>项目定位</strong><small>读者与题材约束</small></li>
+          <li class="step" data-step="02"><strong>故事方向</strong><small>核心冲突与承诺</small></li>
+          <li class="step" data-step="03"><strong>故事架构</strong><small>机制与规则边界</small></li>
+          <li class="step" data-step="04"><strong>全书战略</strong><small>阶段目标与推进</small></li>
+        </ol>
+      </aside>
+
+      <form id="wizard" class="form-zone" novalidate>
+        <div class="form-intro">
+          <div>
+            <p class="section-index">项目约束</p>
+            <h2>先定义读者入口，再交给故事方向阶段推导设定。</h2>
+          </div>
+          <p>勾选结果、二级方向和创作资料会保存到项目中，供 Main Agent 在后续规划时参考。</p>
+        </div>
+
+        <fieldset>
+          <legend>
+            <div class="section-head"><h3>项目名称 <span class="required" aria-label="必填">*</span></h3><span class="section-index">01</span></div>
+          </legend>
+          <label class="field-label" for="title">名称</label>
+          <input id="title" type="text" required maxlength="100" autocomplete="off" placeholder="例如：灰烬誓环">
+        </fieldset>
+
+        <fieldset>
+          <legend><div class="section-head"><h3>发布定位 <span class="required" aria-label="必填">*</span></h3><span class="section-index">02</span></div></legend>
+          <div class="split">
+            <div>
+              <p class="field-label">频道</p>
+              <div class="choice-grid" role="radiogroup" aria-label="频道">
+                <label class="choice"><input type="radio" name="channel" value="男频" required>男频</label>
+                <label class="choice"><input type="radio" name="channel" value="女频">女频</label>
+                <label class="choice"><input type="radio" name="channel" value="全向">全向</label>
+                <label class="choice"><input type="radio" name="channel" value="出版">出版</label>
+                <label class="choice"><input type="radio" name="channel" value="剧本">剧本</label>
+              </div>
+            </div>
+            <div>
+              <p class="field-label">目标平台</p>
+              <div class="choice-grid" role="radiogroup" aria-label="目标平台">
+                <label class="choice"><input type="radio" name="platform" value="起点" required>起点</label>
+                <label class="choice"><input type="radio" name="platform" value="番茄">番茄</label>
+                <label class="choice"><input type="radio" name="platform" value="晋江">晋江</label>
+                <label class="choice"><input type="radio" name="platform" value="七猫">七猫</label>
+              </div>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend><div class="section-head"><h3>作品规模 <span class="required" aria-label="必填">*</span></h3><span class="section-index">03</span></div></legend>
+          <div class="choice-grid" role="radiogroup" aria-label="作品规模">
+            <label class="choice"><input type="radio" name="scale" value="短篇（1-100万字）" required>短篇（1-100万字）</label>
+            <label class="choice"><input type="radio" name="scale" value="中篇（100-300万字）">中篇（100-300万字）</label>
+            <label class="choice"><input type="radio" name="scale" value="长篇（300-500万字）">长篇（300-500万字）</label>
+            <label class="choice"><input type="radio" name="scale" value="超长篇（500万字以上）">超长篇（500万字以上）</label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend><div class="section-head"><h3>一级题材 <span class="required" aria-label="必填">*</span></h3><span class="section-index">04</span></div></legend>
+          <p class="hint">选择后将展示对应的 LLM 预生成二级方向候选。</p>
+          <div class="choice-grid" role="radiogroup" aria-label="一级题材">
+            <label class="choice"><input type="radio" name="primary_genre" value="玄幻" required>玄幻</label>
+            <label class="choice"><input type="radio" name="primary_genre" value="奇幻">奇幻</label>
+            <label class="choice"><input type="radio" name="primary_genre" value="武侠">武侠</label>
+            <label class="choice"><input type="radio" name="primary_genre" value="仙侠">仙侠</label>
+            <label class="choice"><input type="radio" name="primary_genre" value="都市">都市</label>
+            <label class="choice"><input type="radio" name="primary_genre" value="现实">现实</label>
+            <label class="choice"><input type="radio" name="primary_genre" value="历史">历史</label>
+            <label class="choice"><input type="radio" name="primary_genre" value="军事">军事</label>
+            <label class="choice"><input type="radio" name="primary_genre" value="游戏">游戏</label>
+            <label class="choice"><input type="radio" name="primary_genre" value="体育">体育</label>
+            <label class="choice"><input type="radio" name="primary_genre" value="科幻">科幻</label>
+            <label class="choice"><input type="radio" name="primary_genre" value="诸天无限">诸天无限</label>
+            <label class="choice"><input type="radio" name="primary_genre" value="悬疑">悬疑</label>
+            <label class="choice"><input type="radio" name="primary_genre" value="轻小说">轻小说</label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend><div class="section-head"><h3>二级方向</h3><span class="choice-count" id="secondary_count">0 项已选</span></div></legend>
+          <p class="hint">候选由 LLM 预生成，并随一级题材变化；可多选，不会直接替代世界设定或故事架构。</p>
+          <div class="direction-panel" aria-live="polite">
+            <p class="direction-placeholder" id="secondary_placeholder">请先选择一级题材。</p>
+            <div class="choice-grid" id="secondary_choices" aria-label="二级方向候选"></div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend><div class="section-head"><h3>创作偏好</h3><span class="section-index">05</span></div></legend>
+          <div class="split">
+            <div>
+              <div class="section-head"><p class="field-label">主情绪基调</p><span class="choice-count" id="tone_count">可多选</span></div>
+              <p class="hint">留空时由故事方向阶段判断。</p>
+              <div class="choice-grid" role="group" aria-label="主情绪基调">
+                <label class="choice"><input type="checkbox" name="emotional_tones" value="爽快燃向">爽快燃向</label>
+                <label class="choice"><input type="checkbox" name="emotional_tones" value="轻松欢乐">轻松欢乐</label>
+                <label class="choice"><input type="checkbox" name="emotional_tones" value="沙雕搞笑">沙雕搞笑</label>
+                <label class="choice"><input type="checkbox" name="emotional_tones" value="温馨治愈">温馨治愈</label>
+                <label class="choice"><input type="checkbox" name="emotional_tones" value="慢热沉浸">慢热沉浸</label>
+                <label class="choice"><input type="checkbox" name="emotional_tones" value="热血悲壮">热血悲壮</label>
+                <label class="choice"><input type="checkbox" name="emotional_tones" value="黑暗压抑">黑暗压抑</label>
+                <label class="choice"><input type="checkbox" name="emotional_tones" value="绝望求生">绝望求生</label>
+                <label class="choice"><input type="checkbox" name="emotional_tones" value="冷峻克制">冷峻克制</label>
+                <label class="choice"><input type="checkbox" name="emotional_tones" value="疯癫混乱">疯癫混乱</label>
+                <label class="choice"><input type="checkbox" name="emotional_tones" value="史诗厚重">史诗厚重</label>
+                <label class="choice"><input type="checkbox" name="emotional_tones" value="悬疑紧张">悬疑紧张</label>
+              </div>
+            </div>
+            <div>
+              <div class="section-head"><p class="field-label">美学风格</p><span class="choice-count" id="style_count">最多 2 项</span></div>
+              <p class="hint">约束表现气质，不替代世界设定。</p>
+              <div class="choice-grid" role="group" aria-label="美学风格">
+                <label class="choice"><input type="checkbox" name="aesthetic_styles" value="东方古典">东方古典</label>
+                <label class="choice"><input type="checkbox" name="aesthetic_styles" value="魏晋风流">魏晋风流</label>
+                <label class="choice"><input type="checkbox" name="aesthetic_styles" value="盛唐气象">盛唐气象</label>
+                <label class="choice"><input type="checkbox" name="aesthetic_styles" value="蒸汽幻想">蒸汽幻想</label>
+                <label class="choice"><input type="checkbox" name="aesthetic_styles" value="西幻史诗">西幻史诗</label>
+                <label class="choice"><input type="checkbox" name="aesthetic_styles" value="黑暗哥特">黑暗哥特</label>
+                <label class="choice"><input type="checkbox" name="aesthetic_styles" value="废土荒凉">废土荒凉</label>
+                <label class="choice"><input type="checkbox" name="aesthetic_styles" value="赛博霓虹">赛博霓虹</label>
+                <label class="choice"><input type="checkbox" name="aesthetic_styles" value="星际宏伟">星际宏伟</label>
+                <label class="choice"><input type="checkbox" name="aesthetic_styles" value="民俗志怪">民俗志怪</label>
+                <label class="choice"><input type="checkbox" name="aesthetic_styles" value="宇宙恐怖">宇宙恐怖</label>
+                <label class="choice"><input type="checkbox" name="aesthetic_styles" value="校园青春">校园青春</label>
+                <label class="choice"><input type="checkbox" name="aesthetic_styles" value="市井烟火">市井烟火</label>
+                <label class="choice"><input type="checkbox" name="aesthetic_styles" value="工业机械">工业机械</label>
+                <label class="choice"><input type="checkbox" name="aesthetic_styles" value="神秘学仪式">神秘学仪式</label>
+              </div>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend><div class="section-head"><h3>创作资料</h3><span class="section-index">06</span></div></legend>
+          <label class="reference-label field-label" for="reference_material"><span>补充给 Main Agent 的资料</span><small>可选，最多 10,000 字</small></label>
+          <textarea id="reference_material" maxlength="10000" placeholder="可填写灵感片段、已有设定、参考作品、希望避开的内容或其他创作要求。"></textarea>
+        </fieldset>
+
+        <footer class="actionbar">
+          <output id="status" aria-live="polite"></output>
+          <button class="submit" id="submit" type="submit">创建项目</button>
+        </footer>
+      </form>
+    </main>
+  </div>
+
+  <script>
+    const secondaryFallback = {
+      "玄幻":["东方玄幻","高武世界","宗门崛起","无敌流","升级流","异世大陆","王朝争霸","神话复苏","末法时代","灵气枯竭","黑暗纪元","文明复兴","守护苍生","创世神话","开天辟地","诸神黄昏","群像互助","反英雄"],
+      "奇幻":["西方玄幻","剑与魔法","龙与地下城","领主战争","魔法学院","蒸汽奇幻","黑暗奇幻","神明战争","末日奇幻","诸神黄昏","失落纪元","世界树","造物主","创世史诗","文明复兴","骑士守护","反乌托邦","灾厄降临"],
+      "武侠":["传统武侠","新派武侠","江湖恩怨","门派纷争","庙堂江湖","悬疑武侠","镖局江湖","综武世界","侠义复兴","江湖末路","乱世浮沉","守护百姓","武林浩劫","门派中兴","反英雄","救世侠客","旧秩序崩塌","理想主义"],
+      "仙侠":["古典仙侠","凡人流","修真百艺","洪荒神话","门派经营","家族修仙","剑修","诡道修仙","末法时代","灵气复苏","天地大劫","仙路断绝","创世神话","开天辟地","诸神黄昏","道统复兴","守护人间","逆天改命"],
+      "都市":["都市异能","都市修仙","商战职场","娱乐明星","神豪人生","重生创业","都市悬疑","都市生活","温暖治愈","奋斗逆袭","社区守护","理想创业","行业寒冬","城市暗面","秩序崩塌","末日都市","反乌托邦","新城创世"],
+      "现实":["家庭伦理","行业纪实","成长青春","社会派","乡土现实","医疗职场","教育人生","市井生活","温暖治愈","互助成长","乡村振兴","理想主义","时代阵痛","行业寒冬","失序家庭","社会阴影","文明重建","新生活实验"],
+      "历史":["架空历史","秦汉三国","两宋元明","晚清民国","战国权谋","历史种田","大航海","宫廷权谋","王朝中兴","乱世救亡","文明复兴","理想变法","王朝末世","礼崩乐坏","末法王朝","开国创世","新秩序建立","史诗群像"],
+      "军事":["军旅生涯","特种兵","现代战争","抗战谍战","战术推演","军工科技","边境任务","热血军旅","和平守望","灾后救援","守护家园","军民互助","末日战场","战争废墟","失控武器","文明保卫战","新世界秩序","悲壮牺牲"],
+      "游戏":["虚拟网游","电竞职业","游戏制作","末日游戏","全息网游","卡牌对战","领主游戏","直播游戏","治愈种田","玩家共建","文明复兴","守护服务器","死亡游戏","反乌托邦副本","世界崩坏","创世沙盒","造物主系统","绝望求生"],
+      "体育":["竞技体育","足球","篮球","网球","田径","运动成长","教练生涯","系统流体育","团队复兴","梦想赛场","伤病治愈","弱队逆袭","职业低谷","赛场黑幕","时代落幕","体育救赎","新联赛创立","热血群像"],
+      "科幻":["硬科幻","星际文明","机甲","末世科幻","时间循环","人工智能","宇宙探索","科技争霸","文明复兴","星际救援","理想星邦","生态修复","末法宇宙","熵增末世","黑暗森林","反乌托邦","创世工程","人造神明"],
+      "诸天无限":["无限流","诸天万界","副本求生","影视综漫","主神空间","时空穿梭","任务流","文明碰撞","世界修复","诸天守护","文明火种","理想联盟","末法诸天","世界毁灭","绝望轮回","神明陨落","创世任务","造物主试炼"],
+      "悬疑":["推理悬疑","刑侦","本格推理","法医","社会派","惊悚","诡秘悬疑","密室逃脱","救赎悬疑","守护真相","治愈推理","城市微光","末法诡异","黑暗人性","绝望求生","世界崩坏","创世谜团","造物主阴影"],
+      "轻小说":["日常恋爱","青春校园","原生幻想","异世界","变身","恋爱喜剧","社团日常","治愈日常","伙伴羁绊","校园救赎","慢生活","理想社团","末日校园","黑暗异世界","绝望轮回","世界终焉","创世冒险","新世界开拓"]
+    };
+
+    let rpcId = 0;
+    let bridgePromise;
+    const pending = new Map();
+    const standalone = window.parent === window;
+    const form = document.querySelector("#wizard");
+    const status = document.querySelector("#status");
+    const submit = document.querySelector("#submit");
+    const secondaryChoices = document.querySelector("#secondary_choices");
+    const secondaryPlaceholder = document.querySelector("#secondary_placeholder");
+    const secondaryCount = document.querySelector("#secondary_count");
+    const toneCount = document.querySelector("#tone_count");
+    const styleCount = document.querySelector("#style_count");
+
+    const request = (method, params) => new Promise((resolve, reject) => {
+      const id = ++rpcId;
+      pending.set(id, { resolve, reject });
+      window.parent.postMessage({ jsonrpc: "2.0", id, method, params }, "*");
+    });
+    const notify = (method, params) => window.parent.postMessage({ jsonrpc: "2.0", method, params }, "*");
+    window.addEventListener("message", event => {
+      if (event.source !== window.parent) return;
+      const message = event.data;
+      if (!message?.jsonrpc || message.id === undefined || !pending.has(message.id)) return;
+      const item = pending.get(message.id);
+      pending.delete(message.id);
+      message.error ? item.reject(message.error) : item.resolve(message.result);
+    });
+    const initializeBridge = () => bridgePromise ||= request("ui/initialize", {
+      appInfo: { name: "novelos-project-wizard", version: "2.0.0" },
+      appCapabilities: {},
+      protocolVersion: "2026-01-26"
+    }).then(() => notify("ui/notifications/initialized", {}));
+
+    const selectedRadio = name => form.querySelector(`input[name="${name}"]:checked`)?.value;
+    const selectedValues = name => [...form.querySelectorAll(`input[name="${name}"]:checked`)].map(input => input.value);
+    const escapeHtml = value => value.replace(/[&<>'"]/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[character]);
+
+    const refreshCounts = () => {
+      secondaryCount.textContent = `${selectedValues("secondary_directions").length} 项已选`;
+      toneCount.textContent = selectedValues("emotional_tones").length ? `${selectedValues("emotional_tones").length} 项已选` : "可多选";
+      const styles = selectedValues("aesthetic_styles").length;
+      styleCount.textContent = styles ? `${styles} / 2 项` : "最多 2 项";
+    };
+
+    const renderSecondaryDirections = (genre, suggestions) => {
+      secondaryChoices.innerHTML = suggestions.map(value => `<label class="choice"><input type="checkbox" name="secondary_directions" value="${escapeHtml(value)}">${escapeHtml(value)}</label>`).join("");
+      secondaryPlaceholder.textContent = `已为「${genre}」生成 ${suggestions.length} 个二级方向候选。`;
+      secondaryPlaceholder.classList.add("ready");
+      refreshCounts();
+    };
+
+    const loadSecondaryDirections = genre => renderSecondaryDirections(genre, secondaryFallback[genre] || []);
+
+    form.addEventListener("change", event => {
+      if (event.target.name === "primary_genre") loadSecondaryDirections(event.target.value);
+      if (event.target.name === "aesthetic_styles" && selectedValues("aesthetic_styles").length > 2) {
+        event.target.checked = false;
+        status.textContent = "美学风格最多选择两项。";
+      } else if (event.target.name !== "primary_genre") {
+        status.textContent = "";
+      }
+      refreshCounts();
+    });
+
+    form.addEventListener("submit", async event => {
+      event.preventDefault();
+      status.textContent = "";
+      status.className = "";
+      if (!form.reportValidity()) return;
+      if (standalone) {
+        status.textContent = "本地预览页不能创建项目；请从 Codex 调用 project.wizard.render 打开向导。";
+        return;
+      }
+
+      const payload = {
+        title: document.querySelector("#title").value.trim(),
+        channel: selectedRadio("channel"),
+        platform: selectedRadio("platform"),
+        scale: selectedRadio("scale"),
+        primary_genre: selectedRadio("primary_genre"),
+        secondary_directions: selectedValues("secondary_directions"),
+        emotional_tones: selectedValues("emotional_tones"),
+        aesthetic_styles: selectedValues("aesthetic_styles"),
+        reference_material: document.querySelector("#reference_material").value.trim() || null
+      };
+      submit.disabled = true;
+      try {
+        await initializeBridge();
+        const result = await request("tools/call", { name: "project.wizard.submit", arguments: { setup: payload } });
+        const project = result?.structuredContent?.project;
+        if (!project) throw new Error("未收到项目结果");
+        status.textContent = `已创建《${project.name}》；主控智能体可继续生成故事方向。`;
+        status.className = "success";
+        notify("ui/update-model-context", {
+          content: [{ type: "text", text: `项目已创建：${project.id}。请按照项目约束、二级方向、创作偏好和用户创作资料继续故事方向规划。` }]
+        });
+      } catch (error) {
+        status.textContent = error?.message || "创建失败，请检查填写内容。";
+      } finally {
+        submit.disabled = false;
+      }
+    });
+
+    refreshCounts();
+  </script>
+</body>
+</html>

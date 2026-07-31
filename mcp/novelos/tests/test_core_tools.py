@@ -77,6 +77,28 @@ class CoreToolsTest(unittest.TestCase):
         superseded = self.service.supersede_chapter(accepted["id"], accepted["version"])
         self.assertEqual("superseded", superseded["status"])
 
+    def test_delete_project_requires_no_active_trace_and_removes_projection(self) -> None:
+        with self.assertRaisesRegex(NovelOSError, "运行中的 Trace"):
+            self.service.delete_project(self.project["id"], self.project["version"], output_root=str(Path(self.temporary.name) / "projections"))
+
+        project = self.service.create_project("待删除项目")
+        book = self.service.create_book(project["id"], "第一部")
+        volume = self.service.create_volume(book["id"], 1, "第一卷")
+        self.service.create_chapter_draft(volume["id"], 1, "第一章", "待删除正文")
+        output_root = Path(self.temporary.name) / "projections"
+        rendered = self.service.render_project_projection(project["id"], output_root=str(output_root))
+
+        deleted = self.service.delete_project(project["id"], project["version"], output_root=str(output_root))
+
+        self.assertTrue(deleted["deleted"])
+        self.assertEqual(1, deleted["deleted_records"]["books"])
+        self.assertEqual(1, deleted["deleted_records"]["volumes"])
+        self.assertEqual(1, deleted["deleted_records"]["chapters"])
+        self.assertTrue(deleted["projection"]["removed"])
+        self.assertFalse(Path(rendered["output_directory"]).exists())
+        with self.assertRaisesRegex(NovelOSError, "not_found"):
+            self.service.get_project(project["id"])
+
 
 if __name__ == "__main__":
     unittest.main()

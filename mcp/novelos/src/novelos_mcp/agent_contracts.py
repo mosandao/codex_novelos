@@ -182,7 +182,7 @@ class AgentContractStore:
     def _validate_roles(self) -> None:
         persistent = [role_id for role_id, role in self.roles.items() if role.get("lifecycle") == "persistent"]
         if persistent != [self.config["runtime"]["persistent_role"]]:
-            raise NovelOSError("configuration_error", "必须且只能有一个常驻 Main Agent")
+            raise NovelOSError("configuration_error", "必须且只能有一个常驻 主控智能体")
         planning_assets: set[str] = set()
         for role_id, role in self.roles.items():
             required = {

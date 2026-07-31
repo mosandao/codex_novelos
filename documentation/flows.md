@@ -2,7 +2,7 @@
 
 ## 规划资产
 
-参与者：Main Agent、对应规划资产 Agent、独立 Review Agent。
+参与者：主控智能体、对应规划资产 Agent、独立 审查智能体。
 
 前置条件：项目存在；精确上游资产均为 `locked` 且版本匹配。
 
@@ -20,22 +20,22 @@ Character 与 World 可以有同时运行的独立 run。Story Arc 前必须创�
 
 ## 完整章节与连续性
 
-参与者：Main Agent、Memory Skill、可选 Context Builder、Chapter Planner、Writer Agent、Review Agent、Continuity Skill。
+参与者：主控智能体、Memory Skill、可选 上下文构建智能体、章节规划智能体、写作智能体、审查智能体、Continuity Skill。
 
-1. Main 使用 `novel-memory` 获取最小 Canon 上下文；仅在跨卷、多线、事实冲突或上下文溢出时允许创建 Context Builder。
+1. Main 使用 `novel-memory` 获取最小 Canon 上下文；仅在跨卷、多线、事实冲突或上下文溢出时允许创建 上下文构建智能体。
 2. 没有有效 Chapter Plan 时，按规划流程生成并锁定。
-3. Writer Agent 在隔离 run 中返回正文候选；绑定 Chapter Plan 的 `chapter.create_draft` 必须引用该 run。
-4. 独立 Review Agent 审查不可变正文 Hash，Main 登记 Review Receipt 后携带同一 `trace_id` 调用 `chapter.accept`；接受和追溯账本原子提交。
+3. 写作智能体 在隔离 run 中返回正文候选；绑定 Chapter Plan 的 `chapter.create_draft` 必须引用该 run。
+4. 独立 审查智能体 审查不可变正文 Hash，Main 登记 Review Receipt 后携带同一 `trace_id` 调用 `chapter.accept`；接受和追溯账本原子提交。
 5. `novel-continuity` 从已接受正文提取候选，绑定正文 Hash 和 Authority Snapshot。
 6. 独立 Review 通过后，`continuity.promote_reviewed` 在单事务内更新事实、承诺、期待、关系和故事弧状态。
 
 拒绝路径：正文修改使旧 Review 失效；Authority Snapshot 变化阻止连续性晋升；任一失败不得部分更新 Canon。
 
-短句修改或未绑定 Chapter Plan 的局部草稿允许 Main + Skill 直接处理，不创建 Writer Agent；接受前仍需要独立 Review。
+短句修改或未绑定 Chapter Plan 的局部草稿允许 Main + Skill 直接处理，不创建 写作智能体；接受前仍需要独立 Review。
 
 ## Authority Entity 修改
 
-参与者：Main Agent、Review Agent。
+参与者：主控智能体、审查智能体。
 
 1. Main 调用 `entity.prepare_mutation`，提供允许的锁定规划来源或已接受章节来源。
 2. MCP 将 payload、来源 Hash/版本、目标 ID 和预期版本组成不可变候选。
@@ -48,7 +48,7 @@ Character 与 World 可以有同时运行的独立 run。Story Arc 前必须创�
 
 1. Main + Skill 基线通过 `resource.create` 登记 Trace 绑定的不可变输出；临时 Agent 输出由 `agent.finish` 登记。
 2. Main 用匿名标签、输入 Hash、输出 refs/Hash 和 Review Profile 调用 `review.prepare_subject`；MCP 同时绑定已完成的 Producer runs。
-3. 独立 Review Agent 只读取不可变评测 subject，不读取 execution manifest 的模式映射。
+3. 独立 审查智能体 只读取不可变评测 subject，不读取 execution manifest 的模式映射。
 4. `review.record` 只接受同 Trace、输入和输出完全一致的 Reviewer run，并把结构化 assessment 保存为不可变 Resource 后绑定到 Receipt。
 5. 离线汇总器逐层复核原始输入、匿名输出、subject、Receipt、assessment 和 Hash，最后才解盲计算角色策略。
 
@@ -66,7 +66,7 @@ Character 与 World 可以有同时运行的独立 run。Story Arc 前必须创�
 
 ## 用户项目文件夹投影
 
-参与者：用户、Main Agent、NovelOS MCP。
+参与者：用户、主控智能体、NovelOS MCP。
 
 1. Main 先定位精确 `project_id`，请求 MCP 生成项目级 Authority Snapshot。
 2. MCP 只选择 `locked` 规划、`accepted` 正文、当前 Authority Entity 和已晋升连续性状态，长内容通过 Resource ref 读取。

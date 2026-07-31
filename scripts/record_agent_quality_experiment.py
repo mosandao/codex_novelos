@@ -167,7 +167,7 @@ def reviewer_instructions(
         ],
     }
     return (
-        "你是新的隔离 Review Agent。禁止读取 execution_manifest.jsonl、Producer 身份或执行模式映射；"
+        "你是新的隔离 审查智能体。禁止读取 execution_manifest.jsonl、Producer 身份或执行模式映射；"
         "只按匿名标签审查。独立比较输入与输出，使用给定 Rubric。分数必须是 1 到 5 的整数。"
         "A/B winner 必须按 Rubric 权重计算：加权差绝对值小于 0.25 时为 tie。"
         "blocking=true 时至少给一个 blocking finding；否则不得给 blocking finding。"

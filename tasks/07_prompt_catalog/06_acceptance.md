@@ -39,7 +39,7 @@
 2. 校验所有 migrated/adapted provenance 的 commit、路径、内容 Hash 和授权字段。
 3. 校验普通 Catalog 搜索不返回 Prompt、Schema、Contract 或 examples 内容。
 4. 校验 Contract 和 Review Route 修改都会使候选快照或配置测试失败关闭。
-5. 校验所有临时 Agent 工具仍是只读面，只有 Main Agent 可调用权威写入。
+5. 校验所有临时 Agent 工具仍是只读面，只有 主控智能体 可调用权威写入。
 6. 修改 `test_production_catalog.py` 时不得继续断言 Catalog 包总数等于固定集合；改为断言核心必需包存在、名称唯一、active 包合法、experiment 默认不可见。
 7. 更新文档，只描述实际完成并通过测试的能力。
 8. 所有命令通过后，依次把本子任务、父 Task 和 `tasks/README.md` 标为 `DONE`。

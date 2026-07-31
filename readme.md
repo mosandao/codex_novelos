@@ -1,10 +1,10 @@
 # NovelOS
 
-NovelOS 是面向长篇小说创作的纯 Codex 系统。Codex 作为唯一长期存在的 Main Agent；项目 Skill 提供业务方法，临时 Agent 负责隔离推理，统一 `novelos` MCP 负责全部权威读写、Hash、版本、Review、事务和 Trace。
+NovelOS 是面向长篇小说创作的纯 Codex 系统。Codex 作为唯一长期存在的 主控智能体；项目 Skill 提供业务方法，临时 Agent 负责隔离推理，统一 `novelos` MCP 负责全部权威读写、Hash、版本、Review、事务和 Trace。
 
 ## 当前状态
 
-默认 `.codex/config.toml` 已切换到统一 `novelos` MCP，旧 Python Agent Runtime 已删除。完整 70-case Agent 质量实验按用户决定延期；在实验完成前，Writer 仅用于完整章节或长场景，Context Builder 仅用于跨卷、多线、事实冲突或上下文溢出，不宣称两者已取得质量优势。
+默认 `.codex/config.toml` 已切换到统一 `novelos` MCP，旧 Python Agent Runtime 已删除。完整 70-case Agent 质量实验按用户决定延期；在实验完成前，Writer 仅用于完整章节或长场景，上下文构建智能体 仅用于跨卷、多线、事实冲突或上下文溢出，不宣称两者已取得质量优势。
 
 权威进度见 [tasks/README.md](./tasks/README.md)，不得以本 README 代替任务状态。
 
@@ -16,7 +16,7 @@ catalog/skills/       细粒度 Skill Catalog
 config/agents.yaml    Agent 角色与工具契约
 mcp/novelos/          统一 FastMCP Server
 data/novelos-v2.db    正式目标数据库（本地忽略）
-novels/               用户可读项目文件夹（可重建投影，本地忽略）
+novels/               用户可读项目文件夹（可重建投影，含全部产出档案，本地忽略）
 documentation/        稳定架构、流程、权限、变量和测试文档
 tasks/                实施计划、迁移证据和未决门禁
 ```
@@ -59,7 +59,11 @@ PYTHONWARNINGS='error::ResourceWarning' PYTHONPATH=mcp/novelos/src .venv/bin/pyt
 
 ## 用户展示
 
-用户展示采用按小说项目生成的 Markdown 文件夹，SQLite 仍是唯一权威数据源。投影目录可以删除和重建，直接修改其中的文件不会回写数据库。该能力的实施与验收记录在 [Task 06](./tasks/06_user_project_projection.md)，完成前不视为已接通功能；HTML UI 不在当前范围。
+用户展示采用按小说项目生成的 Markdown 文件夹，SQLite 仍是唯一权威数据源。`规划/` 与 `正文/` 展示当前权威版本；`产出/` 展示候选、草稿、历史状态和已完成 Agent 原始产出。投影目录可以删除和重建，直接修改其中的文件不会回写数据库。该能力的实施与验收记录在 [Task 06](./tasks/06_user_project_projection.md)，完成前不视为已接通功能；不提供独立 HTTP Web 应用。
+
+## 项目创建向导
+
+`project.wizard.render` 提供一个 MCP Apps HTML 向导，用于选择频道、目标平台、作品规模、一级题材、LLM 预生成的二级方向、可多选的创作偏好与用户创作资料；`project.wizard.submit` 校验选择、创建项目并刷新投影。表单结果记录为项目 `metadata.project_setup`，由 主控智能体 作为方向智能体 的约束输入。该 UI 是辅助入口，MCP 工具路径仍可独立完成同一工作流。
 
 ## 文档
 

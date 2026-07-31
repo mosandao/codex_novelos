@@ -4,4 +4,4 @@ source_path: null
 source_commit: null
 source_hash: null
 license: NovelOS-project
-migration_note: 根据纯 Codex Writer Agent 契约独立编写，未复制 legacy Prompt。
+migration_note: 根据纯 Codex 写作智能体 契约独立编写，未复制 legacy Prompt。

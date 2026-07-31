@@ -5,11 +5,11 @@
 | 角色 | 来源 | 生命周期 | 权限原则 |
 |---|---|---|---|
 | 用户 | Codex 当前任务 | 外部 | 提供意图并决定是否继续，不直接写 SQLite |
-| Main Agent | Codex | 唯一常驻 | 可调用全部 MCP 工具；必须遵守 Review 和版本门禁 |
+| 主控智能体 | Codex | 唯一常驻 | 可调用全部 MCP 工具；必须遵守 Review 和版本门禁 |
 | 规划资产 Agent | `config/agents.yaml` | 临时 | 只读；只生产自己拥有的候选或上游 change proposal |
-| Writer Agent | `config/agents.yaml` | 临时 | 只读；只返回正文候选 |
-| Review Agent | `config/agents.yaml` | 临时 | 只读；只返回 Review Receipt candidate |
-| Context Builder | `config/agents.yaml` | 临时 | 只读；只返回上下文包 |
+| 写作智能体 | `config/agents.yaml` | 临时 | 只读；只返回正文候选 |
+| 审查智能体 | `config/agents.yaml` | 临时 | 只读；只返回 Review Receipt candidate |
+| 上下文构建智能体 | `config/agents.yaml` | 临时 | 只读；只返回上下文包 |
 | MCP | 本地 stdio 进程 | 按任务 | 唯一数据库执行者，实施硬门禁 |
 
 V1 没有用户登录、tenant、管理员角色或 RLS。Scope 来自 Main 提供并由 MCP 查询数据库关系重新确认的 `project_id`、资源 ID 和版本，而不是不可信 token claim。
@@ -32,7 +32,7 @@ V1 没有用户登录、tenant、管理员角色或 RLS。Scope 来自 Main 提�
 
 ## 工具白名单
 
-临时 Agent 的精确工具列表以 `config/agents.yaml` 为唯一机器可校验来源。生产 Agent 白名单只包含 `planning.get/list`、Memory、Knowledge 和 Skill Catalog 的只读方法；只有 Review Agent 额外拥有 `review.get_subject`。任何临时 Agent 都不能调用 `resource.create`、`review.prepare_subject/record`、`*.lock`、`*.accept`、`*.commit`、`*.promote` 或 Agent 生命周期工具。
+临时 Agent 的精确工具列表以 `config/agents.yaml` 为唯一机器可校验来源。生产 Agent 白名单只包含 `planning.get/list`、Memory、Knowledge 和 Skill Catalog 的只读方法；只有 审查智能体 额外拥有 `review.get_subject`。任何临时 Agent 都不能调用 `resource.create`、`review.prepare_subject/record`、`*.lock`、`*.accept`、`*.commit`、`*.promote` 或 Agent 生命周期工具。
 
 ## 失败关闭
 
