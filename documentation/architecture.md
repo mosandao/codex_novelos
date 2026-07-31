@@ -59,7 +59,7 @@ MCP 不依赖模型 Provider，不保存 Prompt，不作语义选择。长文本
 
 - `.codex/config.toml` 只注册统一 `novelos` Server，仓库不保留第二套 Agent Runtime。
 - seed 授权只覆盖当前固定 commit/Hash 的本地复制和生产检索，不扩展到公开再分发或来源仓库的其他未核权内容。
-- Agent run 的 `context_id` 和工具白名单可证明协议隔离，真实模型上下文隔离仍依赖 Main Agent 正确创建新的 Codex 临时 Agent。
+- Agent run 的 `context_id` 和工具白名单可证明协议隔离，真实模型上下文隔离仍依赖 Main Agent 正确创建新的 Codex 临时 Agent。自 migration 010 起，权威提交（lock/accept/promote）路径在 `_validate_authority_trace` 强制要求 producer/reviewer run 携带非空 `isolation_evidence`（声明性凭据，如 Codex Task 的 agentId）；缺凭据的 run 无法锁定。该凭据是声明性证明（同模型族无法从进程内密码学自证真实隔离），用于把"随手自审可锁定"提升为"必须显式提供执行来源"，真实隔离仍由 Main Agent 用独立 Codex Task 创建 sub-agent 兑现。
 - Writer 与 Context Builder 的质量实验已延期；Writer 暂限完整章节或长场景，Context Builder 暂限跨卷、多线、事实冲突或上下文溢出，部分实验结果不构成质量结论。
 - 用户项目文件夹投影已接通（`projection.*` 工具集）：从一致的 Authority Snapshot 单向渲染 Markdown，支持原子替换、路径/符号链接逃逸拒绝与 manifest 逐文件 Hash 校验；直接修改投影文件不回写数据库。
 - 仓库当前没有 CI；测试是本地交付门禁，不应被描述为受保护分支检查。
