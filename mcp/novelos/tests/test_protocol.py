@@ -262,6 +262,7 @@ class NovelOSProtocolTest(unittest.IsolatedAsyncioTestCase):
                             "user_constraints": "Story Constraints",
                             "catalog_snapshot_ref": "catalog:v1",
                         },
+                        "isolation_evidence": {"source": "test_protocol"},
                     })
                     producer_run_id = _get_res(agent_start, "id")
                     finish_res = await session.call_tool("agent.finish", {
@@ -291,6 +292,7 @@ class NovelOSProtocolTest(unittest.IsolatedAsyncioTestCase):
                             "review_profile": "planning-direction",
                             "authority_context_refs": [_get_res(dir_cand, "id")],
                         },
+                        "isolation_evidence": {"source": "test_protocol"},
                     })
                     reviewer_run_id = _get_res(rev_start, "id")
                     rev_output = {

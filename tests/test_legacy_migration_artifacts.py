@@ -43,9 +43,9 @@ class LegacyMigrationArtifactsTest(unittest.TestCase):
         with closing(sqlite3.connect(f"file:{TARGET_PATH}?mode=ro", uri=True)) as connection:
             self.assertEqual("ok", connection.execute("PRAGMA quick_check").fetchone()[0])
             versions = [row[0] for row in connection.execute("SELECT version FROM schema_migrations ORDER BY version")]
-            self.assertEqual([1, 2, 3, 4, 5, 6, 7, 8, 9], versions)
             # 目标库是活的生产数据库：迁移是不可撤销的追加基线，之后只增不减。
             # 因此校验下限为迁移冻结计数（>=），而非严格相等；删除迁移基线数据才会失败。
+            self.assertEqual(list(range(1, 10)), versions[:9])
             for table, expected in EXPECTED_COUNTS.items():
                 count = connection.execute(f'SELECT COUNT(*) FROM "{table}"').fetchone()[0]
                 self.assertGreaterEqual(count, expected, table)

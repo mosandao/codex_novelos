@@ -241,6 +241,57 @@ class AgentWorkflowTest(unittest.TestCase):
         )
         self.assertEqual("locked", locked["status"])
 
+    def test_lock_rejected_without_isolation_evidence(self) -> None:
+        # 缺隔离凭据的 self-produced run 必须被 lock 拒绝（防御性校验）。
+        # 复刻 Main Agent 自审的真实路径：直接 start_agent_run 不传 isolation_evidence。
+        role = self.service.agent_contracts.get("direction_agent")
+        producer_run = self.service.start_agent_run(
+            self.trace["id"],
+            "direction_agent",
+            {name: f"test:{name}" for name in role["minimum_inputs"]},
+        )
+        self.service.finish_agent_run(producer_run["id"], "completed", "planning_candidate", "方向")
+        candidate = self.service.create_planning_candidate(
+            self.project["id"], "direction", self.project["id"], "方向", [], producer_run_id=producer_run["id"]
+        )
+        review_role = self.service.agent_contracts.get("review_agent")
+        reviewer_run = self.service.start_agent_run(
+            self.trace["id"],
+            "review_agent",
+            {
+                "immutable_subject_ref": candidate["id"],
+                "subject_hash": candidate["subject_hash"],
+                "review_profile": "planning-direction",
+                "authority_context_refs": candidate["resource_ref"],
+            },
+        )
+        review_output = {
+            "subject_type": "planning_asset",
+            "subject_ref": candidate["id"],
+            "subject_hash": candidate["subject_hash"],
+            "verdict": "approved",
+            "findings": [],
+            "reviewer_profile": "planning-direction",
+            "evidence_refs": [candidate["resource_ref"]],
+        }
+        self.service.finish_agent_run(
+            reviewer_run["id"], "completed", "review_receipt_candidate", review_output
+        )
+        review = self.service.record_review(
+            "planning_asset",
+            candidate["id"],
+            candidate["subject_hash"],
+            "approved",
+            [],
+            "planning-direction",
+            [candidate["resource_ref"]],
+            reviewer_run["id"],
+        )
+        with self.assertRaisesRegex(NovelOSError, "missing_isolation_evidence"):
+            self.service.lock_planning_asset(
+                candidate["id"], review["id"], candidate["version"], self.trace["id"]
+            )
+
     def test_agent_quality_subject_has_a_real_isolated_review_receipt_path(self) -> None:
         producer = complete_agent_run(
             self.service,

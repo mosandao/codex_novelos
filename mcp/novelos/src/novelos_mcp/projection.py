@@ -272,6 +272,81 @@ class ProjectionEngine:
                     },
                 )
 
+        # F3. 创作全过程档案（默认模式也渲染）：为每个 locked 规划资产渲染溯源链。
+        # 档案是已锁定资产的过程记录（谁产、谁审、审出什么、凭什么锁定），属于权威视图
+        # 的一部分。走旁路 key（planning_provenance），不参与 authority_snapshot_hash。
+        provenance_display = {
+            "direction": "01-故事方向", "architecture": "02-故事架构",
+            "strategy": "03-全书战略", "character_contract": "04-人物契约",
+            "world_contract": "05-世界契约", "story_arc": "06-故事弧",
+        }
+        for prov in snapshot.get("planning_provenance", []) or []:
+            atype = prov.get("asset_type", "planning")
+            display = provenance_display.get(atype, atype)
+            revision = prov.get("revision", 1)
+            lines: list[str] = [f"# 创作档案：{display}（revision {revision}）", ""]
+            lines.append(f"> 资产类型：`{atype}`")
+            lines.append(f"> revision：{revision} | version：{prov.get('version')}")
+            lines.append(f"> subject_hash：`{prov.get('subject_hash', '')}`")
+            lines.append("")
+            lines.append("本档案记录该资产如何锁定：生产者、独立审查发现与锁定凭据。")
+            lines.append("")
+            lines.append("## 生产 Agent")
+            prod = prov.get("producer_run")
+            if prod:
+                lines.append(f"- 角色：`{prod.get('role_id')}`（{prod.get('status')}）")
+                ev = prod.get("isolation_evidence") or {}
+                if ev:
+                    lines.append(f"- 隔离执行凭据：`{ev.get('source')}` / `{ev.get('agent_id')}`")
+                if prod.get("output_ref"):
+                    lines.append(f"- 产出：`{prod['output_ref']}`")
+            else:
+                lines.append("- （无生产 run 记录）")
+            lines.append("")
+            lines.append("## 独立审查")
+            rev = prov.get("review")
+            if rev:
+                lines.append(f"- Review：`{rev.get('id')}` | verdict：**{rev.get('verdict')}** | profile：`{rev.get('reviewer_profile')}`")
+                rrun = rev.get("reviewer_run") or {}
+                if rrun.get("isolation_evidence"):
+                    rev_ev = rrun["isolation_evidence"]
+                    lines.append(f"- 审查 Agent 隔离凭据：`{rev_ev.get('source')}` / `{rev_ev.get('agent_id')}`")
+                findings = rev.get("findings") or []
+                if findings:
+                    lines.append("")
+                    lines.append("### 审查发现（findings）")
+                    for idx, f in enumerate(findings, 1):
+                        sev = f.get("severity", "?")
+                        lines.append(f"{idx}. **[{sev}]** {f.get('message', '')}")
+                        if f.get("excerpt"):
+                            lines.append(f"   > {f['excerpt']}")
+                else:
+                    lines.append("- （无 finding）")
+            else:
+                lines.append("- （无审查记录）")
+            lines.append("")
+            lines.append("## 锁定凭据")
+            commit = prov.get("authority_commit")
+            if commit:
+                lines.append(f"- authority_commit：`{commit.get('id')}`")
+                lines.append(f"- action：`{commit.get('action')}` | trace：`{commit.get('trace_id')}`")
+                lines.append(f"- 锁定 subject_hash：`{commit.get('subject_hash', '')}`")
+            else:
+                lines.append("- （无 authority_commit 记录）")
+            lines.append("")
+            body = "\n".join(lines)
+            _write_markdown(
+                f"档案/{display}-档案.md",
+                f"创作档案：{display}（r{revision}）",
+                body,
+                {
+                    "source_type": "planning_provenance",
+                    "source_id": f"{atype}:r{revision}",
+                    "source_version": prov.get("version", 1),
+                    "source_hash": prov.get("subject_hash") or content_hash(body),
+                },
+            )
+
         # G. 校验生成 manifest.json 账本
         manifest_payload = {
             "projection_format_version": PROJECTION_FORMAT_VERSION,

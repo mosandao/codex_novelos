@@ -277,6 +277,73 @@ class ProjectionTest(unittest.TestCase):
         verify = self.service.verify_project_projection(str(target_diag))
         self.assertEqual([], verify["errors"])
 
+    def test_provenance_archive_rendered(self) -> None:
+        # 创作全过程档案：每个 locked 资产应渲染溯源链（生产者/审查/锁定凭据），
+        # 默认模式也渲染（档案是权威视图的一部分），且不污染 authority_snapshot_hash。
+        out_root = Path(self.tmp_dir.name) / "novels"
+        res_default = self.service.render_project_projection(self.project["id"], output_root=str(out_root))
+        target = Path(res_default["output_directory"])
+
+        # 默认模式即应生成 档案/ 目录，含已锁定资产的溯源。
+        archive_dir = target / "档案"
+        self.assertTrue(archive_dir.is_dir())
+        arch_file = archive_dir / "01-故事方向-档案.md"
+        self.assertTrue(arch_file.is_file())
+        arch_text = arch_file.read_text(encoding="utf-8")
+        # 档案应含生产 Agent、审查 verdict、authority_commit 等溯源要素。
+        self.assertIn("生产 Agent", arch_text)
+        self.assertIn("独立审查", arch_text)
+        self.assertIn("锁定凭据", arch_text)
+        self.assertIn("authority_commit", arch_text)
+
+        # 诊断模式 hash 与默认一致：档案走旁路 key，不污染确定性。
+        res_diag = self.service.render_project_projection(
+            self.project["id"], output_root=str(out_root), include_candidates=True
+        )
+        self.assertEqual(res_default["authority_snapshot_hash"], res_diag["authority_snapshot_hash"])
+
+        # manifest 覆盖档案文件，verify 通过。
+        verify = self.service.verify_project_projection(str(target))
+        self.assertEqual([], verify["errors"])
+
+    def test_withdraw_planning_candidate_excludes_from_diagnostic(self) -> None:
+        # candidate 废弃机制：withdraw 后变 superseded，诊断模式不再渲染它。
+        cand_run = complete_agent_run(self.service, self.trace["id"], "direction_agent", "planning_candidate", "待废弃候选")
+        cand = self.service.create_planning_candidate(
+            self.project["id"], "direction", self.project["id"], "待废弃候选",
+            [], producer_run_id=cand_run["id"],
+        )
+        cand_rev = cand["revision"]
+
+        # 废弃前：诊断模式能看到该候选。
+        out_root = Path(self.tmp_dir.name) / "novels"
+        res_before = self.service.render_project_projection(
+            self.project["id"], output_root=str(out_root), include_candidates=True
+        )
+        self.assertTrue((Path(res_before["output_directory"]) / "候选" / f"01-故事方向-候选-r{cand_rev}.md").is_file())
+
+        # 废弃：需在一个 running trace 内。
+        withdraw_trace = self.service.start_trace("withdraw-test", self.project["id"])
+        withdrawn = self.service.withdraw_planning_candidate(cand["id"], withdraw_trace["id"], "探索性废弃候选，已被锁定版取代")
+        self.service.finish_trace(withdraw_trace["id"], "completed")
+        self.assertEqual("superseded", withdrawn["status"])
+
+        # 废弃后：诊断模式不再渲染该候选。
+        res_after = self.service.render_project_projection(
+            self.project["id"], output_root=str(out_root), include_candidates=True
+        )
+        self.assertFalse((Path(res_after["output_directory"]) / "候选" / f"01-故事方向-候选-r{cand_rev}.md").exists())
+
+        # 不能废弃非 candidate 资产（locked 资产应被拒绝）。
+        locked_dir = self.service.create_project("另一项目", "")
+        ltrace = self.service.start_trace("lock-for-withdraw-test", locked_dir["id"])
+        lp = complete_agent_run(self.service, ltrace["id"], "direction_agent", "planning_candidate", "已锁方向")
+        lcand = self.service.create_planning_candidate(locked_dir["id"], "direction", locked_dir["id"], "已锁方向", [], producer_run_id=lp["id"])
+        _, lrev = complete_review_run(self.service, ltrace["id"], "planning_asset", lcand["id"], lcand["subject_hash"], "planning-direction")
+        self.service.lock_planning_asset(lcand["id"], lrev["id"], lcand["version"], ltrace["id"])
+        with self.assertRaisesRegex(NovelOSError, "invalid_state"):
+            self.service.withdraw_planning_candidate(lcand["id"], ltrace["id"], "尝试废弃 locked")
+
     def test_rebuild_from_sqlite_without_db_mutation(self) -> None:
         out_root = Path(self.tmp_dir.name) / "novels"
         res1 = self.service.render_project_projection(self.project["id"], output_root=str(out_root))

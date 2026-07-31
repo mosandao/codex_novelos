@@ -1035,6 +1035,48 @@ class NovelOSService:
             )
             return locked
 
+    def withdraw_planning_candidate(
+        self, asset_id: str, trace_id: str, reason: str
+    ) -> dict[str, Any]:
+        """废弃一个 candidate 规划资产，使其退出诊断视图。
+
+        candidate 没有"被取代"的生命周期终点：锁定只会把旧的 locked 标 superseded，
+        探索过程中的中间候选会永久挂着 status='candidate'，污染诊断模式渲染。
+        本方法补上这个终点：把 candidate 标 superseded（复用现有状态，不重建表），
+        并记 trace step 留痕。只能废弃 candidate，不能动 locked/stale/superseded。
+        """
+        with self.database.transaction() as connection:
+            asset = self._get(connection, "planning_assets", asset_id)
+            if asset["status"] != "candidate":
+                raise NovelOSError(
+                    "invalid_state",
+                    "只有 candidate 规划资产可以废弃",
+                    {"status": asset["status"]},
+                )
+            trace = self._get(connection, "traces", _require_text(trace_id, "trace_id"))
+            if trace["status"] != "running":
+                raise NovelOSError("invalid_state", "已结束的 Trace 不能废弃候选")
+            if trace["project_id"] != str(asset["project_id"]):
+                raise NovelOSError(
+                    "trace_project_mismatch",
+                    "废弃候选 Trace 与目标项目不一致",
+                )
+            connection.execute(
+                "UPDATE planning_assets SET status='superseded', version=version+1, updated_at=CURRENT_TIMESTAMP WHERE id=?",
+                (asset_id,),
+            )
+            self._record_trace_step_in_transaction(
+                connection,
+                trace_id,
+                "planning.withdraw",
+                "Main Agent",
+                "completed",
+                [asset_id],
+                [],
+                {"asset_type": str(asset["asset_type"]), "revision": int(asset["revision"]), "reason": _require_text(reason, "reason")},
+            )
+            return self._planning_asset(connection, asset_id)
+
     def record_review(
         self,
         subject_type: str,
@@ -1519,12 +1561,14 @@ class NovelOSService:
         trace_id: str,
         role_id: str,
         input_bindings: dict[str, Any],
+        isolation_evidence: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         role = self.agent_contracts.get(role_id)
         if role["lifecycle"] != "temporary" or not role["must_destroy"]:
             raise NovelOSError("invalid_agent_role", "只有临时业务 Agent 可以创建 run", {"role_id": role_id})
         input_refs = self.agent_contracts.validate_inputs(role_id, input_bindings)
         self.agent_contracts.validate_spawn(role_id, input_bindings)
+        normalized_evidence = self._normalize_isolation_evidence(isolation_evidence)
         with self.database.transaction() as connection:
             trace = self._get(connection, "traces", trace_id)
             if trace["status"] != "running":
@@ -1532,7 +1576,7 @@ class NovelOSService:
             run_id = _id("agent-run")
             context_id = _id("agent-context")
             connection.execute(
-                "INSERT INTO agent_runs(id, trace_id, role_id, display_name, kind, context_id, input_bindings_json, input_refs_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO agent_runs(id, trace_id, role_id, display_name, kind, context_id, input_bindings_json, input_refs_json, isolation_evidence) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     run_id,
                     trace_id,
@@ -1542,6 +1586,7 @@ class NovelOSService:
                     context_id,
                     _json(input_bindings),
                     _json(input_refs),
+                    normalized_evidence,
                 ),
             )
             self._record_trace_step_in_transaction(
@@ -1835,6 +1880,43 @@ class NovelOSService:
             "by_action": by_action,
             "issues": issues,
         }
+
+    @staticmethod
+    def _normalize_isolation_evidence(evidence: dict[str, Any] | None) -> str | None:
+        """归一化隔离执行凭据。
+
+        凭据用于在权威提交（lock/accept/promote）路径证明 producer/reviewer run
+        来自独立的 sub-agent 而非 Main Agent 自审。这是声明性证明（非密码学证明）：
+        真实隔离仍由 Main Agent 用独立 Codex Task 创建 sub-agent 兑现。存为 JSON 文本。
+        """
+        if evidence is None:
+            return None
+        if not isinstance(evidence, dict) or not evidence:
+            raise NovelOSError(
+                "invalid_isolation_evidence",
+                "isolation_evidence 必须是非空对象",
+            )
+        normalized: dict[str, Any] = {}
+        for key in sorted(evidence):
+            value = evidence[key]
+            if not isinstance(key, str) or not key.strip():
+                raise NovelOSError("invalid_isolation_evidence", "isolation_evidence 键必须是非空字符串")
+            if not isinstance(value, (str, int, float, bool)) or (isinstance(value, str) and not value.strip()):
+                raise NovelOSError("invalid_isolation_evidence", "isolation_evidence 值必须是非空标量")
+            normalized[key] = value
+        if "source" not in normalized:
+            raise NovelOSError("invalid_isolation_evidence", "isolation_evidence 必须包含 source 字段")
+        return _json(normalized)
+
+    @staticmethod
+    def _decode_isolation_evidence(raw: str | None) -> dict[str, Any] | None:
+        if not raw:
+            return None
+        try:
+            value = json.loads(raw)
+        except (TypeError, json.JSONDecodeError):
+            return None
+        return value if isinstance(value, dict) else None
 
     @staticmethod
     def _validate_continuity_candidates(candidates: list[dict[str, Any]]) -> None:
@@ -2235,10 +2317,22 @@ class NovelOSService:
             or reviewer["status"] != "completed"
         ):
             raise NovelOSError("trace_review_mismatch", "Review Agent run 必须在同一 Trace 中完成")
+        if not self._decode_isolation_evidence(reviewer["isolation_evidence"]):
+            raise NovelOSError(
+                "missing_isolation_evidence",
+                "权威提交的 Review Agent run 缺少隔离执行凭据",
+                {"run_id": str(reviewer_run_id), "role": "reviewer"},
+            )
         if producer_run_id is not None:
             producer = self._get(connection, "agent_runs", producer_run_id)
             if producer["trace_id"] != trace_id or producer["status"] != "completed":
                 raise NovelOSError("trace_producer_mismatch", "生产 Agent run 必须在同一 Trace 中完成")
+            if not self._decode_isolation_evidence(producer["isolation_evidence"]):
+                raise NovelOSError(
+                    "missing_isolation_evidence",
+                    "权威提交的生产 Agent run 缺少隔离执行凭据",
+                    {"run_id": producer_run_id, "role": "producer"},
+                )
 
     def _record_authority_commit(
         self,
@@ -2718,6 +2812,61 @@ class NovelOSService:
                 item["content"] = self.get_resource(res_id)
                 planning_candidate_assets.append(item)
             snapshot_payload["planning_candidate_assets"] = planning_candidate_assets
+        # 创作全过程档案（旁路 key，不进 snapshot_payload 哈希）：为每个 locked 规划资产
+        # 收集溯源链（producer run → review + findings → reviewer run → authority commit）。
+        # 这些数据已存 DB，此处只是组装成对外可读视图，让用户追溯资产如何锁定。
+        # 默认模式也收集——档案是已锁定资产的过程，属于权威视图的一部分，不是诊断。
+        planning_provenance: list[dict[str, Any]] = []
+        for asset in planning_assets.values():
+            asset_id = asset["id"]
+            entry: dict[str, Any] = {
+                "asset_type": asset.get("asset_type"),
+                "revision": asset.get("revision"),
+                "version": asset.get("version"),
+                "subject_hash": asset.get("subject_hash"),
+                "producer_run": None,
+                "review": None,
+                "authority_commit": None,
+            }
+            producer_run_id = asset.get("producer_run_id")
+            if producer_run_id:
+                prow = self._get(connection, "agent_runs", producer_run_id)
+                entry["producer_run"] = {
+                    "role_id": prow["role_id"],
+                    "status": prow["status"],
+                    "isolation_evidence": self._decode_isolation_evidence(prow["isolation_evidence"]),
+                    "output_ref": f"novelos://resource/{prow['output_resource_id']}" if prow["output_resource_id"] else None,
+                }
+            review_id = asset.get("locked_review_id")
+            if review_id:
+                rev = self._get(connection, "reviews", review_id)
+                reviewer_entry: dict[str, Any] | None = None
+                reviewer_run_id = rev["reviewer_run_id"]
+                if reviewer_run_id:
+                    rrun = self._get(connection, "agent_runs", str(reviewer_run_id))
+                    reviewer_entry = {
+                        "isolation_evidence": self._decode_isolation_evidence(rrun["isolation_evidence"]),
+                    }
+                entry["review"] = {
+                    "id": rev["id"],
+                    "verdict": rev["verdict"],
+                    "findings": json.loads(rev["findings_json"]) if rev["findings_json"] else [],
+                    "reviewer_profile": rev["reviewer_profile"],
+                    "reviewer_run": reviewer_entry,
+                }
+            commit = connection.execute(
+                "SELECT id, trace_id, action, subject_hash FROM authority_commits WHERE subject_ref=? AND subject_type='planning_asset' ORDER BY created_at DESC LIMIT 1",
+                (asset_id,),
+            ).fetchone()
+            if commit:
+                entry["authority_commit"] = {
+                    "id": commit["id"],
+                    "trace_id": commit["trace_id"],
+                    "action": commit["action"],
+                    "subject_hash": commit["subject_hash"],
+                }
+            planning_provenance.append(entry)
+        snapshot_payload["planning_provenance"] = planning_provenance
         return snapshot_payload
 
     def render_project_projection(

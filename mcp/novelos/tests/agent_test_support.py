@@ -10,11 +10,15 @@ def complete_agent_run(
     output_type: str,
     output: Any,
     input_overrides: dict[str, Any] | None = None,
+    isolation_evidence: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     role = service.agent_contracts.get(role_id)
     bindings = {name: f"test:{name}" for name in role["minimum_inputs"]}
     bindings.update(input_overrides or {})
-    run = service.start_agent_run(trace_id, role_id, bindings)
+    # 测试 harness 默认声明隔离凭据；真实运行由 Main Agent 传入 Codex Task 的 agentId。
+    # 显式传 isolation_evidence=None 可构造"缺凭据"场景，用于校验 lock 拒绝逻辑。
+    evidence = isolation_evidence if isolation_evidence is not None else {"source": "test_harness"}
+    run = service.start_agent_run(trace_id, role_id, bindings, isolation_evidence=evidence)
     return service.finish_agent_run(run["id"], "completed", output_type, output)
 
 
@@ -29,6 +33,7 @@ def complete_review_run(
     findings: list[dict[str, Any]] | None = None,
     evidence_refs: list[str] | None = None,
     assessment: dict[str, Any] | None = None,
+    isolation_evidence: dict[str, Any] | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     normalized_findings = findings or []
     normalized_evidence = evidence_refs or []
@@ -55,6 +60,7 @@ def complete_review_run(
             "review_profile": reviewer_profile,
             "authority_context_refs": normalized_evidence or [subject_ref],
         },
+        isolation_evidence=isolation_evidence,
     )
     review = service.record_review(
         subject_type,
