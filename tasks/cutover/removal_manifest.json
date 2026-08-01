@@ -101,7 +101,7 @@
       ],
       "path": "documentation/architecture.md",
       "required_after_cutover": [
-        "Schema 9"
+        "Schema 11"
       ]
     },
     {

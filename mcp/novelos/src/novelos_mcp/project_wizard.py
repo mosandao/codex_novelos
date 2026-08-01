@@ -6,7 +6,7 @@ from typing import Any
 from novelos_mcp.errors import NovelOSError
 
 
-WIZARD_URI = "ui://novelos/project-wizard.html"
+WIZARD_URI = "ui://novelos/project-wizard-v3.html"
 
 SECONDARY_DIRECTION_SUGGESTIONS = {
     "玄幻": ["东方玄幻", "高武世界", "宗门崛起", "无敌流", "升级流", "异世大陆", "王朝争霸", "神话复苏", "末法时代", "灵气枯竭", "黑暗纪元", "文明复兴", "守护苍生", "创世神话", "开天辟地", "诸神黄昏", "群像互助", "反英雄"],
@@ -41,13 +41,13 @@ def project_wizard_html() -> str:
     return (Path(__file__).parent / "ui" / "project-wizard.html").read_text(encoding="utf-8")
 
 
-def normalize_project_setup(payload: dict[str, Any]) -> tuple[str, str, dict[str, Any]]:
+def normalize_project_setup(payload: dict[str, Any]) -> tuple[str, str, dict[str, Any], dict[str, Any]]:
     if not isinstance(payload, dict):
         raise NovelOSError("invalid_project_setup", "项目向导提交必须是对象")
 
     unexpected = sorted(set(payload) - {
         "title", "channel", "platform", "scale", "primary_genre", "secondary_directions",
-        "emotional_tones", "aesthetic_styles", "reference_material",
+        "emotional_tones", "aesthetic_styles", "reference_material", "creator",
     })
     if unexpected:
         raise NovelOSError("invalid_project_setup", "项目向导包含未支持字段", {"fields": unexpected})
@@ -77,6 +77,7 @@ def normalize_project_setup(payload: dict[str, Any]) -> tuple[str, str, dict[str
         raise NovelOSError("invalid_project_setup", "美学风格包含未支持选项", {"values": invalid_styles})
 
     reference_material = _optional_text(payload.get("reference_material"), "reference_material", max_length=10_000)
+    creator = _creator_request(payload.get("creator"))
 
     creation_context = {
         "channel": channel,
@@ -88,8 +89,9 @@ def normalize_project_setup(payload: dict[str, Any]) -> tuple[str, str, dict[str
     }
     metadata = {
         "project_setup": {
-            "version": 2,
+            "version": 3,
             "creation_context": creation_context,
+            "creator_selection": {"mode": creator["mode"]},
             "taxonomy": {
                 "emotional_tones": emotional_tones,
                 "aesthetic_styles": aesthetic_styles,
@@ -98,7 +100,39 @@ def normalize_project_setup(payload: dict[str, Any]) -> tuple[str, str, dict[str
         "creation_status": "direction_pending",
     }
     description = f"{creation_context['channel']} · {primary_genre} · {scale}"
-    return title, description, metadata
+    return title, description, metadata, creator
+
+
+def _creator_request(value: Any) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        raise NovelOSError("invalid_project_setup", "creator 必须是对象")
+    mode = value.get("mode")
+    expected = {
+        "reuse": {"mode", "profile_version_id", "subject_hash"},
+        "create": {"mode", "display_name", "signature"},
+        "derive": {"mode", "parent_version_id", "parent_subject_hash", "display_name", "overrides"},
+    }
+    if mode not in expected or set(value) != expected[mode]:
+        raise NovelOSError(
+            "invalid_project_setup",
+            "creator 模式或字段非法",
+            {"mode": mode, "fields": sorted(value)},
+        )
+    normalized = dict(value)
+    if mode == "reuse":
+        normalized["profile_version_id"] = _text(value["profile_version_id"], "profile_version_id")
+        normalized["subject_hash"] = _text(value["subject_hash"], "subject_hash")
+    elif mode == "create":
+        normalized["display_name"] = _text(value["display_name"], "display_name")
+        if not isinstance(value["signature"], dict):
+            raise NovelOSError("invalid_project_setup", "creator.signature 必须是对象")
+    else:
+        normalized["parent_version_id"] = _text(value["parent_version_id"], "parent_version_id")
+        normalized["parent_subject_hash"] = _text(value["parent_subject_hash"], "parent_subject_hash")
+        normalized["display_name"] = _text(value["display_name"], "display_name")
+        if not isinstance(value["overrides"], dict) or not value["overrides"]:
+            raise NovelOSError("invalid_project_setup", "creator.overrides 必须是非空对象")
+    return normalized
 
 
 def _text(value: Any, field: str) -> str:

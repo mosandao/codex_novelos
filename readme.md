@@ -59,15 +59,17 @@ PYTHONWARNINGS='error::ResourceWarning' PYTHONPATH=mcp/novelos/src .venv/bin/pyt
 
 ## 用户展示
 
-用户展示采用按小说项目生成的 Markdown 文件夹，SQLite 仍是唯一权威数据源。`规划/` 与 `正文/` 展示当前权威版本；`候选/` 提供候选诊断视图；`产出/` 保留候选、草稿、失效/替代版本和已完成 Agent 原始产出；`档案/` 展示已锁定规划的生产、独立审查和锁定凭据。投影目录可以删除和重建，直接修改其中的文件不会回写数据库。该能力的实施与验收记录在 [Task 06](./tasks/06_user_project_projection.md)，不提供独立 HTTP Web 应用。
+用户展示采用按小说项目生成的 Markdown 文件夹，SQLite 仍是唯一权威数据源。`规划/` 与 `正文/` 展示当前权威版本；`创作约束/` 展示项目绑定的精确作者签名和 locked Direction 的本书创作灵魂；`候选/` 提供候选诊断视图；`产出/` 保留候选、草稿、失效/替代版本和已完成 Agent 原始产出；`档案/` 展示已锁定规划的生产、独立审查和锁定凭据。投影目录可以删除和重建，直接修改其中的文件不会回写数据库。该能力的实施与验收记录在 [Task 06](./tasks/06_user_project_projection.md) 和 [Task 08](./tasks/08_author_signature_and_book_soul.md)，不提供独立 HTTP Web 应用。
 
 ## 项目创建向导
 
-`project.wizard.render` 提供一个 MCP Apps HTML 向导资源 `ui://novelos/project-wizard.html`。在支持 MCP Apps 的 Codex 宿主中调用该工具后，用户填写表单，页面通过 `project.wizard.submit` 校验并创建项目，随后自动刷新默认 `novels/<项目目录>/` 投影。
+`project.wizard.render` 提供一个 MCP Apps HTML 向导资源 `ui://novelos/project-wizard-v3.html`。在支持 MCP Apps 的 Codex 宿主中调用该工具后，用户填写表单，页面通过 `project.wizard.submit` 校验并原子创建项目与作者签名精确版本绑定，随后自动刷新默认 `novels/<项目目录>/` 投影。
 
-向导使用固定的频道（男频、女频、全向、出版、剧本）、目标平台（起点、番茄、晋江、七猫）、四档作品规模和 14 个一级题材。二级方向随一级题材切换，每个题材提供 18 个静态、LLM 预生成候选；不会在表单提交时调用 LLM，也不提供自定义选项、知乎盐选或自定义字数。主情绪基调可以多选，美学风格最多选择两项，用户创作资料为最多 10,000 字的可选多行文本。
+向导先要求在 `reuse`、`derive`、`create` 中选择作者签名：复用绑定已有精确 revision/Hash；派生从已有精确版本创建新 Profile 并只保存显式差异；新建创建首个版本。随后使用固定的频道（男频、女频、全向、出版、剧本）、目标平台（起点、番茄、晋江、七猫）、四档作品规模和 14 个一级题材。二级方向随一级题材切换，每个题材提供 18 个静态、LLM 预生成候选；不会在表单提交时调用 LLM，也不提供自定义选项、知乎盐选或自定义字数。主情绪基调可以多选，美学风格最多选择两项，用户创作资料为最多 10,000 字的可选多行文本。
 
-表单结果保存为项目 `metadata.project_setup`：`creation_context` 包含频道、平台、规模、题材、二级方向和资料，`taxonomy` 包含情绪与美学偏好。主控智能体必须读取这些约束，再启动正式 Trace 并将其交给方向智能体；向导本身不生成、锁定或提交任何规划资产。直接用 `file://.../project-wizard.html` 打开只能预览页面和静态题材联动，因没有 MCP Apps 通信桥，提交会被禁用。
+表单结果保存为项目 `metadata.project_setup`：`creation_context` 包含频道、平台、规模、题材、二级方向和资料，`taxonomy` 包含情绪与美学偏好，`creator_selection` 记录绑定模式。主控智能体必须读取这些约束和返回的 `creator_binding.constraint_ref`，再启动正式 Trace 并将其交给方向智能体；方向候选形成该项目独有的 `book_soul`，向导本身不生成、锁定或提交任何规划资产。直接用 `file://.../project-wizard.html` 打开只能预览页面和静态题材联动，因没有 MCP Apps 通信桥，提交会被禁用。
+
+Creator Profile 是用户拥有的跨项目不可变版本配置，不是常驻 Agent。Profile 后续修订不会让旧项目漂移；显式 rebind 会把当前 Direction 及全部后代标记为 `stale`，保留旧版本与 Trace 审计，并且不会自动重生成。Writer 只读取当前精确作者签名、locked Direction、POV 和局部风格引用，不自行决定作者思想。
 
 ## 删除项目
 

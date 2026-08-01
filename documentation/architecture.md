@@ -4,7 +4,7 @@
 
 NovelOS V1 是面向本地单用户长篇小说创作的纯 Codex 系统。Codex 是唯一长期存在的 主控智能体；项目 Skill 提供方法，统一 `novelos` MCP 提供确定性工具和 Resource，SQLite 保存权威状态。
 
-当前没有独立 HTTP/Web 前端、账号体系、网络服务、邮件、定时任务或公开 SEO 页面。用户阅读入口采用由 SQLite 权威数据生成的 Markdown 项目文件夹；项目创建另提供受 MCP Apps 宿主约束的嵌入式 HTML 资源 `ui://novelos/project-wizard.html`。它只收集项目约束并通过 MCP 提交，不建立第二套业务状态，也不替代投影，因此不建立 `emails.md`、`cron.md` 或 `seo.md`。
+当前没有独立 HTTP/Web 前端、账号体系、网络服务、邮件、定时任务或公开 SEO 页面。用户阅读入口采用由 SQLite 权威数据生成的 Markdown 项目文件夹；项目创建另提供受 MCP Apps 宿主约束的嵌入式 HTML 资源 `ui://novelos/project-wizard-v3.html`。它只收集项目与作者签名约束并通过 MCP 提交，不建立第二套业务状态，也不替代投影，因此不建立 `emails.md`、`cron.md` 或 `seo.md`。
 
 ## 运行结构
 
@@ -15,7 +15,7 @@ NovelOS V1 是面向本地单用户长篇小说创作的纯 Codex 系统。Codex
       -> 临时业务 Agent（只返回候选）
       -> novelos MCP（唯一权威读写边界）
           -> data/novelos-v2.db
-          -> ui://novelos/project-wizard.html（MCP Apps 项目创建向导）
+          -> ui://novelos/project-wizard-v3.html（MCP Apps 项目创建向导）
           -> novels/<项目目录>（可重建的用户只读投影）
           -> catalog/skills（只读）
           -> config/agents.yaml（只读契约）
@@ -35,7 +35,7 @@ NovelOS V1 是面向本地单用户长篇小说创作的纯 Codex 系统。Codex
 
 MCP 不依赖模型 Provider，不保存 Prompt，不作语义选择。长文本保存在不可变 Resource，工具控制信封只携带 ID、版本、Hash、状态和 Resource ref。
 
-用户项目文件夹不是 Storage。它只能由 MCP 从一致的 Authority Snapshot 单向生成，可以删除并重新生成；直接修改其中的 Markdown 不会回写数据库，也不得用于绕过规划锁定、章节接受或连续性晋升门禁。`规划/`、`正文/` 和连续性目录是当前权威视图；`候选/`、`产出/` 与 `档案/` 分别保存候选诊断、全部中间产出/完成 Agent 输出，以及已锁定规划的可读审计溯源。
+用户项目文件夹不是 Storage。它只能由 MCP 从一致的 Authority Snapshot 单向生成，可以删除并重新生成；直接修改其中的 Markdown 不会回写数据库，也不得用于绕过规划锁定、章节接受或连续性晋升门禁。`规划/`、`正文/`、`连续性/` 与 `创作约束/` 是当前权威视图；`创作约束/作者签名.md` 来自项目精确绑定，`创作约束/本书创作灵魂.md` 只来自 locked Direction。`候选/`、`产出/` 与 `档案/` 分别保存候选诊断、全部中间产出/完成 Agent 输出，以及已锁定规划的可读审计溯源。
 
 ## 信任边界
 
@@ -51,7 +51,7 @@ MCP 不依赖模型 Provider，不保存 Prompt，不作语义选择。长文本
 
 ## 权威数据
 
-- 正式数据库：`data/novelos-v2.db`，当前 Schema 9。
+- 正式数据库：`data/novelos-v2.db`，当前 Schema 11。
 - Legacy 迁移来源：`data/migration/backend-novelos-aaadc9bedf499e.db`，只读冻结。
 - `seed.db`：固定 commit/Hash 的授权副本位于 `mcp/novelos/resources/seed.db`，只通过 inventory 校验后的只读 Knowledge 工具访问。
 - Agent 契约：`config/agents.yaml`。
@@ -64,7 +64,8 @@ MCP 不依赖模型 Provider，不保存 Prompt，不作语义选择。长文本
 - seed 授权只覆盖当前固定 commit/Hash 的本地复制和生产检索，不扩展到公开再分发或来源仓库的其他未核权内容。
 - Agent run 的 `context_id` 和工具白名单可证明协议隔离，真实模型上下文隔离仍依赖 主控智能体 正确创建新的 Codex 临时 Agent。自 migration 010 起，权威提交（lock/accept/promote）路径在 `_validate_authority_trace` 强制要求 producer/reviewer run 携带非空 `isolation_evidence`（声明性凭据，如 Codex Task 的 agentId）；缺凭据的 run 无法锁定。该凭据是声明性证明（同模型族无法从进程内密码学自证真实隔离），用于把"随手自审可锁定"提升为"必须显式提供执行来源"，真实隔离仍由 主控智能体 用独立 Codex Task 创建 sub-agent 兑现。
 - Writer 与 上下文构建智能体 的质量实验已延期；Writer 暂限完整章节或长场景，上下文构建智能体 暂限跨卷、多线、事实冲突或上下文溢出，部分实验结果不构成质量结论。
-- 项目创建向导已接通：二级方向是随一级题材切换的静态 LLM 预生成候选，提交仅记录 `metadata.project_setup`。它不执行运行时 LLM 生成，也不创建规划资产；本地 `file://` 打开只用于预览。
+- 项目创建向导已接通：V3 要求 `reuse`、`derive` 或 `create` 作者签名模式，并在同一事务中创建项目与精确 Creator Profile revision/Hash 绑定；二级方向仍是随一级题材切换的静态 LLM 预生成候选。提交不执行运行时 LLM 生成，也不创建规划资产；本地 `file://` 打开只用于预览。
+- `creator_signature` 是用户拥有的跨项目、不可变版本配置，不是 Agent 或规划资产。`book_soul` 是 Story Direction 的组成部分，由方向智能体生成并走既有独立 Review/lock 门禁。显式 rebind 会递归失效 Direction 及后代，但不会自动重生成。
 - 用户项目文件夹投影已接通（`projection.*` 工具集）：从一致的 Authority Snapshot 单向渲染 Markdown，支持原子替换、路径/符号链接逃逸拒绝与 manifest 逐文件 Hash 校验；直接修改投影文件不回写数据库。`project.delete` 只在无活动 Trace、无 authority commit 且版本匹配时删除项目，并只删除 manifest 归属匹配的投影。
 - 仓库当前没有 CI；测试是本地交付门禁，不应被描述为受保护分支检查。
 

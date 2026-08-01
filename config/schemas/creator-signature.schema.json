@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://novelos.local/schemas/creator-signature.schema.json",
+  "title": "NovelOS 作者签名",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "sympathies",
+    "distrusts",
+    "recurring_attention",
+    "narrative_principles",
+    "forbidden_conveniences",
+    "expression_preferences",
+    "negative_constraints"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "sympathies": {"$ref": "#/$defs/non_empty_text_list"},
+    "distrusts": {"$ref": "#/$defs/non_empty_text_list"},
+    "recurring_attention": {"$ref": "#/$defs/non_empty_text_list"},
+    "narrative_principles": {"$ref": "#/$defs/non_empty_text_list"},
+    "forbidden_conveniences": {"$ref": "#/$defs/non_empty_text_list"},
+    "expression_preferences": {"$ref": "#/$defs/non_empty_text_list"},
+    "negative_constraints": {"$ref": "#/$defs/non_empty_text_list"}
+  },
+  "$defs": {
+    "non_empty_text_list": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 24,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 500,
+        "pattern": "\\S"
+      }
+    }
+  }
+}

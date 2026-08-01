@@ -1,0 +1,34 @@
+schema_version: 1
+blind_review:
+  randomize_order: true
+  hide_profile_and_soul_labels: true
+  independent_reviewer_required: true
+score_range: [1, 5]
+dimensions:
+  - plan_fidelity
+  - canon_accuracy
+  - scene_causality
+  - character_voice
+  - prose_quality
+  - authorial_stance_fidelity
+  - voice_distinguishability
+  - character_independence
+  - long_form_drift
+blocking_failures:
+  - missing_or_inexact_style_refs
+  - profile_without_locked_book_soul_did_not_fail_closed
+  - population_attribute_inference
+  - living_or_recent_author_imitation
+  - all_characters_share_author_answer
+  - cheap_forbidden_resolution
+  - narrator_replaces_choice_and_consequence
+required_evidence:
+  - raw_input
+  - raw_output
+  - model_id
+  - prompt_and_catalog_snapshot
+  - anonymous_mapping
+  - independent_review_run
+  - review_receipt
+  - dimension_scores
+  - recomputable_hashes

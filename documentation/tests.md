@@ -13,20 +13,22 @@
 | Entity 修改 | 五类 Entity 都必须经过来源绑定候选与 Review | `test_entity_mutations.py` | existing |
 | 连续性晋升 | Authority Snapshot、Hash、Review 和单事务 | `test_service.py`、`test_pure_codex_workflow.py` | existing |
 | 权威追溯 | 五类提交原子绑定 Trace/subject/Receipt；跨 Trace 拒绝；项目覆盖审计 | `test_pure_codex_workflow.py`、`test_agent_workflows.py` | existing |
-| 项目创建与删除 | V2 向导字段、静态题材二级方向、本地预览限制、项目删除的 Trace/投影门禁 | `test_project_wizard.py`、`test_core_tools.py` | existing |
-| MCP 协议 | stdio 初始化、71 个工具、项目创建向导 Resource、公开写接口和 Resource Template | `test_protocol.py`、`test_runner_protocol.py` | existing |
+| 作者签名与项目创建 | V3 `reuse/derive/create` 原子绑定、不可变版本、归档、精确 Hash、rebind 失效与 Trace | `test_creator_profiles.py`、`test_project_wizard.py` | existing |
+| 项目删除 | 项目删除的 Trace/投影/authority commit 门禁；删除项目不删除可复用 Creator Profile | `test_core_tools.py`、`test_creator_profiles.py` | existing |
+| MCP 协议 | stdio 初始化、81 个工具、项目创建向导 Resource、公开写接口和 Resource Template | `test_protocol.py`、`test_runner_protocol.py` | existing |
 | 数据迁移 | 固定来源 Hash、计数、目标对账和前向 Migration | `tests/test_legacy_migration_artifacts.py`、`test_migrations.py` | existing |
 | Seed 接入门禁 | 授权副本与合成数据均验证 seed/inventory、文件/表/Schema/内容 Hash、sidecar、运行后篡改、只读写拒绝和 stdio 查询 | `test_seed_integrity.py`、`test_protocol.py` | existing |
 | Skill/Catalog | 6 个顶层 Skill、37 个 Catalog 包（29 个 active + 8 个 experiment）、来源和 typed Schema | `tests/test_project_skills.py`、Catalog tests | existing |
 | 质量数据集 | 40+10+10+10 输入、70 case 执行清单、合法 Spawn、盲评 Rubric | `tests/test_agent_quality_dataset.py` | existing |
 | 质量结果证据 | 完整覆盖、输入/evidence Hash、run/Receipt 隔离、自动解盲决策、篡改拒绝 | `tests/test_agent_quality_results.py` | existing |
 | 切换删除清单 | 旧 Runtime/入口/配置/测试完整覆盖、替代证据、两阶段断言、遗漏引用扫描 | `tests/test_cutover_plan.py` | existing |
-| 备份恢复演练 | source/backup/restore 逻辑 Hash、Schema、计数和 `quick_check` 一致 | `schema9_restore_drill.json`、`test_shipping_artifacts.py` | existing |
-| 降级数据导出 | Schema/JSONL/Hash Manifest 可恢复；BLOB、触发器、篡改和不可覆盖路径 | `schema9_export_drill.json`、`test_data_export.py` | existing |
+| 备份恢复演练 | source/backup/restore 逻辑 Hash、Schema 11、计数和 `quick_check` 一致 | `schema11_restore_drill.json`、`test_shipping_artifacts.py` | existing |
+| 降级数据导出 | Schema/JSONL/Hash Manifest 可恢复；Creator Profile 历史/绑定、BLOB、触发器和篡改拒绝 | `schema11_export_drill.json`、`test_data_export.py` | existing |
+| 创作约束投影 | 精确作者 revision/Hash、只展示 locked Direction 的 `book_soul`、旧项目缺失态和 manifest 来源 ref | `test_projection.py` | existing |
 | 迁移汇总 | 来源、Legacy、Catalog、seed、质量实验和切换门禁动态重建；统计篡改失败关闭 | `migration_summary.json`、`test_migration_summary.py` | existing |
 | 仓库产物卫生 | prospective Git 文件集、忽略规则、生成物和本地敏感文件失败关闭 | `hygiene.json`、`test_repository_hygiene.py` | existing |
 
-当前本地门禁为根测试 49 个、MCP 测试 121 个（合计 170 个测试）、Migration/Catalog manifest、Agent 质量录制器/数据集/结果证据、seed inventory、迁移汇总、备份/导出恢复、仓库卫生、cutover plan/readiness 和 `compileall` 检查。仓库没有 CI，这些检查目前不自动阻止合并。
+当前本地门禁包括完整根测试与 MCP 测试、Migration/Catalog manifest、Agent 质量录制器/数据集/结果证据、seed inventory、迁移汇总、备份/导出恢复、仓库卫生、cutover plan/readiness 和 `compileall` 检查。仓库没有 CI，这些检查目前不自动阻止合并。
 
 ## 已提出但未完成
 

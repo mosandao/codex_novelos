@@ -19,6 +19,8 @@ spawn_gates:
 read_only_tools: &read_only_tools
   - planning.get
   - planning.list
+  - creator_profile.get
+  - creator_profile.get_version
   - memory.recent_chapters
   - memory.search_facts
   - memory.get_entity_states
@@ -37,6 +39,8 @@ review_tools: &review_tools
   - review.get_subject
   - planning.get
   - planning.list
+  - creator_profile.get
+  - creator_profile.get_version
   - memory.recent_chapters
   - memory.search_facts
   - memory.get_entity_states
@@ -98,6 +102,7 @@ roles:
     minimum_inputs:
       - project_profile_ref
       - user_constraints
+      - creator_signature_ref
       - catalog_snapshot_ref
     allowed_tools: *read_only_tools
     output_types:

@@ -26,7 +26,7 @@ class ShippingArtifactsTest(unittest.TestCase):
         for name in expected - {"architecture.md"}:
             self.assertIn(f"./{name}", architecture)
         self.assertIn("没有独立 HTTP/Web 前端、账号体系、网络服务、邮件、定时任务或公开 SEO 页面", architecture)
-        self.assertIn("ui://novelos/project-wizard.html", architecture)
+        self.assertIn("ui://novelos/project-wizard-v3.html", architecture)
 
     def test_new_runner_targets_only_unified_mcp_and_pins_authorized_seed(self) -> None:
         runner = (ROOT / "scripts" / "run_novelos_mcp.sh").read_text(encoding="utf-8")
@@ -59,12 +59,12 @@ class ShippingArtifactsTest(unittest.TestCase):
 
     def test_restore_manifest_proves_logical_identity(self) -> None:
         manifest = json.loads(
-            (ROOT / "tasks" / "migration" / "schema9_restore_drill.json").read_text(encoding="utf-8")
+            (ROOT / "tasks" / "migration" / "schema11_restore_drill.json").read_text(encoding="utf-8")
         )
         self.assertEqual("passed", manifest["restore_drill"])
         snapshot = manifest["logical_snapshot"]
         self.assertEqual("ok", snapshot["quick_check"])
-        self.assertEqual([1, 2, 3, 4, 5, 6, 7, 8, 9], snapshot["schema_versions"])
+        self.assertEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], snapshot["schema_versions"])
         self.assertRegex(snapshot["logical_hash"], r"^sha256:[0-9a-f]{64}$")
 
 

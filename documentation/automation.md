@@ -5,8 +5,9 @@
 Codex 主控智能体 是唯一自动化编排者。NovelOS 不运行后台 worker、cron、Webhook 或自主循环；业务 Agent 只能在用户任务期间由 Main 按需创建，完成一次结果后销毁。
 
 项目创建向导也由 Main 编排：Main 通过 `project.wizard.render` 将 MCP Apps 资源交给用户填写，
-由 `project.wizard.submit` 创建项目并刷新投影。该步骤不创建业务 Agent，也不产生规划资产；
-Main 必须随后读取 `metadata.project_setup`、启动 Trace，并按正常流程创建方向智能体。直接打开
+由 `project.wizard.submit` 原子创建或确认 Creator Profile 版本、创建项目、建立精确绑定并刷新投影。
+该步骤不创建业务 Agent，也不产生规划资产；Main 必须随后读取 `metadata.project_setup` 与
+`creator_binding.constraint_ref`、启动 Trace，并按正常流程创建方向智能体。直接打开
 `project-wizard.html` 的本地 `file://` 预览页没有提交权限。
 
 ## Agent 清单
@@ -19,6 +20,9 @@ Main 必须随后读取 `metadata.project_setup`、启动 Trace，并按正常�
 | 上下文构建智能体 | 跨卷、多线、事实冲突或上下文溢出 | `context_package` | 无 |
 
 精确角色、最小输入、输出类型、Catalog 包、Review Profile、spawn gate 和工具白名单位于 `config/agents.yaml`。
+
+作者签名不是 Agent，也不新增常驻角色或第九种规划资产 owner。它是用户拥有的不可变版本配置；
+本书 `book_soul` 由既有方向智能体生成，Writer 仍按完整章节/长场景的保守条件临时创建。
 
 ## Steering 与硬门禁
 

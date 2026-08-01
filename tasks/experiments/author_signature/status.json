@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "status": "BLOCKED",
+  "case_count": 5,
+  "completed_case_count": 0,
+  "reason": "尚无真实模型输出与独立 Reviewer 证据；确定性契约测试不能替代语义质量实验。",
+  "functional_implementation_status": "implemented_and_verified",
+  "routing_change_allowed": false,
+  "quality_claim_allowed": false
+}

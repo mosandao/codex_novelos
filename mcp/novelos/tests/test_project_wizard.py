@@ -15,9 +15,27 @@ from novelos_mcp.project_wizard import (
 
 
 class ProjectWizardTest(unittest.TestCase):
+    @staticmethod
+    def _signature(label: str = "制度") -> dict[str, object]:
+        return {
+            "schema_version": 1,
+            "sympathies": [f"维护{label}中的普通人尊严"],
+            "distrusts": [f"警惕{label}中不承担代价的权力"],
+            "recurring_attention": [f"观察{label}如何进入日常关系"],
+            "narrative_principles": ["通过选择和后果表达判断"],
+            "forbidden_conveniences": ["不得用一句道歉抹平长期伤害"],
+            "expression_preferences": ["保持克制叙述并允许留白"],
+            "negative_constraints": ["不模仿具体作者，不根据人口属性推导文风"],
+        }
+
     def _setup(self) -> dict:
         return {
             "title": "向导测试项目",
+            "creator": {
+                "mode": "create",
+                "display_name": "向导测试作者",
+                "signature": self._signature(),
+            },
             "channel": "男频",
             "platform": "起点",
             "scale": "超长篇（500万字以上）",
@@ -29,9 +47,12 @@ class ProjectWizardTest(unittest.TestCase):
         }
 
     def test_normalizes_structured_constraints_for_project_metadata(self) -> None:
-        title, description, metadata = normalize_project_setup(self._setup())
+        title, description, metadata, creator = normalize_project_setup(self._setup())
         self.assertEqual("向导测试项目", title)
         self.assertIn("男频", description)
+        self.assertEqual("create", creator["mode"])
+        self.assertEqual(3, metadata["project_setup"]["version"])
+        self.assertEqual("create", metadata["project_setup"]["creator_selection"]["mode"])
         self.assertEqual("起点", metadata["project_setup"]["creation_context"]["platform"])
         self.assertEqual("主角从边境小镇出发，避免无敌开局。", metadata["project_setup"]["creation_context"]["reference_material"])
         self.assertEqual(["史诗厚重", "黑暗压抑"], metadata["project_setup"]["taxonomy"]["emotional_tones"])
@@ -39,9 +60,47 @@ class ProjectWizardTest(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as directory:
             service = NovelOSService(Path(directory) / "wizard.db")
-            project = service.create_project(title, description, metadata)
-            stored = service.get_project(project["id"])
+            created = service.create_project_with_creator(title, description, metadata, creator)
+            stored = service.get_project(created["project"]["id"])
             self.assertEqual(metadata, stored["metadata"])
+            self.assertEqual(
+                created["creator_binding"]["subject_hash"],
+                service.get_project_creator_binding(stored["id"])["subject_hash"],
+            )
+
+    def test_normalizes_and_creates_reuse_and_derive_modes(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            service = NovelOSService(Path(directory) / "wizard.db")
+            base = service.create_creator_profile("基础作者", self._signature("城市"))["version"]
+            reuse_setup = self._setup() | {
+                "title": "复用作者项目",
+                "creator": {
+                    "mode": "reuse",
+                    "profile_version_id": base["id"],
+                    "subject_hash": base["subject_hash"],
+                },
+            }
+            name, description, metadata, creator = normalize_project_setup(reuse_setup)
+            reused = service.create_project_with_creator(name, description, metadata, creator)
+            self.assertEqual("reuse", reused["creator_binding"]["binding_mode"])
+            self.assertEqual(base["id"], reused["creator_binding"]["profile_version_id"])
+
+            derive_setup = self._setup() | {
+                "title": "派生作者项目",
+                "creator": {
+                    "mode": "derive",
+                    "parent_version_id": base["id"],
+                    "parent_subject_hash": base["subject_hash"],
+                    "display_name": "城市冷峻分支",
+                    "overrides": {"expression_preferences": ["短句、低议论、保留事实空白"]},
+                },
+            }
+            name, description, metadata, creator = normalize_project_setup(derive_setup)
+            derived = service.create_project_with_creator(name, description, metadata, creator)
+            derived_version = derived["creator_binding"]["profile_version"]
+            self.assertEqual("derive", derived["creator_binding"]["binding_mode"])
+            self.assertEqual(base["id"], derived_version["parent_version_id"])
+            self.assertEqual(creator["overrides"], derived_version["derivation"])
 
     def test_rejects_removed_options_and_invalid_choices(self) -> None:
         with self.assertRaisesRegex(NovelOSError, "最多选择两项"):
@@ -68,6 +127,15 @@ class ProjectWizardTest(unittest.TestCase):
         self.assertNotIn('value="自定义"', html)
         self.assertIn("reference_material", html)
         self.assertIn("emotional_tones", html)
+        self.assertIn('name="creator_mode" value="reuse"', html)
+        self.assertIn('name="creator_mode" value="derive"', html)
+        self.assertIn('name="creator_mode" value="create"', html)
+        for field in self._signature():
+            self.assertIn(field, html)
+        self.assertIn('appInfo: { name: "novelos-project-wizard", version: "3.0.0" }', html)
+        self.assertNotIn("clientInfo:", html)
+        self.assertIn("if (!standalone) void initializeBridge().then(loadCreatorProfiles).catch(() => {});", html)
+        self.assertIn("bridgePromise = undefined;", html)
         self.assertIn("本地预览页不能创建项目", html)
 
 

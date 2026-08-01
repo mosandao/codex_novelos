@@ -5,18 +5,24 @@
 参与者：用户、主控智能体、MCP Apps 宿主、NovelOS MCP。
 
 1. Main 在支持 MCP Apps 的宿主中调用 `project.wizard.render`；宿主加载
-   `ui://novelos/project-wizard.html`，而不是直接以 `file://` 打开仓库文件。
-2. 用户填写项目名、频道、平台、规模和一级题材；页面依据一级题材显示静态的二级方向候选。
+   `ui://novelos/project-wizard-v3.html`，而不是直接以 `file://` 打开仓库文件。
+2. 用户选择 `reuse`、`derive` 或 `create` 作者签名模式；页面展示已有 Profile 的显示名、精确
+   revision、Hash 摘要，派生模式只提交用户明确填写的差异。
+3. 用户填写项目名、频道、平台、规模和一级题材；页面依据一级题材显示静态的二级方向候选。
    二级方向可多选，主情绪基调可多选，美学风格最多两项，创作资料可留空且最多 10,000 字。
-3. 页面调用 `project.wizard.submit`。MCP 只接受固定频道、平台、规模、一级题材和该题材
+4. 页面调用 `project.wizard.submit`。MCP 只接受固定频道、平台、规模、一级题材和该题材
    对应的二级方向，拒绝已移除的自定义项、知乎盐选、无效字段或跨题材二级方向。
-4. MCP 创建项目容器，写入 `metadata.project_setup`（`creation_context` 与 `taxonomy`），并刷新
-   默认 `novels/<项目目录>/` 投影。
-5. Main 读取该约束，启动 Trace，并按规划资产流程创建方向智能体；向导不会生成、锁定或提交
-   Story Direction 及其下游资产。
+5. MCP 在同一事务中确认或创建不可变 Creator Profile 版本、创建项目、写入
+   `metadata.project_setup` 并绑定精确 revision/Hash，随后刷新默认投影。
+6. Main 读取项目约束与 `creator_binding.constraint_ref`，启动 Trace，并把精确 ref 交给方向智能体；
+   候选 metadata 必须包含同一 ref 和完整 `book_soul`。向导本身不会生成、锁定或提交 Direction。
 
 拒绝路径：直接本地预览页面没有 MCP Apps 通信桥，不能创建项目；参数不符合表单契约时，
 `project.wizard.submit` 不写入项目；前端选择不替代规划、审查或 authority commit 门禁。
+
+作者 Profile 新建版本不会改变既有项目绑定。显式 rebind 必须使用当前 `expected_version`、运行中的
+本项目 Trace、目标版本精确 Hash 和用户原因；成功后 Direction 及全部规划后代变为 `stale`，
+Trace 记录旧/新 ref 和影响列表，系统不自动重生成。
 
 ## 规划资产
 
@@ -41,8 +47,10 @@ Character 与 World 可以有同时运行的独立 run。Story Arc 前必须创�
 参与者：主控智能体、Memory Skill、可选 上下文构建智能体、章节规划智能体、写作智能体、审查智能体、Continuity Skill。
 
 1. Main 使用 `novel-memory` 获取最小 Canon 上下文；仅在跨卷、多线、事实冲突或上下文溢出时允许创建 上下文构建智能体。
-2. 没有有效 Chapter Plan 时，按规划流程生成并锁定。
-3. 写作智能体 在隔离 run 中返回正文候选；绑定 Chapter Plan 的 `chapter.create_draft` 必须引用该 run。
+2. 没有有效 Chapter Plan 时，按规划流程生成并锁定；执行卡包含可追溯到 locked Direction 的
+   `soul_pressure` 和 `moral_residue`，纯过渡场景允许明确降低思想前景强度。
+3. 写作智能体 在隔离 run 中返回正文候选；`style_refs` 至少包含当前 Creator Profile 精确 ref
+   和 locked Direction 精确 ref。绑定 Chapter Plan 的 `chapter.create_draft` 必须引用该 run。
 4. 独立 审查智能体 审查不可变正文 Hash，Main 登记 Review Receipt 后携带同一 `trace_id` 调用 `chapter.accept`；接受和追溯账本原子提交。
 5. `novel-continuity` 从已接受正文提取候选，绑定正文 Hash 和 Authority Snapshot。
 6. 独立 Review 通过后，`continuity.promote_reviewed` 在单事务内更新事实、承诺、期待、关系和故事弧状态。
@@ -87,7 +95,7 @@ Character 与 World 可以有同时运行的独立 run。Story Arc 前必须创�
 参与者：用户、主控智能体、NovelOS MCP。
 
 1. Main 先定位精确 `project_id`，请求 MCP 生成项目级 Authority Snapshot。
-2. MCP 将 `locked` 规划、`accepted` 正文、当前 Authority Entity 和已晋升连续性状态写入权威视图；同时读取候选、非权威规划/正文、完成 Agent 输出和 locked 规划溯源，用于隔离的 `候选/`、`产出/` 和 `档案/` 目录。长内容通过 Resource ref 读取。
+2. MCP 将 `locked` 规划、`accepted` 正文、当前 Authority Entity、已晋升连续性状态、精确作者绑定和 locked Direction 的 `book_soul` 写入权威视图；未绑定或未锁定时明确显示缺失，不合成作者思想，也不把候选当作权威。同时读取候选、非权威规划/正文、完成 Agent 输出和 locked 规划溯源，用于隔离的 `候选/`、`产出/` 和 `档案/` 目录。长内容通过 Resource ref 读取。
 3. MCP 在目标根目录内创建临时同级目录，按固定规则生成中文 Markdown 结构、全过程档案和 `manifest.json`。
 4. MCP 校验每个文件 Hash、来源 ID/版本/Hash、路径边界和快照未漂移后，原子替换同一项目的旧投影。
 5. Main 向用户返回实际目录、Authority Snapshot Hash、文件数和被跳过的非权威内容统计。

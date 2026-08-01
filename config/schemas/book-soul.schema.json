@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://novelos.local/schemas/book-soul.schema.json",
+  "title": "NovelOS 书级创作灵魂",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "unresolved_claims",
+    "central_contradiction",
+    "costly_commitments",
+    "protected_dignity",
+    "forbidden_resolutions",
+    "recurring_tests",
+    "narrative_mercy",
+    "narrative_cruelty",
+    "deliberate_silences"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "unresolved_claims": {"$ref": "#/$defs/non_empty_text_list"},
+    "central_contradiction": {"$ref": "#/$defs/non_empty_text"},
+    "costly_commitments": {"$ref": "#/$defs/non_empty_text_list"},
+    "protected_dignity": {"$ref": "#/$defs/non_empty_text_list"},
+    "forbidden_resolutions": {"$ref": "#/$defs/non_empty_text_list"},
+    "recurring_tests": {"$ref": "#/$defs/non_empty_text_list"},
+    "narrative_mercy": {"$ref": "#/$defs/non_empty_text"},
+    "narrative_cruelty": {"$ref": "#/$defs/non_empty_text"},
+    "deliberate_silences": {"$ref": "#/$defs/non_empty_text_list"}
+  },
+  "$defs": {
+    "non_empty_text": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000,
+      "pattern": "\\S"
+    },
+    "non_empty_text_list": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 24,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/non_empty_text"}
+    }
+  }
+}

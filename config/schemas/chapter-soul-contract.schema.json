@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://novelos.local/schemas/chapter-soul-contract.schema.json",
+  "title": "NovelOS 章节思想压力契约",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["soul_pressure", "moral_residue"],
+  "properties": {
+    "soul_pressure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["foreground", "direction_ref", "manifestation"],
+      "properties": {
+        "foreground": {"type": "boolean"},
+        "direction_ref": {"type": "string", "minLength": 1, "pattern": "\\S"},
+        "manifestation": {"type": "string", "minLength": 1, "maxLength": 1000, "pattern": "\\S"}
+      }
+    },
+    "moral_residue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "consequence", "unresolved_aftereffect"],
+      "properties": {
+        "kind": {"enum": ["new", "carried", "none"]},
+        "consequence": {"type": "string", "minLength": 1, "maxLength": 1000, "pattern": "\\S"},
+        "unresolved_aftereffect": {"type": "string", "minLength": 1, "maxLength": 1000, "pattern": "\\S"}
+      }
+    }
+  }
+}

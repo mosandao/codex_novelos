@@ -61,6 +61,7 @@ class AgentContractTest(unittest.TestCase):
             self.assertTrue(all(tool.split(".", 1)[-1] in {
                 "get", "list", "search", "validate", "validate_input", "validate_output",
                 "validate_contract_inputs", "get_subject", "review_route",
+                "get_version",
                 "recent_chapters", "search_facts", "get_entity_states", "get_authority_snapshot",
             } for tool in role["allowed_tools"]), role_id)
 

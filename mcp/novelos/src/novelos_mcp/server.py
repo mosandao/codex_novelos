@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from mcp.server.fastmcp import FastMCP
+from mcp.types import ToolAnnotations
 
 from novelos_mcp.service import NovelOSService
 from novelos_mcp.project_wizard import (
@@ -77,20 +78,50 @@ def create_server(
         )
 
     def render_project_wizard() -> dict[str, Any]:
-        return {"form_version": 2, "options": WIZARD_OPTIONS}
+        profiles = []
+        for profile in service.list_creator_profiles():
+            for version in profile["versions"]:
+                signature = version["signature"]
+                profiles.append(
+                    {
+                        "profile_id": profile["id"],
+                        "display_name": profile["display_name"],
+                        "profile_version_id": version["id"],
+                        "revision": version["revision"],
+                        "subject_hash": version["subject_hash"],
+                        "constraint_ref": version["constraint_ref"],
+                        "summary": f"同情：{signature['sympathies'][0]}；警惕：{signature['distrusts'][0]}",
+                    }
+                )
+        return {"form_version": 3, "options": WIZARD_OPTIONS, "creator_profiles": profiles}
 
     def submit_project_wizard(setup: dict[str, Any]) -> dict[str, Any]:
-        name, description, metadata = normalize_project_setup(setup)
-        project = service.create_project(name, description, metadata)
+        name, description, metadata, creator = normalize_project_setup(setup)
+        created = service.create_project_with_creator(name, description, metadata, creator)
+        project = created["project"]
         projection = service.render_project_projection(project["id"])
-        return {"project": project, "projection": projection}
+        return {
+            "project": project,
+            "creator_binding": created["creator_binding"],
+            "projection": projection,
+        }
 
     tools: dict[str, Any] = {
+        "creator_profile.create": service.create_creator_profile,
+        "creator_profile.derive": service.derive_creator_profile,
+        "creator_profile.revise": service.revise_creator_profile,
+        "creator_profile.archive": service.archive_creator_profile,
+        "creator_profile.get": service.get_creator_profile,
+        "creator_profile.get_version": service.get_creator_profile_version,
+        "creator_profile.list": service.list_creator_profiles,
         "project.create": service.create_project,
         "project.get": service.get_project,
         "project.list": service.list_projects,
         "project.update": service.update_project,
         "project.delete": service.delete_project,
+        "project.creator.get_binding": service.get_project_creator_binding,
+        "project.creator.get_style_refs": service.get_project_style_refs,
+        "project.creator.rebind": service.rebind_project_creator,
         "book.create": service.create_book,
         "book.get": service.get_book,
         "book.list": service.list_books,
@@ -162,15 +193,45 @@ def create_server(
     server.tool(
         name="project.wizard.render",
         title="打开项目创建向导",
-        description="渲染小说项目创建向导；用户选择频道、平台、规模、题材和创作偏好。",
-        meta={"ui": {"resourceUri": WIZARD_URI}},
+        description="渲染小说项目创建向导；用户选择作者签名、频道、平台、规模、题材和创作偏好。",
+        # Keep the standard MCP Apps field first; the aliases let older hosts resolve
+        # the same resource while their nested UI metadata support is rolling out.
+        meta={
+            "ui": {"resourceUri": WIZARD_URI},
+            "ui/resourceUri": WIZARD_URI,
+            "openai/outputTemplate": WIZARD_URI,
+            "openai/widgetAccessible": True,
+        },
     )(render_project_wizard)
     server.tool(
         name="project.wizard.submit",
         title="提交项目创建向导",
-        description="校验项目向导选择、创建项目并刷新项目投影。",
+        description="校验作者签名与项目向导选择，原子创建项目和绑定并刷新项目投影。",
+        annotations=ToolAnnotations(
+            readOnlyHint=False,
+            destructiveHint=False,
+            idempotentHint=False,
+            openWorldHint=False,
+        ),
+        # Authorize the rendered MCP App to call this app-only tool through the
+        # host proxy.  Without it, the browser can render the form but its
+        # `tools/call` request is rejected before reaching the handler.
+        meta={
+            "ui": {"visibility": ["app"]},
+            "openai/widgetAccessible": True,
+        },
     )(submit_project_wizard)
-    @server.resource(WIZARD_URI, mime_type="text/html;profile=mcp-app")
+    @server.resource(
+        WIZARD_URI,
+        mime_type="text/html;profile=mcp-app",
+        meta={
+            "ui": {
+                "csp": {"connectDomains": [], "resourceDomains": []},
+                "prefersBorder": True,
+            },
+            "openai/widgetDescription": "用于创建 NovelOS 小说项目的表单。",
+        },
+    )
     def project_wizard_resource() -> str:
         return project_wizard_html()
 

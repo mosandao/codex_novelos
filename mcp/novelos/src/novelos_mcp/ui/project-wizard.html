@@ -25,7 +25,7 @@
 
     * { box-sizing: border-box; }
     body { min-width: 320px; margin: 0; background: var(--canvas); }
-    button, input, textarea { font: inherit; }
+    button, input, textarea, select { font: inherit; }
     button { cursor: pointer; }
 
     .shell { width: min(1180px, calc(100% - 48px)); margin: 0 auto; padding: 36px 0 48px; }
@@ -61,11 +61,12 @@
     .required { color: var(--coral); }
 
     .field-label { display: block; margin-bottom: 8px; color: var(--ink); font-size: 13px; font-weight: 750; }
-    input[type="text"], textarea { width: 100%; border: 1px solid #bdc8bf; border-radius: 5px; background: #fff; color: var(--ink); outline: none; transition: border-color 120ms ease, box-shadow 120ms ease; }
+    input[type="text"], textarea, select { width: 100%; border: 1px solid #bdc8bf; border-radius: 5px; background: #fff; color: var(--ink); outline: none; transition: border-color 120ms ease, box-shadow 120ms ease; }
     input[type="text"] { min-height: 44px; padding: 9px 12px; }
     textarea { min-height: 126px; resize: vertical; padding: 11px 12px; line-height: 1.6; }
+    select { min-height: 44px; padding: 9px 34px 9px 12px; }
     input[type="text"]::placeholder, textarea::placeholder { color: #98a39c; }
-    input[type="text"]:focus, textarea:focus { border-color: var(--forest); box-shadow: 0 0 0 3px rgba(27, 98, 74, .14); }
+    input[type="text"]:focus, textarea:focus, select:focus { border-color: var(--forest); box-shadow: 0 0 0 3px rgba(27, 98, 74, .14); }
 
     .split { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
     .choice-grid { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -82,6 +83,14 @@
     .direction-panel .choice-grid { margin-top: 10px; }
     .direction-panel .choice { background: var(--paper); }
     .direction-panel .choice:has(input:checked) { background: var(--coral-soft); border-color: var(--coral); color: #81331f; }
+
+    .creator-panel { display: grid; gap: 18px; }
+    .creator-fields { display: grid; gap: 16px; padding-top: 2px; }
+    .creator-fields[hidden] { display: none; }
+    .creator-summary { min-height: 42px; margin: 0; padding: 10px 12px; border-left: 3px solid var(--forest); background: var(--soft); color: #405047; font-size: 12px; line-height: 1.55; }
+    .signature-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 18px; }
+    .signature-grid label { min-width: 0; }
+    .signature-grid textarea { min-height: 86px; }
 
     .reference-label { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
     .reference-label small { color: var(--muted); font-size: 12px; font-weight: 500; }
@@ -107,6 +116,7 @@
       .form-intro p { margin-top: 10px; }
       fieldset { padding: 21px 18px; }
       .split { grid-template-columns: 1fr; gap: 22px; }
+      .signature-grid { grid-template-columns: 1fr; }
       .section-head { align-items: start; }
       .choice-count { padding-top: 2px; }
       .actionbar { align-items: stretch; flex-direction: column; padding: 16px 18px; }
@@ -153,7 +163,37 @@
         </fieldset>
 
         <fieldset>
-          <legend><div class="section-head"><h3>发布定位 <span class="required" aria-label="必填">*</span></h3><span class="section-index">02</span></div></legend>
+          <legend><div class="section-head"><h3>作者签名 <span class="required" aria-label="必填">*</span></h3><span class="section-index">02</span></div></legend>
+          <div class="creator-panel">
+            <div class="choice-grid" role="radiogroup" aria-label="作者签名模式">
+              <label class="choice"><input type="radio" name="creator_mode" value="reuse">复用作者</label>
+              <label class="choice"><input type="radio" name="creator_mode" value="derive">派生分支</label>
+              <label class="choice"><input type="radio" name="creator_mode" value="create" checked>新建作者</label>
+            </div>
+
+            <div class="creator-fields" id="creator_reuse" hidden>
+              <label><span class="field-label">作者版本</span><select id="creator_profile"></select></label>
+              <p class="creator-summary" id="creator_reuse_summary">尚无可复用作者。</p>
+            </div>
+
+            <div class="creator-fields" id="creator_derive" hidden>
+              <div class="split">
+                <label><span class="field-label">父作者版本</span><select id="creator_parent"></select></label>
+                <label><span class="field-label">新作者名称</span><input id="derive_display_name" type="text" maxlength="100" placeholder="例如：冷峻现实分支"></label>
+              </div>
+              <p class="creator-summary" id="creator_derive_summary">请选择父作者版本，并只填写需要改变的字段。</p>
+              <div class="signature-grid" id="derive_signature_fields"></div>
+            </div>
+
+            <div class="creator-fields" id="creator_create">
+              <label><span class="field-label">作者名称</span><input id="creator_display_name" type="text" maxlength="100" required placeholder="例如：槐序"></label>
+              <div class="signature-grid" id="create_signature_fields"></div>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend><div class="section-head"><h3>发布定位 <span class="required" aria-label="必填">*</span></h3><span class="section-index">03</span></div></legend>
           <div class="split">
             <div>
               <p class="field-label">频道</p>
@@ -178,7 +218,7 @@
         </fieldset>
 
         <fieldset>
-          <legend><div class="section-head"><h3>作品规模 <span class="required" aria-label="必填">*</span></h3><span class="section-index">03</span></div></legend>
+          <legend><div class="section-head"><h3>作品规模 <span class="required" aria-label="必填">*</span></h3><span class="section-index">04</span></div></legend>
           <div class="choice-grid" role="radiogroup" aria-label="作品规模">
             <label class="choice"><input type="radio" name="scale" value="短篇（1-100万字）" required>短篇（1-100万字）</label>
             <label class="choice"><input type="radio" name="scale" value="中篇（100-300万字）">中篇（100-300万字）</label>
@@ -188,7 +228,7 @@
         </fieldset>
 
         <fieldset>
-          <legend><div class="section-head"><h3>一级题材 <span class="required" aria-label="必填">*</span></h3><span class="section-index">04</span></div></legend>
+          <legend><div class="section-head"><h3>一级题材 <span class="required" aria-label="必填">*</span></h3><span class="section-index">05</span></div></legend>
           <p class="hint">选择后将展示对应的 LLM 预生成二级方向候选。</p>
           <div class="choice-grid" role="radiogroup" aria-label="一级题材">
             <label class="choice"><input type="radio" name="primary_genre" value="玄幻" required>玄幻</label>
@@ -218,7 +258,7 @@
         </fieldset>
 
         <fieldset>
-          <legend><div class="section-head"><h3>创作偏好</h3><span class="section-index">05</span></div></legend>
+          <legend><div class="section-head"><h3>创作偏好</h3><span class="section-index">06</span></div></legend>
           <div class="split">
             <div>
               <div class="section-head"><p class="field-label">主情绪基调</p><span class="choice-count" id="tone_count">可多选</span></div>
@@ -263,7 +303,7 @@
         </fieldset>
 
         <fieldset>
-          <legend><div class="section-head"><h3>创作资料</h3><span class="section-index">06</span></div></legend>
+          <legend><div class="section-head"><h3>创作资料</h3><span class="section-index">07</span></div></legend>
           <label class="reference-label field-label" for="reference_material"><span>补充给 Main Agent 的资料</span><small>可选，最多 10,000 字</small></label>
           <textarea id="reference_material" maxlength="10000" placeholder="可填写灵感片段、已有设定、参考作品、希望避开的内容或其他创作要求。"></textarea>
         </fieldset>
@@ -306,6 +346,19 @@
     const secondaryCount = document.querySelector("#secondary_count");
     const toneCount = document.querySelector("#tone_count");
     const styleCount = document.querySelector("#style_count");
+    const creatorProfileSelect = document.querySelector("#creator_profile");
+    const creatorParentSelect = document.querySelector("#creator_parent");
+    let creatorProfiles = [];
+
+    const signatureFields = {
+      sympathies: ["天然同情", "每行一项，例如：承担具体代价的普通人"],
+      distrusts: ["持续警惕", "每行一项，例如：不承担后果的宏大目标"],
+      recurring_attention: ["反复关注", "每行一项，例如：权力如何进入日常关系"],
+      narrative_principles: ["叙事原则", "每行一项，例如：通过选择和后果表达判断"],
+      forbidden_conveniences: ["禁止的便利解法", "每行一项，例如：一句道歉抹平长期伤害"],
+      expression_preferences: ["表达偏好", "每行一项，例如：低议论、重留白"],
+      negative_constraints: ["负面约束", "每行一项，例如：不模仿具体作者"]
+    };
 
     const request = (method, params) => new Promise((resolve, reject) => {
       const id = ++rpcId;
@@ -321,15 +374,105 @@
       pending.delete(message.id);
       message.error ? item.reject(message.error) : item.resolve(message.result);
     });
-    const initializeBridge = () => bridgePromise ||= request("ui/initialize", {
-      appInfo: { name: "novelos-project-wizard", version: "2.0.0" },
-      appCapabilities: {},
-      protocolVersion: "2026-01-26"
-    }).then(() => notify("ui/notifications/initialized", {}));
+    const initializeBridge = () => {
+      if (!bridgePromise) {
+        bridgePromise = request("ui/initialize", {
+          appInfo: { name: "novelos-project-wizard", version: "3.0.0" },
+          appCapabilities: {},
+          protocolVersion: "2026-01-26"
+        }).then(() => notify("ui/notifications/initialized", {})).catch(error => {
+          bridgePromise = undefined;
+          throw error;
+        });
+      }
+      return bridgePromise;
+    };
 
     const selectedRadio = name => form.querySelector(`input[name="${name}"]:checked`)?.value;
     const selectedValues = name => [...form.querySelectorAll(`input[name="${name}"]:checked`)].map(input => input.value);
     const escapeHtml = value => value.replace(/[&<>'"]/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[character]);
+    const splitLines = value => [...new Set(value.split(/\n+/).map(item => item.trim()).filter(Boolean))];
+
+    const renderSignatureFields = (containerId, prefix) => {
+      document.querySelector(`#${containerId}`).innerHTML = Object.entries(signatureFields).map(([field, [label, placeholder]]) => `
+        <label>
+          <span class="field-label">${label}</span>
+          <textarea id="${prefix}_${field}" data-signature-field="${field}" maxlength="4000" placeholder="${placeholder}"></textarea>
+        </label>
+      `).join("");
+    };
+
+    const profileByVersion = versionId => creatorProfiles.find(profile => profile.profile_version_id === versionId);
+    const updateProfileSummary = (select, targetId) => {
+      const profile = profileByVersion(select.value);
+      document.querySelector(`#${targetId}`).textContent = profile
+        ? `${profile.display_name} · revision ${profile.revision} · ${profile.subject_hash.slice(0, 18)}… · ${profile.summary}`
+        : "尚无可用作者版本。";
+    };
+
+    const renderCreatorProfiles = profiles => {
+      creatorProfiles = Array.isArray(profiles) ? profiles : [];
+      const options = creatorProfiles.map(profile => `<option value="${escapeHtml(profile.profile_version_id)}">${escapeHtml(profile.display_name)} · r${profile.revision}</option>`).join("");
+      creatorProfileSelect.innerHTML = options;
+      creatorParentSelect.innerHTML = options;
+      updateProfileSummary(creatorProfileSelect, "creator_reuse_summary");
+      updateProfileSummary(creatorParentSelect, "creator_derive_summary");
+      const reusable = creatorProfiles.length > 0;
+      form.querySelectorAll('input[name="creator_mode"][value="reuse"], input[name="creator_mode"][value="derive"]').forEach(input => { input.disabled = !reusable; });
+    };
+
+    const setCreatorMode = mode => {
+      for (const candidate of ["reuse", "derive", "create"]) {
+        document.querySelector(`#creator_${candidate}`).hidden = candidate !== mode;
+      }
+      creatorProfileSelect.required = mode === "reuse";
+      creatorParentSelect.required = mode === "derive";
+      document.querySelector("#derive_display_name").required = mode === "derive";
+      document.querySelector("#creator_display_name").required = mode === "create";
+      document.querySelectorAll("#create_signature_fields textarea").forEach(input => { input.required = mode === "create"; });
+      document.querySelectorAll("#derive_signature_fields textarea").forEach(input => { input.required = false; });
+    };
+
+    const signaturePayload = prefix => {
+      const payload = { schema_version: 1 };
+      for (const field of Object.keys(signatureFields)) {
+        payload[field] = splitLines(document.querySelector(`#${prefix}_${field}`).value);
+      }
+      return payload;
+    };
+
+    const creatorPayload = () => {
+      const mode = selectedRadio("creator_mode");
+      if (mode === "reuse") {
+        const profile = profileByVersion(creatorProfileSelect.value);
+        if (!profile) throw new Error("请选择有效的作者版本。");
+        return { mode, profile_version_id: profile.profile_version_id, subject_hash: profile.subject_hash };
+      }
+      if (mode === "create") {
+        return {
+          mode,
+          display_name: document.querySelector("#creator_display_name").value.trim(),
+          signature: signaturePayload("create")
+        };
+      }
+      const parent = profileByVersion(creatorParentSelect.value);
+      if (!parent) throw new Error("请选择有效的父作者版本。");
+      const materialized = signaturePayload("derive");
+      const overrides = Object.fromEntries(Object.entries(materialized).filter(([key, value]) => key !== "schema_version" && value.length));
+      if (!Object.keys(overrides).length) throw new Error("派生作者至少需要填写一项差异。");
+      return {
+        mode,
+        parent_version_id: parent.profile_version_id,
+        parent_subject_hash: parent.subject_hash,
+        display_name: document.querySelector("#derive_display_name").value.trim(),
+        overrides
+      };
+    };
+
+    const loadCreatorProfiles = async () => {
+      const result = await request("tools/call", { name: "project.wizard.render", arguments: {} });
+      renderCreatorProfiles(result?.structuredContent?.creator_profiles || []);
+    };
 
     const refreshCounts = () => {
       secondaryCount.textContent = `${selectedValues("secondary_directions").length} 项已选`;
@@ -349,6 +492,9 @@
 
     form.addEventListener("change", event => {
       if (event.target.name === "primary_genre") loadSecondaryDirections(event.target.value);
+      if (event.target.name === "creator_mode") setCreatorMode(event.target.value);
+      if (event.target.id === "creator_profile") updateProfileSummary(creatorProfileSelect, "creator_reuse_summary");
+      if (event.target.id === "creator_parent") updateProfileSummary(creatorParentSelect, "creator_derive_summary");
       if (event.target.name === "aesthetic_styles" && selectedValues("aesthetic_styles").length > 2) {
         event.target.checked = false;
         status.textContent = "美学风格最多选择两项。";
@@ -368,19 +514,20 @@
         return;
       }
 
-      const payload = {
-        title: document.querySelector("#title").value.trim(),
-        channel: selectedRadio("channel"),
-        platform: selectedRadio("platform"),
-        scale: selectedRadio("scale"),
-        primary_genre: selectedRadio("primary_genre"),
-        secondary_directions: selectedValues("secondary_directions"),
-        emotional_tones: selectedValues("emotional_tones"),
-        aesthetic_styles: selectedValues("aesthetic_styles"),
-        reference_material: document.querySelector("#reference_material").value.trim() || null
-      };
       submit.disabled = true;
       try {
+        const payload = {
+          title: document.querySelector("#title").value.trim(),
+          creator: creatorPayload(),
+          channel: selectedRadio("channel"),
+          platform: selectedRadio("platform"),
+          scale: selectedRadio("scale"),
+          primary_genre: selectedRadio("primary_genre"),
+          secondary_directions: selectedValues("secondary_directions"),
+          emotional_tones: selectedValues("emotional_tones"),
+          aesthetic_styles: selectedValues("aesthetic_styles"),
+          reference_material: document.querySelector("#reference_material").value.trim() || null
+        };
         await initializeBridge();
         const result = await request("tools/call", { name: "project.wizard.submit", arguments: { setup: payload } });
         const project = result?.structuredContent?.project;
@@ -388,7 +535,7 @@
         status.textContent = `已创建《${project.name}》；主控智能体可继续生成故事方向。`;
         status.className = "success";
         notify("ui/update-model-context", {
-          content: [{ type: "text", text: `项目已创建：${project.id}。请按照项目约束、二级方向、创作偏好和用户创作资料继续故事方向规划。` }]
+          content: [{ type: "text", text: `项目已创建：${project.id}。请读取精确作者签名绑定，并按照项目约束继续故事方向与 book_soul 规划。` }]
         });
       } catch (error) {
         status.textContent = error?.message || "创建失败，请检查填写内容。";
@@ -397,6 +544,11 @@
       }
     });
 
+    renderSignatureFields("create_signature_fields", "create");
+    renderSignatureFields("derive_signature_fields", "derive");
+    setCreatorMode("create");
+    if (!standalone) void initializeBridge().then(loadCreatorProfiles).catch(() => {});
+    else renderCreatorProfiles([]);
     refreshCounts();
   </script>
 </body>

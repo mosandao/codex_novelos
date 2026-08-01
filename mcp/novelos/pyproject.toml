@@ -7,7 +7,7 @@ name = "novelos-mcp"
 version = "0.1.0"
 description = "Deterministic storage and protocol boundary for Codex NovelOS"
 requires-python = ">=3.11"
-dependencies = ["mcp>=1.12,<2", "PyYAML>=6,<7", "jsonschema>=4.23,<5"]
+dependencies = ["mcp>=1.28.1,<2", "PyYAML>=6,<7", "jsonschema>=4.23,<5"]
 
 [project.scripts]
 novelos-mcp = "novelos_mcp.server:main"

@@ -29,6 +29,34 @@ ROLE_IDS = {
 }
 
 
+def creator_signature() -> dict[str, object]:
+    return {
+        "schema_version": 1,
+        "sympathies": ["维护承担具体代价者的尊严"],
+        "distrusts": ["警惕不承担后果的权力"],
+        "recurring_attention": ["观察制度如何进入日常关系"],
+        "narrative_principles": ["通过选择和后果表达判断"],
+        "forbidden_conveniences": ["不得用一句道歉抹平长期伤害"],
+        "expression_preferences": ["克制议论并保留事实空白"],
+        "negative_constraints": ["不模仿具体作者"],
+    }
+
+
+def project_book_soul() -> dict[str, object]:
+    return {
+        "schema_version": 1,
+        "unresolved_claims": ["秩序能否在不消耗人的情况下延续"],
+        "central_contradiction": "个体自由与共同体责任都不可放弃，但无法同时完整满足",
+        "costly_commitments": ["宁愿让主角失败，也不转移其选择造成的代价"],
+        "protected_dignity": ["不羞辱失败者，也不免除其行为后果"],
+        "forbidden_resolutions": ["制度问题不得归罪于一个坏人后自动消失"],
+        "recurring_tests": ["每次以大局为名的牺牲都检查决策者是否承担同等风险"],
+        "narrative_mercy": "理解人物为何妥协，但不替其取消后果",
+        "narrative_cruelty": "让人物亲手承受其信念的反面结果",
+        "deliberate_silences": ["不由叙述者宣布人物是否获得原谅"],
+    }
+
+
 class ProjectionTest(unittest.TestCase):
     def setUp(self) -> None:
         self.tmp_dir = tempfile.TemporaryDirectory()
@@ -183,6 +211,8 @@ class ProjectionTest(unittest.TestCase):
         self.assertTrue(target_dir.is_dir())
         self.assertTrue((target_dir / "README.md").is_file())
         self.assertTrue((target_dir / "manifest.json").is_file())
+        self.assertIn("尚未绑定 Creator Profile", (target_dir / "创作约束" / "作者签名.md").read_text(encoding="utf-8"))
+        self.assertIn("没有包含有效 `book_soul` 的 locked Story Direction", (target_dir / "创作约束" / "本书创作灵魂.md").read_text(encoding="utf-8"))
 
         # 校验 规划/ 目录
         self.assertTrue((target_dir / "规划" / "01-故事方向.md").is_file())
@@ -205,6 +235,77 @@ class ProjectionTest(unittest.TestCase):
         self.assertEqual(self.project["id"], manifest["project_id"])
         self.assertEqual(res["authority_snapshot_hash"], manifest["authority_snapshot_hash"])
         self.assertTrue(len(manifest["files"]) >= 10)
+
+    def test_creator_signature_and_only_locked_book_soul_are_projected(self) -> None:
+        profile = self.service.create_creator_profile("克制作者", creator_signature())
+        created = self.service.create_project_with_creator(
+            "作者约束投影",
+            "",
+            {},
+            {
+                "mode": "reuse",
+                "profile_version_id": profile["version"]["id"],
+                "subject_hash": profile["version"]["subject_hash"],
+            },
+        )
+        project = created["project"]
+        binding = created["creator_binding"]
+        trace = self.service.start_trace("projection-author-constraints", project["id"])
+        run = complete_agent_run(
+            self.service,
+            trace["id"],
+            "direction_agent",
+            "planning_candidate",
+            "带有本书独有追问的方向候选",
+            {"creator_signature_ref": binding["constraint_ref"]},
+        )
+        candidate = self.service.create_planning_candidate(
+            project["id"],
+            "direction",
+            project["id"],
+            "带有本书独有追问的方向候选",
+            [],
+            metadata={
+                "creator_signature_ref": binding["constraint_ref"],
+                "book_soul": project_book_soul(),
+            },
+            producer_run_id=run["id"],
+        )
+        out_root = Path(self.tmp_dir.name) / "author-novels"
+        before = self.service.render_project_projection(project["id"], output_root=str(out_root))
+        before_dir = Path(before["output_directory"])
+        self.assertIn("克制作者", (before_dir / "创作约束" / "作者签名.md").read_text(encoding="utf-8"))
+        self.assertIn("没有包含有效 `book_soul` 的 locked Story Direction", (before_dir / "创作约束" / "本书创作灵魂.md").read_text(encoding="utf-8"))
+
+        _, review = complete_review_run(
+            self.service,
+            trace["id"],
+            "planning_asset",
+            candidate["id"],
+            candidate["subject_hash"],
+            "planning-direction",
+        )
+        locked = self.service.lock_planning_asset(
+            candidate["id"], review["id"], candidate["version"], trace["id"]
+        )
+        after = self.service.render_project_projection(project["id"], output_root=str(out_root))
+        target = Path(after["output_directory"])
+        soul_text = (target / "创作约束" / "本书创作灵魂.md").read_text(encoding="utf-8")
+        self.assertIn("秩序能否在不消耗人的情况下延续", soul_text)
+        self.assertIn(locked["subject_hash"], soul_text)
+
+        manifest = json.loads((target / "manifest.json").read_text(encoding="utf-8"))
+        files = {entry["relative_path"]: entry for entry in manifest["files"]}
+        creator_entry = files["创作约束/作者签名.md"]
+        self.assertEqual(binding["constraint_ref"], creator_entry["source_ref"])
+        self.assertEqual(binding["subject_hash"], creator_entry["source_hash"])
+        soul_entry = files["创作约束/本书创作灵魂.md"]
+        self.assertEqual(locked["subject_hash"], soul_entry["source_hash"])
+        self.assertEqual(
+            self.service.get_project_style_refs(project["id"])["style_refs"][1],
+            soul_entry["source_ref"],
+        )
+        self.assertEqual([], self.service.verify_project_projection(str(target))["errors"])
 
     def test_non_authoritative_content_archived(self) -> None:
         # 创建未锁定的 candidate：不进入当前权威规划，但必须进入全过程产出档案。

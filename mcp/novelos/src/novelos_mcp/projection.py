@@ -12,7 +12,7 @@ from typing import Any
 from novelos_mcp import NovelOSError
 
 PROJECTION_FORMAT_VERSION = 1
-GENERATOR_VERSION = "1.0.0"
+GENERATOR_VERSION = "1.1.0"
 
 # 不允许出现在文件名中的控制字符与保留字符
 ILLEGAL_CHAR_PATTERN = re.compile(r'[\x00-\x1f\x7f\\/:*?"<>|]')
@@ -159,6 +159,7 @@ class ProjectionEngine:
                     "sha256": file_digest,
                     "source_type": source_info.get("source_type", "derived"),
                     "source_id": source_info.get("source_id", ""),
+                    "source_ref": source_info.get("source_ref", source_info.get("source_id", "")),
                     "source_version": source_info.get("source_version", 1),
                     # 派生/合成文件（如 README、连续性账本）没有单一来源资产，
                     # 此时 source_hash 回退为文件内容 Hash，保证逐文件可校验。
@@ -177,6 +178,91 @@ class ProjectionEngine:
             f"- **权威快照 Hash**：`{authority_snapshot_hash}`\n"
         )
         _write_markdown("README.md", f"《{project_title}》项目展示视图", readme_body, {"source_type": "project_readme", "source_id": project_id})
+
+        # A2. 创作约束只展示精确项目绑定与 locked Direction，不读取候选冒充权威。
+        creator = snapshot.get("creator_signature")
+        if creator:
+            signature = creator["signature"]
+            labels = {
+                "sympathies": "天然同情",
+                "distrusts": "持续警惕",
+                "recurring_attention": "反复关注",
+                "narrative_principles": "叙事原则",
+                "forbidden_conveniences": "禁止的便利解法",
+                "expression_preferences": "表达偏好",
+                "negative_constraints": "负面约束",
+            }
+            creator_lines = [
+                f"- **Profile**：{creator['profile_display_name']} (`{creator['profile_id']}`)",
+                f"- **版本**：revision {creator['profile_revision']} (`{creator['profile_version_id']}`)",
+                f"- **Hash**：`{creator['subject_hash']}`",
+                f"- **精确引用**：`{creator['constraint_ref']}`",
+                f"- **绑定模式**：`{creator['binding_mode']}`",
+            ]
+            for field, label in labels.items():
+                creator_lines.extend(["", f"## {label}"])
+                creator_lines.extend(f"- {item}" for item in signature[field])
+            creator_body = "\n".join(creator_lines)
+            creator_source = {
+                "source_type": "creator_signature",
+                "source_id": creator["profile_version_id"],
+                "source_ref": creator["constraint_ref"],
+                "source_version": creator["profile_revision"],
+                "source_hash": creator["subject_hash"],
+            }
+        else:
+            creator_body = "*当前项目尚未绑定 Creator Profile；系统未合成或猜测作者思想。*"
+            creator_source = {
+                "source_type": "creator_signature_absent",
+                "source_id": project_id,
+                "source_ref": project_id,
+                "source_version": project_version,
+            }
+        _write_markdown("创作约束/作者签名.md", "作者签名", creator_body, creator_source)
+
+        soul = snapshot.get("book_soul")
+        if soul:
+            soul_value = soul["book_soul"]
+            soul_labels = {
+                "unresolved_claims": "未决追问",
+                "central_contradiction": "核心矛盾",
+                "costly_commitments": "有代价的承诺",
+                "protected_dignity": "受保护的尊严",
+                "forbidden_resolutions": "禁止的解决方式",
+                "recurring_tests": "重复检验",
+                "narrative_mercy": "叙事仁慈",
+                "narrative_cruelty": "叙事残酷",
+                "deliberate_silences": "刻意留白",
+            }
+            soul_lines = [
+                f"- **Direction**：`{soul['direction_id']}`，version {soul['direction_version']}",
+                f"- **Hash**：`{soul['direction_subject_hash']}`",
+                f"- **精确引用**：`{soul['direction_constraint_ref']}`",
+            ]
+            for field, label in soul_labels.items():
+                soul_lines.extend(["", f"## {label}"])
+                value = soul_value[field]
+                if isinstance(value, list):
+                    soul_lines.extend(f"- {item}" for item in value)
+                else:
+                    soul_lines.append(value)
+            soul_body = "\n".join(soul_lines)
+            soul_source = {
+                "source_type": "book_soul",
+                "source_id": soul["direction_id"],
+                "source_ref": soul["direction_constraint_ref"],
+                "source_version": soul["direction_version"],
+                "source_hash": soul["direction_subject_hash"],
+            }
+        else:
+            soul_body = "*当前没有包含有效 `book_soul` 的 locked Story Direction；候选内容不会在此显示为权威。*"
+            soul_source = {
+                "source_type": "book_soul_absent",
+                "source_id": project_id,
+                "source_ref": project_id,
+                "source_version": project_version,
+            }
+        _write_markdown("创作约束/本书创作灵魂.md", "本书创作灵魂", soul_body, soul_source)
 
         # B. 渲染 规划/ 目录 (01-故事方向 ~ 06-故事弧)
         planning_map = {

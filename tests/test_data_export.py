@@ -7,7 +7,9 @@ import unittest
 from contextlib import closing
 from pathlib import Path
 
-from scripts.backup_novelos_database import logical_snapshot
+from scripts.backup_novelos_database import build_manifest as build_backup_manifest
+from scripts.backup_novelos_database import create_backup, logical_snapshot
+from novelos_mcp import NovelOSService
 from scripts.export_novelos_data import (
     DEFAULT_DRILL,
     ExportError,
@@ -18,6 +20,19 @@ from scripts.export_novelos_data import (
 
 
 class DataExportTest(unittest.TestCase):
+    @staticmethod
+    def _signature(label: str) -> dict[str, object]:
+        return {
+            "schema_version": 1,
+            "sympathies": [f"维护{label}中的普通人尊严"],
+            "distrusts": [f"警惕{label}中不承担代价的权力"],
+            "recurring_attention": [f"观察{label}如何进入日常关系"],
+            "narrative_principles": ["通过选择和后果表达判断"],
+            "forbidden_conveniences": ["不得用一句道歉抹平长期伤害"],
+            "expression_preferences": ["克制议论并保留事实空白"],
+            "negative_constraints": ["不模仿具体作者"],
+        }
+
     def test_jsonl_export_restores_the_exact_logical_snapshot(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -66,10 +81,60 @@ class DataExportTest(unittest.TestCase):
             with self.assertRaisesRegex(ExportError, "Hash 不匹配"):
                 load_and_verify_export(export_dir)
 
+    def test_creator_profile_history_and_exact_binding_survive_jsonl_restore(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "source.db"
+            service = NovelOSService(source)
+            created = service.create_creator_profile("恢复测试作者", self._signature("城市"))
+            first = created["version"]
+            revised = service.revise_creator_profile(
+                created["profile"]["id"],
+                created["profile"]["version"],
+                self._signature("家庭"),
+            )["version"]
+            project = service.create_project_with_creator(
+                "精确绑定恢复测试",
+                "",
+                {},
+                {
+                    "mode": "reuse",
+                    "profile_version_id": first["id"],
+                    "subject_hash": first["subject_hash"],
+                },
+            )["project"]
+
+            export_dir = root / "export"
+            restored = root / "restored.db"
+            export_database(source, export_dir)
+            restore_export(export_dir, restored)
+            restored_service = NovelOSService(restored)
+            binding = restored_service.get_project_creator_binding(project["id"])
+            self.assertEqual(first["id"], binding["profile_version_id"])
+            self.assertEqual(first["subject_hash"], binding["subject_hash"])
+            self.assertEqual(1, binding["profile_revision"])
+            self.assertEqual(
+                first["subject_hash"],
+                restored_service.get_creator_profile_version(first["id"])["subject_hash"],
+            )
+            self.assertEqual(
+                revised["subject_hash"],
+                restored_service.get_creator_profile_version(revised["id"])["subject_hash"],
+            )
+
+            backup = root / "backup.db"
+            create_backup(source, backup)
+            backup_manifest = build_backup_manifest(source, backup)
+            self.assertEqual("passed", backup_manifest["restore_drill"])
+            counts = backup_manifest["logical_snapshot"]["table_counts"]
+            self.assertEqual(1, counts["creator_profiles"])
+            self.assertEqual(2, counts["creator_profile_versions"])
+            self.assertEqual(1, counts["project_creator_bindings"])
+
     def test_real_database_export_drill_is_current(self) -> None:
         drill = json.loads(DEFAULT_DRILL.read_text(encoding="utf-8"))
         backup = json.loads(
-            (DEFAULT_DRILL.parent / "schema9_restore_drill.json").read_text(encoding="utf-8")
+            (DEFAULT_DRILL.parent / "schema11_restore_drill.json").read_text(encoding="utf-8")
         )
         self.assertEqual("passed", drill["export_restore_drill"])
         self.assertEqual(backup["logical_snapshot"], drill["logical_snapshot"])

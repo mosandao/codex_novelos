@@ -15,6 +15,11 @@ from typing import Any, Iterable
 from novelos_mcp.agent_contracts import AgentContractStore
 from novelos_mcp.errors import NovelOSError
 from novelos_mcp.catalog import CatalogStore
+from novelos_mcp.creative_contracts import (
+    CreativeContractStore,
+    creator_signature_ref,
+    planning_constraint_ref,
+)
 from novelos_mcp.hashing import content_hash
 from novelos_mcp.knowledge import KnowledgeStore
 from novelos_mcp.storage import Database
@@ -98,6 +103,7 @@ class NovelOSService:
         self.knowledge = KnowledgeStore(seed_database_path, seed_inventory_path)
         self.catalog = CatalogStore(catalog_path)
         self.agent_contracts = AgentContractStore(agent_contract_path)
+        self.creative_contracts = CreativeContractStore()
 
     @staticmethod
     def _row(row: sqlite3.Row) -> dict[str, Any]:
@@ -491,6 +497,233 @@ class NovelOSService:
             "contract_snapshot_hash": snapshot_hash,
         }
 
+    def create_creator_profile(
+        self,
+        display_name: str,
+        signature: dict[str, Any],
+    ) -> dict[str, Any]:
+        normalized = self.creative_contracts.validate_signature(signature)
+        with self.database.transaction() as connection:
+            profile, version = self._create_creator_profile_in_transaction(
+                connection,
+                display_name,
+                normalized,
+            )
+            return {"profile": profile, "version": version}
+
+    def derive_creator_profile(
+        self,
+        parent_version_id: str,
+        parent_subject_hash: str,
+        display_name: str,
+        overrides: dict[str, Any],
+    ) -> dict[str, Any]:
+        with self.database.transaction() as connection:
+            parent = self._get(connection, "creator_profile_versions", parent_version_id)
+            if parent["subject_hash"] != _require_sha256(parent_subject_hash, "parent_subject_hash"):
+                raise NovelOSError("hash_mismatch", "父作者签名版本 Hash 不一致")
+            base = self._creator_profile_version(connection, parent_version_id)["signature"]
+            signature, normalized_overrides = self.creative_contracts.derive_signature(base, overrides)
+            profile, version = self._create_creator_profile_in_transaction(
+                connection,
+                display_name,
+                signature,
+                parent_version_id=parent_version_id,
+                derivation=normalized_overrides,
+            )
+            return {"profile": profile, "version": version}
+
+    def revise_creator_profile(
+        self,
+        profile_id: str,
+        expected_version: int,
+        signature: dict[str, Any],
+    ) -> dict[str, Any]:
+        normalized = self.creative_contracts.validate_signature(signature)
+        with self.database.transaction() as connection:
+            profile = self._get(connection, "creator_profiles", profile_id)
+            self._check_version(profile, expected_version)
+            if profile["status"] != "active":
+                raise NovelOSError("invalid_state", "已归档作者 Profile 不能修订")
+            parent = connection.execute(
+                "SELECT * FROM creator_profile_versions WHERE profile_id=? ORDER BY revision DESC LIMIT 1",
+                (profile_id,),
+            ).fetchone()
+            if parent is None:
+                raise NovelOSError("invalid_state", "作者 Profile 缺少历史版本")
+            revision = int(parent["revision"]) + 1
+            version = self._insert_creator_profile_version(
+                connection,
+                profile_id,
+                revision,
+                normalized,
+                parent_version_id=str(parent["id"]),
+            )
+            connection.execute(
+                "UPDATE creator_profiles SET version=version+1, updated_at=CURRENT_TIMESTAMP WHERE id=?",
+                (profile_id,),
+            )
+            return {
+                "profile": self._creator_profile(connection, profile_id),
+                "version": version,
+            }
+
+    def archive_creator_profile(self, profile_id: str, expected_version: int) -> dict[str, Any]:
+        with self.database.transaction() as connection:
+            profile = self._get(connection, "creator_profiles", profile_id)
+            self._check_version(profile, expected_version)
+            if profile["status"] == "archived":
+                raise NovelOSError("invalid_state", "作者 Profile 已归档")
+            connection.execute(
+                "UPDATE creator_profiles SET status='archived', version=version+1, updated_at=CURRENT_TIMESTAMP WHERE id=?",
+                (profile_id,),
+            )
+            return self._creator_profile(connection, profile_id)
+
+    def get_creator_profile(self, profile_id: str) -> dict[str, Any]:
+        with self.database.read() as connection:
+            return self._creator_profile(connection, profile_id)
+
+    def get_creator_profile_version(self, profile_version_id: str) -> dict[str, Any]:
+        with self.database.read() as connection:
+            return self._creator_profile_version(connection, profile_version_id)
+
+    def list_creator_profiles(
+        self,
+        status: str = "active",
+        limit: int = 50,
+        offset: int = 0,
+    ) -> list[dict[str, Any]]:
+        if status not in {"active", "archived", "all"}:
+            raise NovelOSError("invalid_argument", "作者 Profile status 非法")
+        self._validate_page(limit, offset)
+        clause = "" if status == "all" else "WHERE status=?"
+        values: tuple[Any, ...] = (limit, offset) if status == "all" else (status, limit, offset)
+        with self.database.read() as connection:
+            rows = connection.execute(
+                f"SELECT id FROM creator_profiles {clause} ORDER BY created_at, id LIMIT ? OFFSET ?",
+                values,
+            ).fetchall()
+            return [self._creator_profile(connection, str(row["id"])) for row in rows]
+
+    def get_project_creator_binding(self, project_id: str) -> dict[str, Any]:
+        with self.database.read() as connection:
+            self._get(connection, "projects", project_id)
+            return self._project_creator_binding(connection, project_id)
+
+    def get_project_style_refs(self, project_id: str) -> dict[str, Any]:
+        with self.database.read() as connection:
+            self._get(connection, "projects", project_id)
+            refs = self._project_style_refs(connection, project_id)
+            return {"project_id": project_id, "style_refs": refs}
+
+    def create_project_with_creator(
+        self,
+        name: str,
+        description: str,
+        metadata: dict[str, Any],
+        creator: dict[str, Any],
+    ) -> dict[str, Any]:
+        project_id = _id("project")
+        with self.database.transaction() as connection:
+            version, mode = self._resolve_creator_request(connection, creator)
+            connection.execute(
+                "INSERT INTO projects(id, name, description, metadata_json) VALUES (?, ?, ?, ?)",
+                (project_id, _require_text(name, "name"), description, _json(metadata)),
+            )
+            binding = self._insert_project_creator_binding(connection, project_id, version, mode)
+            return {
+                "project": self._row(self._get(connection, "projects", project_id)),
+                "creator_binding": binding,
+            }
+
+    def rebind_project_creator(
+        self,
+        project_id: str,
+        expected_version: int,
+        profile_version_id: str,
+        subject_hash: str,
+        trace_id: str,
+        reason: str,
+    ) -> dict[str, Any]:
+        normalized_reason = _require_text(reason, "reason")
+        with self.database.transaction() as connection:
+            project = self._get(connection, "projects", project_id)
+            self._check_version(project, expected_version)
+            trace = self._get(connection, "traces", _require_text(trace_id, "trace_id"))
+            if trace["status"] != "running" or trace["project_id"] != project_id:
+                raise NovelOSError("invalid_trace", "作者重绑定必须属于当前项目的运行中 Trace")
+            target = self._get(connection, "creator_profile_versions", profile_version_id)
+            if target["subject_hash"] != _require_sha256(subject_hash, "subject_hash"):
+                raise NovelOSError("hash_mismatch", "目标作者签名版本 Hash 不一致")
+            target_profile = self._get(connection, "creator_profiles", str(target["profile_id"]))
+            if target_profile["status"] != "active":
+                raise NovelOSError("invalid_state", "不能绑定已归档作者 Profile")
+            current_row = connection.execute(
+                "SELECT * FROM project_creator_bindings WHERE project_id=?", (project_id,)
+            ).fetchone()
+            old_ref = self._binding_constraint_ref(current_row) if current_row is not None else None
+            new_ref = creator_signature_ref(
+                str(target["profile_id"]),
+                int(target["revision"]),
+                str(target["id"]),
+                str(target["subject_hash"]),
+            )
+            if old_ref == new_ref:
+                raise NovelOSError("conflict", "项目已经绑定该作者签名版本")
+
+            affected = self._creative_rebind_affected_assets(connection, project_id)
+            if affected:
+                placeholders = ",".join("?" for _ in affected)
+                connection.execute(
+                    f"UPDATE planning_assets SET status='stale', version=version+1, updated_at=CURRENT_TIMESTAMP WHERE id IN ({placeholders})",
+                    affected,
+                )
+            if current_row is None:
+                binding = self._insert_project_creator_binding(connection, project_id, target, "reuse")
+            else:
+                connection.execute(
+                    "UPDATE project_creator_bindings SET profile_id=?, profile_version_id=?, profile_revision=?, subject_hash=?, binding_mode='reuse', version=version+1, updated_at=CURRENT_TIMESTAMP WHERE project_id=?",
+                    (
+                        target["profile_id"],
+                        target["id"],
+                        target["revision"],
+                        target["subject_hash"],
+                        project_id,
+                    ),
+                )
+                binding = self._project_creator_binding(connection, project_id)
+            connection.execute(
+                "UPDATE projects SET version=version+1, updated_at=CURRENT_TIMESTAMP WHERE id=?",
+                (project_id,),
+            )
+            self._record_trace_step_in_transaction(
+                connection,
+                trace_id,
+                "project.creator.rebind",
+                "主控智能体",
+                "completed",
+                [old_ref] if old_ref else [project_id],
+                [new_ref],
+                {
+                    "reason": normalized_reason,
+                    "old_creator_signature_ref": old_ref,
+                    "new_creator_signature_ref": new_ref,
+                    "old_creator_profile_id": str(current_row["profile_id"]) if current_row is not None else None,
+                    "old_profile_revision": int(current_row["profile_revision"]) if current_row is not None else None,
+                    "old_subject_hash": str(current_row["subject_hash"]) if current_row is not None else None,
+                    "new_creator_profile_id": str(target["profile_id"]),
+                    "new_profile_revision": int(target["revision"]),
+                    "new_subject_hash": str(target["subject_hash"]),
+                    "affected_asset_ids": affected,
+                },
+            )
+            return {
+                "project": self._row(self._get(connection, "projects", project_id)),
+                "creator_binding": binding,
+                "stale_asset_ids": affected,
+            }
+
     def create_project(self, name: str, description: str = "", metadata: dict[str, Any] | None = None) -> dict[str, Any]:
         project_id = _id("project")
         with self.database.transaction() as connection:
@@ -606,8 +839,19 @@ class NovelOSService:
             raise NovelOSError("producer_run_required", "绑定 Chapter Plan 的完整章节必须来自 写作智能体 run")
         with self.database.transaction() as connection:
             self._get(connection, "volumes", volume_id)
+            project_row = connection.execute(
+                "SELECT books.project_id FROM volumes JOIN books ON books.id=volumes.book_id WHERE volumes.id=?",
+                (volume_id,),
+            ).fetchone()
+            if project_row is None:
+                raise NovelOSError("not_found", "章节所属项目不存在")
             if producer_run_id is not None:
-                self._validate_chapter_producer_run(connection, producer_run_id, content)
+                self._validate_chapter_producer_run(
+                    connection,
+                    producer_run_id,
+                    content,
+                    str(project_row["project_id"]),
+                )
             resource_id, digest = self._resource(connection, _require_text(content, "content"))
             chapter_id = _id("chapter")
             try:
@@ -936,7 +1180,7 @@ class NovelOSService:
 
             if producer_run_id is not None:
                 producer_role = self._validate_planning_producer_run(
-                    connection, producer_run_id, asset_type, content
+                    connection, producer_run_id, asset_type, content, project_id
                 )
             if producer_role is None:
                 raise NovelOSError("producer_run_required", "规划候选必须绑定生产 Agent run")
@@ -948,8 +1192,21 @@ class NovelOSService:
             elif cross_check_id is not None:
                 raise NovelOSError("invalid_cross_check", "只有 Story Arc 可以绑定交叉审查")
 
-            resource_id, content_digest = self._resource(connection, _require_text(content, "content"))
             normalized_metadata = metadata or {}
+            if asset_type == "direction":
+                normalized_metadata = self._validate_direction_author_contract(
+                    connection,
+                    project_id,
+                    producer_run_id,
+                    normalized_metadata,
+                )
+            elif asset_type == "chapter_plan":
+                normalized_metadata = self._validate_chapter_soul_contract(
+                    connection,
+                    project_id,
+                    normalized_metadata,
+                )
+            resource_id, content_digest = self._resource(connection, _require_text(content, "content"))
             normalized_refs = sorted(
                 ({"asset_id": str(ref["asset_id"]), "version": int(ref["version"])} for ref in upstream_refs),
                 key=lambda ref: ref["asset_id"],
@@ -1611,6 +1868,13 @@ class NovelOSService:
             trace = self._get(connection, "traces", trace_id)
             if trace["status"] != "running":
                 raise NovelOSError("invalid_state", "已结束的 Trace 不能创建 Agent run")
+            if trace["project_id"] is not None:
+                self._validate_creative_agent_inputs(
+                    connection,
+                    str(trace["project_id"]),
+                    role_id,
+                    input_bindings,
+                )
             run_id = _id("agent-run")
             context_id = _id("agent-context")
             connection.execute(
@@ -2177,6 +2441,7 @@ class NovelOSService:
         run_id: str,
         asset_type: str,
         content: str,
+        project_id: str,
     ) -> str:
         run = self._get(connection, "agent_runs", run_id)
         if run["status"] != "completed" or run["kind"] != "planning_asset":
@@ -2188,6 +2453,9 @@ class NovelOSService:
                 "Agent run 不拥有该规划资产",
                 {"role_id": run["role_id"], "asset_type": asset_type},
             )
+        trace = self._get(connection, "traces", str(run["trace_id"]))
+        if trace["project_id"] != project_id:
+            raise NovelOSError("invalid_producer_run", "规划 Agent run 不属于当前项目 Trace")
         resource = self._get(connection, "resources", str(run["output_resource_id"]))
         actual = bytes(resource["content"]).decode("utf-8")
         if actual != content:
@@ -2199,6 +2467,7 @@ class NovelOSService:
         connection: sqlite3.Connection,
         run_id: str,
         content: str,
+        project_id: str,
     ) -> None:
         run = self._get(connection, "agent_runs", run_id)
         if (
@@ -2210,6 +2479,19 @@ class NovelOSService:
         resource = self._get(connection, "resources", str(run["output_resource_id"]))
         if bytes(resource["content"]).decode("utf-8") != content:
             raise NovelOSError("hash_mismatch", "章节正文与 写作智能体 run 输出不一致")
+        trace = self._get(connection, "traces", str(run["trace_id"]))
+        if trace["project_id"] != project_id:
+            raise NovelOSError("invalid_producer_run", "写作智能体 run 不属于章节所在项目")
+        binding = connection.execute(
+            "SELECT project_id FROM project_creator_bindings WHERE project_id=?", (project_id,)
+        ).fetchone()
+        if binding is not None:
+            expected = set(self._project_style_refs(connection, project_id))
+            actual_bindings = json.loads(run["input_bindings_json"])
+            actual_value = actual_bindings.get("style_refs")
+            actual = set(actual_value if isinstance(actual_value, list) else [actual_value])
+            if not expected.issubset(actual):
+                raise NovelOSError("stale_creator_binding", "Writer run 的作者约束已失效")
 
     def _validate_change_proposal_targets(
         self,
@@ -2627,6 +2909,355 @@ class NovelOSService:
             (upstream_asset_id,),
         )
 
+    def _create_creator_profile_in_transaction(
+        self,
+        connection: sqlite3.Connection,
+        display_name: str,
+        signature: dict[str, Any],
+        *,
+        parent_version_id: str | None = None,
+        derivation: dict[str, Any] | None = None,
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
+        profile_id = _id("creator-profile")
+        connection.execute(
+            "INSERT INTO creator_profiles(id, display_name) VALUES (?, ?)",
+            (profile_id, _require_text(display_name, "display_name")),
+        )
+        version = self._insert_creator_profile_version(
+            connection,
+            profile_id,
+            1,
+            self.creative_contracts.validate_signature(signature),
+            parent_version_id=parent_version_id,
+            derivation=derivation,
+        )
+        return self._creator_profile(connection, profile_id), version
+
+    def _insert_creator_profile_version(
+        self,
+        connection: sqlite3.Connection,
+        profile_id: str,
+        revision: int,
+        signature: dict[str, Any],
+        *,
+        parent_version_id: str | None = None,
+        derivation: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        if parent_version_id is not None:
+            self._get(connection, "creator_profile_versions", parent_version_id)
+        content_resource_id, digest = self._resource(connection, _json(signature), "application/json")
+        derivation_resource_id: str | None = None
+        if derivation is not None:
+            derivation_resource_id, _ = self._resource(connection, _json(derivation), "application/json")
+        version_id = _id("creator-profile-version")
+        connection.execute(
+            "INSERT INTO creator_profile_versions(id, profile_id, revision, content_resource_id, subject_hash, parent_version_id, derivation_resource_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (
+                version_id,
+                profile_id,
+                revision,
+                content_resource_id,
+                digest,
+                parent_version_id,
+                derivation_resource_id,
+            ),
+        )
+        return self._creator_profile_version(connection, version_id)
+
+    def _creator_profile(self, connection: sqlite3.Connection, profile_id: str) -> dict[str, Any]:
+        profile = self._row(self._get(connection, "creator_profiles", profile_id))
+        rows = connection.execute(
+            "SELECT id FROM creator_profile_versions WHERE profile_id=? ORDER BY revision, id",
+            (profile_id,),
+        ).fetchall()
+        if not rows:
+            raise NovelOSError("invalid_state", "作者 Profile 缺少版本", {"profile_id": profile_id})
+        versions = [self._creator_profile_version(connection, str(row["id"])) for row in rows]
+        profile["versions"] = versions
+        profile["latest_version"] = versions[-1]
+        return profile
+
+    def _creator_profile_version(
+        self,
+        connection: sqlite3.Connection,
+        profile_version_id: str,
+    ) -> dict[str, Any]:
+        row = self._get(connection, "creator_profile_versions", profile_version_id)
+        result = self._row(row)
+        resource = self._get(connection, "resources", str(row["content_resource_id"]))
+        try:
+            signature = json.loads(bytes(resource["content"]).decode("utf-8"))
+        except json.JSONDecodeError as exc:
+            raise NovelOSError("invalid_state", "作者签名 Resource 已损坏") from exc
+        result["signature"] = self.creative_contracts.validate_signature(signature)
+        derivation_id = row["derivation_resource_id"]
+        if derivation_id:
+            derivation_resource = self._get(connection, "resources", str(derivation_id))
+            result["derivation"] = json.loads(bytes(derivation_resource["content"]).decode("utf-8"))
+            result["derivation_ref"] = f"novelos://resource/{derivation_id}"
+        else:
+            result["derivation"] = None
+            result["derivation_ref"] = None
+        result.pop("derivation_resource_id", None)
+        result["constraint_ref"] = creator_signature_ref(
+            str(row["profile_id"]),
+            int(row["revision"]),
+            str(row["id"]),
+            str(row["subject_hash"]),
+        )
+        return result
+
+    def _resolve_creator_request(
+        self,
+        connection: sqlite3.Connection,
+        creator: dict[str, Any],
+    ) -> tuple[sqlite3.Row, str]:
+        if not isinstance(creator, dict):
+            raise NovelOSError("invalid_creator_binding", "creator 必须是对象")
+        mode = creator.get("mode")
+        expected_fields = {
+            "reuse": {"mode", "profile_version_id", "subject_hash"},
+            "create": {"mode", "display_name", "signature"},
+            "derive": {"mode", "parent_version_id", "parent_subject_hash", "display_name", "overrides"},
+        }
+        if mode not in expected_fields or set(creator) != expected_fields[mode]:
+            raise NovelOSError(
+                "invalid_creator_binding",
+                "作者绑定模式或字段非法",
+                {"mode": mode, "actual": sorted(creator)},
+            )
+        if mode == "reuse":
+            version = self._get(connection, "creator_profile_versions", str(creator["profile_version_id"]))
+            if version["subject_hash"] != _require_sha256(creator["subject_hash"], "subject_hash"):
+                raise NovelOSError("hash_mismatch", "复用作者签名版本 Hash 不一致")
+            profile = self._get(connection, "creator_profiles", str(version["profile_id"]))
+            if profile["status"] != "active":
+                raise NovelOSError("invalid_state", "不能为新项目选择已归档作者 Profile")
+            return version, mode
+        if mode == "create":
+            signature = self.creative_contracts.validate_signature(creator["signature"])
+            _, created = self._create_creator_profile_in_transaction(
+                connection,
+                creator["display_name"],
+                signature,
+            )
+            return self._get(connection, "creator_profile_versions", str(created["id"])), mode
+
+        parent = self._get(connection, "creator_profile_versions", str(creator["parent_version_id"]))
+        if parent["subject_hash"] != _require_sha256(creator["parent_subject_hash"], "parent_subject_hash"):
+            raise NovelOSError("hash_mismatch", "派生父作者签名版本 Hash 不一致")
+        base = self._creator_profile_version(connection, str(parent["id"]))["signature"]
+        signature, overrides = self.creative_contracts.derive_signature(base, creator["overrides"])
+        _, created = self._create_creator_profile_in_transaction(
+            connection,
+            creator["display_name"],
+            signature,
+            parent_version_id=str(parent["id"]),
+            derivation=overrides,
+        )
+        return self._get(connection, "creator_profile_versions", str(created["id"])), mode
+
+    def _insert_project_creator_binding(
+        self,
+        connection: sqlite3.Connection,
+        project_id: str,
+        profile_version: sqlite3.Row,
+        mode: str,
+    ) -> dict[str, Any]:
+        connection.execute(
+            "INSERT INTO project_creator_bindings(project_id, profile_id, profile_version_id, profile_revision, subject_hash, binding_mode) VALUES (?, ?, ?, ?, ?, ?)",
+            (
+                project_id,
+                profile_version["profile_id"],
+                profile_version["id"],
+                profile_version["revision"],
+                profile_version["subject_hash"],
+                mode,
+            ),
+        )
+        return self._project_creator_binding(connection, project_id)
+
+    @staticmethod
+    def _binding_constraint_ref(binding: sqlite3.Row) -> str:
+        return creator_signature_ref(
+            str(binding["profile_id"]),
+            int(binding["profile_revision"]),
+            str(binding["profile_version_id"]),
+            str(binding["subject_hash"]),
+        )
+
+    def _project_creator_binding(
+        self,
+        connection: sqlite3.Connection,
+        project_id: str,
+    ) -> dict[str, Any]:
+        row = connection.execute(
+            "SELECT * FROM project_creator_bindings WHERE project_id=?", (project_id,)
+        ).fetchone()
+        if row is None:
+            raise NovelOSError("creator_binding_required", "项目尚未绑定作者签名", {"project_id": project_id})
+        result = self._row(row)
+        result["constraint_ref"] = self._binding_constraint_ref(row)
+        profile = self._get(connection, "creator_profiles", str(row["profile_id"]))
+        result["profile_display_name"] = profile["display_name"]
+        result["profile_status"] = profile["status"]
+        result["profile_version"] = self._creator_profile_version(connection, str(row["profile_version_id"]))
+        return result
+
+    def _project_style_refs(self, connection: sqlite3.Connection, project_id: str) -> list[str]:
+        binding = self._project_creator_binding(connection, project_id)
+        direction = connection.execute(
+            "SELECT * FROM planning_assets WHERE project_id=? AND asset_type='direction' AND status='locked' ORDER BY revision DESC LIMIT 1",
+            (project_id,),
+        ).fetchone()
+        if direction is None:
+            raise NovelOSError("locked_direction_required", "作者约束写作需要已锁定 Story Direction")
+        return [
+            str(binding["constraint_ref"]),
+            planning_constraint_ref(str(direction["id"]), int(direction["version"]), str(direction["subject_hash"])),
+        ]
+
+    def _validate_creative_agent_inputs(
+        self,
+        connection: sqlite3.Connection,
+        project_id: str,
+        role_id: str,
+        input_bindings: dict[str, Any],
+    ) -> None:
+        binding_row = connection.execute(
+            "SELECT * FROM project_creator_bindings WHERE project_id=?", (project_id,)
+        ).fetchone()
+        if binding_row is None:
+            return
+        creator_ref = self._binding_constraint_ref(binding_row)
+        if role_id == "direction_agent":
+            if input_bindings.get("creator_signature_ref") != creator_ref:
+                raise NovelOSError(
+                    "creator_binding_mismatch",
+                    "方向智能体必须绑定项目当前作者签名版本",
+                    {"expected": creator_ref},
+                )
+            return
+        if role_id == "writer_agent":
+            actual_value = input_bindings.get("style_refs")
+            actual = set(actual_value if isinstance(actual_value, list) else [actual_value])
+            expected = set(self._project_style_refs(connection, project_id))
+            if not expected.issubset(actual):
+                raise NovelOSError(
+                    "creator_binding_mismatch",
+                    "写作智能体 style_refs 缺少当前作者签名或锁定 Direction",
+                    {"expected": sorted(expected)},
+                )
+
+    def _validate_direction_author_contract(
+        self,
+        connection: sqlite3.Connection,
+        project_id: str,
+        producer_run_id: str | None,
+        metadata: dict[str, Any],
+    ) -> dict[str, Any]:
+        if not isinstance(metadata, dict):
+            raise NovelOSError("invalid_argument", "规划 metadata 必须是对象")
+        binding_row = connection.execute(
+            "SELECT * FROM project_creator_bindings WHERE project_id=?", (project_id,)
+        ).fetchone()
+        if binding_row is None:
+            if "book_soul" in metadata:
+                normalized = dict(metadata)
+                normalized["book_soul"] = self.creative_contracts.validate_book_soul(metadata["book_soul"])
+                return normalized
+            return dict(metadata)
+        if producer_run_id is None:
+            raise NovelOSError("producer_run_required", "绑定作者签名的 Direction 必须来自方向智能体 run")
+        creator_ref = self._binding_constraint_ref(binding_row)
+        if metadata.get("creator_signature_ref") != creator_ref:
+            raise NovelOSError(
+                "creator_binding_mismatch",
+                "Direction metadata 未绑定项目当前作者签名",
+                {"expected": creator_ref},
+            )
+        if "book_soul" not in metadata:
+            raise NovelOSError("invalid_book_soul", "Direction 缺少 book_soul")
+        run = self._get(connection, "agent_runs", producer_run_id)
+        bindings = json.loads(run["input_bindings_json"])
+        if bindings.get("creator_signature_ref") != creator_ref:
+            raise NovelOSError("creator_binding_mismatch", "方向智能体 run 使用了过期作者签名")
+        normalized = dict(metadata)
+        normalized["book_soul"] = self.creative_contracts.validate_book_soul(metadata["book_soul"])
+        return normalized
+
+    def _validate_chapter_soul_contract(
+        self,
+        connection: sqlite3.Connection,
+        project_id: str,
+        metadata: dict[str, Any],
+    ) -> dict[str, Any]:
+        if not isinstance(metadata, dict):
+            raise NovelOSError("invalid_argument", "规划 metadata 必须是对象")
+        binding = connection.execute(
+            "SELECT 1 FROM project_creator_bindings WHERE project_id=?",
+            (project_id,),
+        ).fetchone()
+        has_contract = "soul_pressure" in metadata or "moral_residue" in metadata
+        if binding is None and not has_contract:
+            return dict(metadata)
+        if "soul_pressure" not in metadata or "moral_residue" not in metadata:
+            raise NovelOSError(
+                "invalid_chapter_soul_contract",
+                "绑定作者签名的 Chapter Plan 必须同时包含 soul_pressure 与 moral_residue",
+            )
+        direction = connection.execute(
+            "SELECT * FROM planning_assets WHERE project_id=? AND asset_type='direction' AND status='locked' ORDER BY revision DESC LIMIT 1",
+            (project_id,),
+        ).fetchone()
+        if direction is None:
+            raise NovelOSError("locked_direction_required", "Chapter Plan 思想压力契约需要 locked Direction")
+        expected_ref = planning_constraint_ref(
+            str(direction["id"]),
+            int(direction["version"]),
+            str(direction["subject_hash"]),
+        )
+        contract = self.creative_contracts.validate_chapter_soul(
+            {
+                "soul_pressure": metadata["soul_pressure"],
+                "moral_residue": metadata["moral_residue"],
+            }
+        )
+        if contract["soul_pressure"]["direction_ref"] != expected_ref:
+            raise NovelOSError(
+                "creator_binding_mismatch",
+                "Chapter Plan soul_pressure 未绑定当前 locked Direction",
+                {"expected": expected_ref},
+            )
+        normalized = dict(metadata)
+        normalized.update(contract)
+        return normalized
+
+    @staticmethod
+    def _creative_rebind_affected_assets(
+        connection: sqlite3.Connection,
+        project_id: str,
+    ) -> list[str]:
+        rows = connection.execute(
+            """
+            WITH RECURSIVE affected(id) AS (
+                SELECT id FROM planning_assets
+                WHERE project_id=? AND asset_type='direction' AND status IN ('candidate', 'locked')
+                UNION
+                SELECT dependencies.asset_id
+                FROM planning_asset_dependencies dependencies
+                JOIN affected parent ON dependencies.upstream_asset_id=parent.id
+            )
+            SELECT assets.id
+            FROM planning_assets assets
+            JOIN affected ON affected.id=assets.id
+            WHERE assets.status IN ('candidate', 'locked')
+            ORDER BY assets.id
+            """,
+            (project_id,),
+        ).fetchall()
+        return [str(row["id"]) for row in rows]
+
     def _create_child(self, table: str, prefix: str, parent_field: str, parent_id: str, values: dict[str, Any]) -> dict[str, Any]:
         parent_table = {"project_id": "projects", "book_id": "books"}[parent_field]
         item_id = _id(prefix)
@@ -2697,6 +3328,7 @@ class NovelOSService:
             "relationship_states",
             "arc_states",
             "entity_mutations",
+            "project_creator_bindings",
         )
         counts = {
             table: int(connection.execute(f"SELECT COUNT(*) FROM {table} WHERE project_id=?", (project_id,)).fetchone()[0])
@@ -2778,6 +3410,44 @@ class NovelOSService:
                 volume_outlines.append(r)
             elif atype == "chapter_plan":
                 chapter_plans.append(r)
+
+        binding_row = connection.execute(
+            "SELECT * FROM project_creator_bindings WHERE project_id=?",
+            (project_id,),
+        ).fetchone()
+        creator_signature = None
+        if binding_row is not None:
+            version = self._creator_profile_version(connection, str(binding_row["profile_version_id"]))
+            profile = self._get(connection, "creator_profiles", str(binding_row["profile_id"]))
+            creator_signature = {
+                "profile_id": str(binding_row["profile_id"]),
+                "profile_display_name": str(profile["display_name"]),
+                "profile_version_id": str(binding_row["profile_version_id"]),
+                "profile_revision": int(binding_row["profile_revision"]),
+                "subject_hash": str(binding_row["subject_hash"]),
+                "binding_mode": str(binding_row["binding_mode"]),
+                "constraint_ref": self._binding_constraint_ref(binding_row),
+                "signature": version["signature"],
+            }
+
+        locked_direction = planning_assets.get("direction")
+        book_soul = None
+        if locked_direction is not None:
+            direction_metadata = locked_direction.get("metadata") or {}
+            if "book_soul" in direction_metadata:
+                book_soul = {
+                    "direction_id": locked_direction["id"],
+                    "direction_version": locked_direction["version"],
+                    "direction_subject_hash": locked_direction["subject_hash"],
+                    "direction_constraint_ref": planning_constraint_ref(
+                        str(locked_direction["id"]),
+                        int(locked_direction["version"]),
+                        str(locked_direction["subject_hash"]),
+                    ),
+                    "book_soul": self.creative_contracts.validate_book_soul(
+                        direction_metadata["book_soul"]
+                    ),
+                }
 
         # 统计被过滤的非权威规划资产数量
         skipped_candidates = connection.execute(
@@ -2895,6 +3565,8 @@ class NovelOSService:
         # 否则非权威内容的增删会破坏两次投影之间的确定性 Hash。
         snapshot_payload = {
             "project": self._row(project),
+            "creator_signature": creator_signature,
+            "book_soul": book_soul,
             "planning_assets": planning_assets,
             "volume_outlines": volume_outlines,
             "chapter_plans": chapter_plans,

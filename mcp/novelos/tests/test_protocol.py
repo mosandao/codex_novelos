@@ -31,7 +31,7 @@ class NovelOSProtocolTest(unittest.IsolatedAsyncioTestCase):
                     str(Path(directory) / "protocol.db"),
                 ],
                 env=environment,
-                cwd=PACKAGE_ROOT,
+                cwd=Path(directory),
             )
             async with stdio_client(parameters) as (reader, writer):
                 async with ClientSession(reader, writer) as session:
@@ -70,12 +70,36 @@ class NovelOSProtocolTest(unittest.IsolatedAsyncioTestCase):
                     self.assertNotIn("timeline.upsert", names)
                     by_name = {tool.name: tool for tool in tools.tools}
                     self.assertEqual(
-                        "ui://novelos/project-wizard.html",
+                        "ui://novelos/project-wizard-v3.html",
                         by_name["project.wizard.render"].meta["ui"]["resourceUri"],
                     )
+                    self.assertEqual(
+                        "ui://novelos/project-wizard-v3.html",
+                        by_name["project.wizard.render"].meta["ui/resourceUri"],
+                    )
+                    self.assertEqual(
+                        "ui://novelos/project-wizard-v3.html",
+                        by_name["project.wizard.render"].meta["openai/outputTemplate"],
+                    )
+                    self.assertEqual(
+                        ["app"],
+                        by_name["project.wizard.submit"].meta["ui"]["visibility"],
+                    )
+                    self.assertTrue(
+                        by_name["project.wizard.render"].meta["openai/widgetAccessible"]
+                    )
+                    self.assertTrue(
+                        by_name["project.wizard.submit"].meta["openai/widgetAccessible"]
+                    )
+                    submit_annotations = by_name["project.wizard.submit"].annotations
+                    self.assertFalse(submit_annotations.readOnlyHint)
+                    self.assertFalse(submit_annotations.destructiveHint)
+                    self.assertFalse(submit_annotations.idempotentHint)
+                    self.assertFalse(submit_annotations.openWorldHint)
                     wizard_model = await session.call_tool("project.wizard.render", {})
                     self.assertFalse(wizard_model.isError, wizard_model.content)
-                    self.assertEqual(2, wizard_model.structuredContent["form_version"])
+                    self.assertEqual(3, wizard_model.structuredContent["form_version"])
+                    self.assertEqual([], wizard_model.structuredContent["creator_profiles"])
                     self.assertIn("西方玄幻", wizard_model.structuredContent["options"]["secondary_directions_by_primary_genre"]["奇幻"])
                     self.assertIn(
                         "producer_run_id",
@@ -156,8 +180,11 @@ class NovelOSProtocolTest(unittest.IsolatedAsyncioTestCase):
                         {str(template.uriTemplate) for template in templates.resourceTemplates},
                     )
                     resources = await session.list_resources()
-                    self.assertIn("ui://novelos/project-wizard.html", {str(resource.uri) for resource in resources.resources})
-                    wizard = await session.read_resource("ui://novelos/project-wizard.html")
+                    self.assertIn("ui://novelos/project-wizard-v3.html", {str(resource.uri) for resource in resources.resources})
+                    wizard = await session.read_resource("ui://novelos/project-wizard-v3.html")
+                    self.assertEqual("text/html;profile=mcp-app", wizard.contents[0].mimeType)
+                    self.assertEqual([], wizard.contents[0].meta["ui"]["csp"]["connectDomains"])
+                    self.assertEqual([], wizard.contents[0].meta["ui"]["csp"]["resourceDomains"])
                     self.assertIn("新建小说项目", wizard.contents[0].text)
 
                     wizard_title = f"向导协议项目-{Path(directory).name}"
@@ -166,6 +193,20 @@ class NovelOSProtocolTest(unittest.IsolatedAsyncioTestCase):
                         {
                             "setup": {
                                 "title": wizard_title,
+                                "creator": {
+                                    "mode": "create",
+                                    "display_name": "协议测试作者",
+                                    "signature": {
+                                        "schema_version": 1,
+                                        "sympathies": ["维护承担具体代价者的尊严"],
+                                        "distrusts": ["警惕不承担后果的权力"],
+                                        "recurring_attention": ["观察制度如何进入日常关系"],
+                                        "narrative_principles": ["通过选择和后果表达判断"],
+                                        "forbidden_conveniences": ["不得用独白替代因果"],
+                                        "expression_preferences": ["克制议论并保留事实空白"],
+                                        "negative_constraints": ["不模仿具体作者"],
+                                    },
+                                },
                                 "channel": "女频",
                                 "platform": "晋江",
                                 "scale": "中篇（100-300万字）",
@@ -179,6 +220,8 @@ class NovelOSProtocolTest(unittest.IsolatedAsyncioTestCase):
                     )
                     self.assertFalse(wizard_result.isError, wizard_result.content)
                     self.assertEqual(wizard_title, wizard_result.structuredContent["project"]["name"])
+                    self.assertEqual("create", wizard_result.structuredContent["creator_binding"]["binding_mode"])
+                    self.assertEqual(1, wizard_result.structuredContent["creator_binding"]["profile_revision"])
 
     async def test_stdio_validates_seed_inventory_before_knowledge_query(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -233,7 +276,7 @@ class NovelOSProtocolTest(unittest.IsolatedAsyncioTestCase):
                     str(PACKAGE_ROOT.parents[1] / "catalog" / "skills"),
                 ],
                 env=environment,
-                cwd=PACKAGE_ROOT,
+                cwd=Path(directory),
             )
             async with stdio_client(parameters) as (reader, writer):
                 async with ClientSession(reader, writer) as session:
@@ -283,9 +326,37 @@ class NovelOSProtocolTest(unittest.IsolatedAsyncioTestCase):
                                 return text.strip("'\"")
                         return None
 
-                    # 3. 创建项目与规划资产
-                    proj_res = await session.call_tool("project.create", {"name": "Boundary Flow Project"})
-                    proj_id = _get_res(proj_res, "id")
+                    # 3. 通过 V3 向导原子创建作者绑定项目与规划资产
+                    proj_res = await session.call_tool("project.wizard.submit", {
+                        "setup": {
+                            "title": "Boundary Flow Project",
+                            "creator": {
+                                "mode": "create",
+                                "display_name": "Boundary Flow Creator",
+                                "signature": {
+                                    "schema_version": 1,
+                                    "sympathies": ["维护承担具体代价者的尊严"],
+                                    "distrusts": ["警惕不承担后果的权力"],
+                                    "recurring_attention": ["观察制度如何进入日常关系"],
+                                    "narrative_principles": ["通过选择和后果表达判断"],
+                                    "forbidden_conveniences": ["不得用独白替代因果"],
+                                    "expression_preferences": ["克制议论并保留事实空白"],
+                                    "negative_constraints": ["不模仿具体作者"],
+                                },
+                            },
+                            "channel": "全向",
+                            "platform": "起点",
+                            "scale": "短篇（1-100万字）",
+                            "primary_genre": "现实",
+                            "secondary_directions": ["行业纪实"],
+                            "emotional_tones": ["冷峻克制"],
+                            "aesthetic_styles": ["市井烟火"],
+                            "reference_material": None,
+                        }
+                    })
+                    self.assertFalse(proj_res.isError, str(proj_res))
+                    proj_id = proj_res.structuredContent["project"]["id"]
+                    creator_ref = proj_res.structuredContent["creator_binding"]["constraint_ref"]
                     trace_res = await session.call_tool("trace.start", {"operation": "planning", "project_id": proj_id})
                     trace_id = _get_res(trace_res, "id")
 
@@ -296,6 +367,7 @@ class NovelOSProtocolTest(unittest.IsolatedAsyncioTestCase):
                             "project_profile_ref": proj_id,
                             "user_constraints": "Story Constraints",
                             "catalog_snapshot_ref": "catalog:v1",
+                            "creator_signature_ref": creator_ref,
                         },
                         "isolation_evidence": {"source": "test_protocol"},
                     })
@@ -314,6 +386,21 @@ class NovelOSProtocolTest(unittest.IsolatedAsyncioTestCase):
                         "scope_ref": proj_id,
                         "content": "Story Direction Content",
                         "upstream_refs": [],
+                        "metadata": {
+                            "creator_signature_ref": creator_ref,
+                            "book_soul": {
+                                "schema_version": 1,
+                                "unresolved_claims": ["制度能否在不消耗人的情况下维持效率"],
+                                "central_contradiction": "个体自由与共同体责任都不可放弃，但无法同时完整满足",
+                                "costly_commitments": ["宁愿让主角失败，也不转移其选择造成的代价"],
+                                "protected_dignity": ["不羞辱失败者，也不免除其行为后果"],
+                                "forbidden_resolutions": ["制度问题不得归罪于一个坏人后自动消失"],
+                                "recurring_tests": ["每次以效率为名的牺牲都检查决策者是否承担同等风险"],
+                                "narrative_mercy": "理解人物为何妥协，但不替其取消后果",
+                                "narrative_cruelty": "让人物亲手承受其信念的反面结果",
+                                "deliberate_silences": ["不由叙述者宣布人物是否获得原谅"],
+                            },
+                        },
                         "producer_run_id": producer_run_id,
                     })
                     self.assertFalse(dir_cand.isError, str(dir_cand))

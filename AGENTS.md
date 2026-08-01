@@ -95,30 +95,42 @@ Character 与 World 可以并行生成，但进入 Story Arc 前必须完成交�
 当前权威版本视图；`候选/` 保留兼容的候选诊断视图；`产出/` 必须保留全部状态的
 规划与正文产出，以及完成的 Agent 原始输出；`档案/` 展示已锁定规划资产的生产、
 独立审查和 authority commit 溯源。投影是单向派生内容，直接编辑其中 Markdown 不会回写
-权威存储。
+权威存储。`创作约束/作者签名.md` 展示项目绑定的精确 Creator Profile revision/Hash；
+`创作约束/本书创作灵魂.md` 只展示 locked Direction 中的 `book_soul`，缺失时明确标注，
+不得把候选内容投影为当前权威。
 
 ### 项目创建向导
 
-`project.wizard.render` 为 MCP Apps 宿主提供 `ui://novelos/project-wizard.html` 资源。Main
+`project.wizard.render` 为 MCP Apps 宿主提供 `ui://novelos/project-wizard-v3.html` 资源。Main
 使用它创建项目时，必须按以下顺序执行：
 
 1. 通过支持 MCP Apps 的宿主调用 `project.wizard.render` 并打开资源，不把仓库中的
    `file://.../project-wizard.html` 预览页当作可提交入口。
-2. 由用户填写项目名、频道、目标平台、作品规模、一级题材、二级方向、主情绪基调、美学风格
-   和可选创作资料；宿主提交 `project.wizard.submit`。
-3. 从提交返回的项目读取 `metadata.project_setup`，将其作为正式 Story Direction 的约束输入；
-   启动 Trace 后，再按正常流程路由方向智能体。
-4. `project.wizard.submit` 已在创建后刷新默认投影；后续任何候选、草稿、审查或 Agent
+2. 用户先在 `reuse`、`derive`、`create` 三种模式中选择作者签名，再填写项目名、频道、目标平台、
+   作品规模、一级题材、二级方向、主情绪基调、美学风格和可选创作资料；宿主提交
+   `project.wizard.submit`。
+3. 提交在同一事务中确认或创建不可变 Creator Profile 版本、创建项目并绑定精确 revision/Hash；
+   任一步失败都不得留下项目或孤立绑定。
+4. Main 从返回值读取 `metadata.project_setup` 和 `creator_binding.constraint_ref`，启动 Trace 后把二者
+   交给方向智能体；Direction 候选 metadata 必须绑定同一 ref 并包含完整 `book_soul`。
+5. `project.wizard.submit` 已在创建后刷新默认投影；后续任何候选、草稿、审查或 Agent
    输出仍必须再次刷新投影。
 
 向导的频道、平台、规模和一级题材为固定选项；二级方向按一级题材显示 18 个静态、LLM
 预生成候选，不在提交时调用 LLM，也不接受自定义方向。`emotional_tones` 可多选，
 `aesthetic_styles` 最多两项，`reference_material` 为可选多行资料，最多 10,000 个字符。
-“知乎盐选”、所有“自定义”选项和自定义字数均不属于 V2 契约。本地 `file://` 页面只能
+“知乎盐选”、所有“自定义”选项和自定义字数均不属于 V3 契约。本地 `file://` 页面只能
 检查样式和静态联动，因没有 MCP Apps 通信桥而不能创建项目。
 
 向导只创建项目容器并记录 `project_setup` 约束；页面不得直接生成、锁定或提交规划资产，
 也不得跳过 Trace、Agent、Review 或 authority commit 门禁。
+
+`creator_signature` 是用户拥有的跨项目配置，不是 Agent。Profile 修订创建新版本，不推动既有
+项目漂移。项目切换作者版本必须在运行中的本项目 Trace 内调用 `project.creator.rebind` 并提供
+当前 `expected_version`、目标 Hash 和原因；成功后当前 Direction 及全部后代标记为 `stale`，
+保留旧版本与 Trace 证据，不自动重生成。`book_soul` 属于 Story Direction；修改它必须生成、
+审查并锁定新的 Direction 候选。Writer `style_refs` 至少包含当前作者签名精确 ref 与 locked
+Direction 精确 ref，不能自行发明或改写作者思想。
 
 ### 删除项目
 
