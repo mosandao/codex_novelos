@@ -95,6 +95,8 @@
     .archetype-option input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
     .archetype-option strong { font-size: 14px; }
     .archetype-option small { color: var(--muted); line-height: 1.45; }
+    .archetype-all { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; max-height: 330px; overflow: auto; padding: 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--soft); }
+    .archetype-all .archetype-option { min-height: 96px; }
     .inherited-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
     .inherited-item { padding: 10px 12px; border-left: 3px solid #9aa79f; background: #f5f7f3; }
     .inherited-item strong { display: block; margin-bottom: 5px; font-size: 12px; }
@@ -137,7 +139,7 @@
       fieldset { padding: 21px 18px; }
       .split { grid-template-columns: 1fr; gap: 22px; }
       .signature-grid { grid-template-columns: 1fr; }
-      .archetype-recommendations, .inherited-grid { grid-template-columns: 1fr; }
+      .archetype-recommendations, .archetype-all, .inherited-grid { grid-template-columns: 1fr; }
       .creator-actions { align-items: stretch; flex-direction: column; }
       .secondary-button { width: 100%; }
       .section-head { align-items: start; }
@@ -177,7 +179,7 @@
             <p class="section-index">项目约束</p>
             <h2>先定义读者入口，再交给故事方向阶段推导设定。</h2>
           </div>
-          <p>先填写项目定位，再选择系统推荐的叙事原型并确认本书差异。提交后才会创建项目专属作者版本。</p>
+          <p>先填写项目定位，再选择一个或多个叙事原型作为融合素材。用户输入的作者偏好只作为原始资料提交，由 Main Agent 后续处理。</p>
         </div>
 
         <fieldset>
@@ -307,25 +309,19 @@
         <fieldset id="archetype_section">
           <legend><div class="section-head"><h3>叙事原型与本书差异 <span class="required" aria-label="必填">*</span></h3><span class="section-index">07</span></div></legend>
           <div class="creator-panel">
-            <p class="hint">推荐结果由题材、情绪和美学标签确定性计算。可从推荐项选择，也可在全部 18 个原型中切换。</p>
+            <p class="hint">推荐结果由题材、情绪和美学标签确定性计算。可浏览全部原型并多选为融合素材，具体主次和调整由 Main Agent 结合小说信息确定。</p>
             <div class="archetype-recommendations" id="archetype_recommendations" aria-label="推荐叙事原型"></div>
-            <label><span class="field-label">浏览全部叙事原型</span><select id="creator_parent" required></select></label>
+            <div>
+              <span class="field-label">浏览全部叙事原型（可多选）</span>
+              <div class="archetype-all" id="creator_parent_options" aria-label="全部叙事原型"></div>
+            </div>
             <p class="creator-summary" id="creator_derive_summary">完成项目定位后查看推荐原型。</p>
             <div>
               <span class="field-label">继承自原型（只读）</span>
               <div class="inherited-grid" id="inherited_signature"></div>
             </div>
-            <div class="split">
-              <label><span class="field-label">项目专属作者名称</span><input id="derive_display_name" type="text" maxlength="100" required placeholder="例如：灰烬誓环 · 体系史诗分支"></label>
-              <div class="creator-actions">
-                <p class="hint">基础差异草稿只填写允许项目化调整的四类字段。</p>
-                <div class="choice-grid">
-                  <button class="secondary-button" id="reset_derived_signature" type="button">清空差异</button>
-                  <button class="secondary-button" id="generate_derived_signature" type="button">生成基础差异草稿</button>
-                </div>
-              </div>
-            </div>
-            <span class="field-label">本书新增 / 替换（可编辑）</span>
+            <p class="hint">项目专属作者名称由 Main Agent 在读取项目资料后生成。以下内容仅作为用户原始输入，不在此页面扩展、删除或优化。</p>
+            <span class="field-label">提供给 Main Agent 的作者偏好原始输入</span>
             <div class="signature-grid" id="derive_signature_fields"></div>
           </div>
         </fieldset>
@@ -382,14 +378,12 @@
     const secondaryCount = document.querySelector("#secondary_count");
     const toneCount = document.querySelector("#tone_count");
     const styleCount = document.querySelector("#style_count");
-    const creatorParentSelect = document.querySelector("#creator_parent");
-    const generateDerivedSignature = document.querySelector("#generate_derived_signature");
-    const resetDerivedSignature = document.querySelector("#reset_derived_signature");
+    const creatorParentOptions = document.querySelector("#creator_parent_options");
     const archetypeRecommendations = document.querySelector("#archetype_recommendations");
     const inheritedSignature = document.querySelector("#inherited_signature");
     let creatorProfiles = [];
     let recommendationRules = { genre_temperaments: {}, tone_temperaments: {} };
-    submit.textContent = standalone ? "生成项目提交 JSON" : "创建项目";
+    submit.textContent = "生成项目提交 JSON";
 
     const signatureFields = {
       sympathies: ["天然同情", "每行一项，例如：承担具体代价的普通人"],
@@ -449,18 +443,20 @@
       }).join("");
     };
 
+    const selectedParentIds = () => [...document.querySelectorAll('input[name="creator_parents"]:checked')].map(input => input.value);
+    const selectedParentProfiles = () => selectedParentIds().map(profileByVersion).filter(Boolean);
     const profileByVersion = versionId => creatorProfiles.find(profile => profile.profile_version_id === versionId);
     const renderSelectedArchetype = () => {
-      const profile = profileByVersion(creatorParentSelect.value);
       const summary = document.querySelector("#creator_derive_summary");
-      if (!profile) {
+      const profiles = selectedParentProfiles();
+      if (!profiles.length) {
         summary.textContent = "尚无可用叙事原型。";
         inheritedSignature.innerHTML = "";
         return;
       }
-      summary.textContent = `${profile.display_name} · revision ${profile.revision} · ${profile.subject_hash.slice(0, 18)}… · ${profile.reader_promise}`;
-      inheritedSignature.innerHTML = inheritedSignatureFields.map(field => `
-        <div class="inherited-item"><strong>${signatureFields[field][0]}</strong><p>${escapeHtml((profile.signature[field] || []).join("；"))}</p></div>
+      summary.textContent = `已选 ${profiles.length} 个融合原型：${profiles.map(profile => profile.display_name).join("、")}。Main Agent 将结合项目资料确定主次与取舍。`;
+      inheritedSignature.innerHTML = profiles.map(profile => `
+        <div class="inherited-item"><strong>${escapeHtml(profile.display_name)} · 只读参考</strong><p>${escapeHtml(profile.reader_promise)}</p></div>
       `).join("");
     };
 
@@ -485,9 +481,10 @@
     const renderRecommendations = () => {
       const ranked = creatorProfiles.map((profile, index) => ({ profile, index, score: recommendationScore(profile) }))
         .sort((left, right) => right.score - left.score || left.index - right.index).slice(0, 3);
+      const selected = new Set(selectedParentIds());
       archetypeRecommendations.innerHTML = ranked.map(({ profile, score }, index) => `
         <label class="archetype-option">
-          <input type="radio" name="recommended_archetype" value="${escapeHtml(profile.profile_version_id)}" ${profile.profile_version_id === creatorParentSelect.value ? "checked" : ""}>
+          <input type="checkbox" name="recommended_archetype" value="${escapeHtml(profile.profile_version_id)}" ${selected.has(profile.profile_version_id) ? "checked" : ""}>
           <strong>${index + 1}. ${escapeHtml(profile.display_name)}</strong>
           <small>${escapeHtml(profile.reader_promise)}</small>
           <small>匹配分 ${score.toFixed(1)} · ${(profile.temperament_tags || []).map(escapeHtml).join(" / ")}</small>
@@ -503,8 +500,14 @@
     const renderCreatorProfiles = (profiles, rules = {}) => {
       creatorProfiles = Array.isArray(profiles) ? profiles : [];
       recommendationRules = rules;
-      const options = creatorProfiles.map(profile => `<option value="${escapeHtml(profile.profile_version_id)}">${escapeHtml(profile.display_name)} · r${profile.revision}</option>`).join("");
-      creatorParentSelect.innerHTML = options;
+      creatorParentOptions.innerHTML = creatorProfiles.map(profile => `
+        <label class="archetype-option">
+          <input type="checkbox" name="creator_parents" value="${escapeHtml(profile.profile_version_id)}">
+          <strong>${escapeHtml(profile.display_name)} · r${profile.revision}</strong>
+          <small>${escapeHtml(profile.reader_promise)}</small>
+          <small>${(profile.temperament_tags || []).map(escapeHtml).join(" / ")}</small>
+        </label>
+      `).join("");
       refreshArchetypes();
     };
 
@@ -517,69 +520,23 @@
       return payload;
     };
 
-    const truncate = (value, maximum = 420) => value.length > maximum ? `${value.slice(0, maximum - 1)}…` : value;
-    const projectContextForSignature = () => {
-      const title = document.querySelector("#title").value.trim();
-      const channel = selectedRadio("channel");
-      const platform = selectedRadio("platform");
-      const scale = selectedRadio("scale");
-      const genre = selectedRadio("primary_genre");
-      if (!title || !channel || !platform || !scale || !genre) {
-        throw new Error("请先完成项目名称、频道、平台、规模和一级题材，再生成基础差异草稿。");
-      }
-      const directions = selectedValues("secondary_directions");
-      const tones = selectedValues("emotional_tones");
-      const styles = selectedValues("aesthetic_styles");
-      return {
-        title,
-        channel,
-        platform,
-        scale,
-        genre,
-        focus: directions.length ? directions.join("、") : genre,
-        tone: tones.length ? tones.join("、") : "人物的具体处境",
-        style: styles.length ? styles.join("、") : "清晰而克制的场景细节",
-        reference: document.querySelector("#reference_material").value.trim()
-      };
-    };
-
-    const fillGeneratedDerivation = () => {
-      const parent = profileByVersion(creatorParentSelect.value);
-      if (!parent) throw new Error("请先选择有效的叙事原型，再生成基础差异草稿。");
-      const context = projectContextForSignature();
-      const current = signaturePayload();
-      const hasDraft = Object.values(current).some(value => Array.isArray(value) && value.length);
-      if (hasDraft && !window.confirm("重新生成将覆盖当前分支差异草稿，是否继续？")) return;
-      const referenceAttention = context.reference ? `优先核对补充资料中的承诺：${truncate(context.reference)}` : `持续核对《${context.title}》的项目定位与人物处境是否一致`;
-      const overrides = {
-        recurring_attention: [`${context.genre}世界中，${context.focus}如何改变普通人的选择与关系`, referenceAttention],
-        narrative_principles: [`用选择、行动和可追溯的后果推进${context.focus}的冲突`, `让${context.tone}成为人物处境的结果，而不是标签`],
-        forbidden_conveniences: ["不用突发的万能力量或偶然信息解决核心冲突", "不以一句道歉抹平长期伤害"],
-        expression_preferences: [`以${context.style}组织场景细节，保持叙事信息清晰`, "避免替读者下结论，为人物判断保留空间"]
-      };
-      for (const field of Object.keys(signatureFields)) {
-        document.querySelector(`#derive_${field}`).value = (overrides[field] || []).join("\n");
-      }
-      const displayName = document.querySelector("#derive_display_name");
-      if (!displayName.value.trim()) displayName.value = truncate(`${parent.display_name}·${context.title}分支`, 100);
-      status.textContent = "已生成基础差异草稿；空字段继续继承所选叙事原型。";
-      status.className = "success";
-    };
-
     const creatorPayload = () => {
-      const parent = profileByVersion(creatorParentSelect.value);
-      if (!parent) throw new Error("请选择有效的系统叙事原型。");
-      const materialized = signaturePayload();
-      let overrides = Object.fromEntries(Object.entries(materialized).filter(([key, value]) => key !== "schema_version" && value.length));
-      if (!Object.keys(overrides).length) {
-        overrides = { recurring_attention: [`聚焦于《${document.querySelector("#title").value.trim() || "项目"}》的项目化叙事表达`] };
-      }
+      const profiles = selectedParentProfiles();
+      if (!profiles.length) throw new Error("请至少选择一个叙事原型。");
+      const userInputs = signaturePayload();
       return {
         mode: "derive",
-        parent_version_id: parent.profile_version_id,
-        parent_subject_hash: parent.subject_hash,
-        display_name: document.querySelector("#derive_display_name").value.trim() || `${parent.display_name}·派生`,
-        overrides
+        selected_archetypes: profiles.map(profile => ({
+          profile_version_id: profile.profile_version_id,
+          subject_hash: profile.subject_hash,
+          display_name: profile.display_name
+        })),
+        user_signature_inputs: Object.fromEntries(Object.entries(userInputs).filter(([key, value]) => key !== "schema_version" && value.length)),
+        main_agent_processing: {
+          generate_display_name: true,
+          reconcile_archetypes: true,
+          refine_user_inputs: true
+        }
       };
     };
 
@@ -618,12 +575,17 @@
       const copied = await copyText(serialized);
       status.textContent = copied ? "项目提交 JSON 已生成并复制，请发送给 Main Agent。" : "项目提交 JSON 已生成，请点击“复制 JSON”后发送给 Main Agent。";
       status.className = "success";
+      if (!standalone) {
+        notify("ui/update-model-context", {
+          content: [{ type: "text", text: `请处理以下 NovelOS 项目创建请求，先融合叙事原型、生成项目专属作者名称并优化用户原始输入，再以 derive 模式提交：\n${serialized}` }]
+        });
+      }
       jsonResult.scrollIntoView({ behavior: "smooth", block: "start" });
     };
 
-    const loadCreatorProfiles = async () => {
-      const result = await request("tools/call", { name: "project.wizard.render", arguments: {} });
-      renderCreatorProfiles(result?.structuredContent?.system_archetypes || [], result?.structuredContent?.recommendation_rules || {});
+    const loadCreatorProfiles = () => {
+      const data = window.NOVELOS_WIZARD_DATA || {};
+      renderCreatorProfiles(data.system_archetypes || [], data.recommendation_rules || {});
     };
 
 
@@ -646,10 +608,11 @@
     form.addEventListener("change", event => {
       if (event.target.name === "primary_genre") loadSecondaryDirections(event.target.value);
       if (event.target.name === "recommended_archetype") {
-        creatorParentSelect.value = event.target.value;
-        renderSelectedArchetype();
+        const parentInput = document.querySelector(`input[name="creator_parents"][value="${CSS.escape(event.target.value)}"]`);
+        if (parentInput) parentInput.checked = event.target.checked;
+        refreshArchetypes();
       }
-      if (event.target.id === "creator_parent") refreshArchetypes();
+      if (event.target.name === "creator_parents") refreshArchetypes();
       if (event.target.name === "aesthetic_styles" && selectedValues("aesthetic_styles").length > 2) {
         event.target.checked = false;
         status.textContent = "美学风格最多选择两项。";
@@ -658,21 +621,6 @@
       }
       refreshCounts();
       if (["primary_genre", "secondary_directions", "emotional_tones", "aesthetic_styles"].includes(event.target.name)) renderRecommendations();
-    });
-
-    generateDerivedSignature.addEventListener("click", () => {
-      try {
-        fillGeneratedDerivation();
-      } catch (error) {
-        status.textContent = error?.message || "无法生成基础差异草稿。";
-        status.className = "";
-      }
-    });
-
-    resetDerivedSignature.addEventListener("click", () => {
-      for (const field of editableSignatureFields) document.querySelector(`#derive_${field}`).value = "";
-      status.textContent = "已清空本书差异；空字段将继续继承所选叙事原型。";
-      status.className = "success";
     });
 
     copyJson.addEventListener("click", async () => {
@@ -688,30 +636,17 @@
       if (!form.reportValidity()) return;
       submit.disabled = true;
       try {
-        if (standalone) {
-          await generateStandaloneJson();
-          return;
-        }
-        const payload = setupPayload();
-        await initializeBridge();
-        const result = await request("tools/call", { name: "project.wizard.submit", arguments: { setup: payload } });
-        const project = result?.structuredContent?.project;
-        if (!project) throw new Error("未收到项目结果");
-        status.textContent = `已创建《${project.name}》；主控智能体可继续生成故事方向。`;
-        status.className = "success";
-        notify("ui/update-model-context", {
-          content: [{ type: "text", text: `项目已创建：${project.id}。请读取精确作者签名绑定，并按照项目约束继续故事方向与 book_soul 规划。` }]
-        });
+        if (!standalone) await initializeBridge();
+        await generateStandaloneJson();
       } catch (error) {
-        status.textContent = error?.message || "创建失败，请检查填写内容。";
+        status.textContent = error?.message || "无法生成项目提交 JSON，请检查填写内容。";
       } finally {
         submit.disabled = false;
       }
     });
 
     renderSignatureFields();
-    if (!standalone) void initializeBridge().then(loadCreatorProfiles).catch(() => {});
-    else renderCreatorProfiles(window.NOVELOS_WIZARD_DATA?.system_archetypes || [], window.NOVELOS_WIZARD_DATA?.recommendation_rules || {});
+    loadCreatorProfiles();
     refreshCounts();
   </script>
 </body>

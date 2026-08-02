@@ -76,7 +76,7 @@ Character 与 World 可以并行生成，但进入 Story Arc 前必须完成交�
 
 每个规划 Agent 只能创建或修订自己负责的候选资产。发现上游问题时，返回变更提案和影响范围，由 主控智能体 路由给上游资产所有者；不得在下游输出中隐式重写上游。上游新版本确认后，MCP 必须将受影响的下游资产标记为 `stale`，不得自动重生成。
 
-临时 Agent 必须按 `config/schemas/agent-result.schema.json` 返回 typed result。跨层问题必须放入符合 `config/schemas/change-proposal.schema.json` 的 `change_proposals`，不得混入本层候选正文。只有 主控智能体 可以把候选登记到 MCP、记录 Review Receipt 或执行锁定、接受、晋升和权威提交。
+临时 Agent 必须按 `config/schemas/agent-result.schema.json` 返回 typed result，并让实际输出符合对应 `output_type` Schema。跨层问题必须放入符合 `config/schemas/change-proposal.schema.json` 的 `change_proposals`，不得混入本层候选正文。只有 主控智能体 可以通过 `planning.create_candidate_from_run`、`review.record_from_run` 等 MCP 工具登记候选、记录 Review Receipt 或执行锁定、接受、晋升和权威提交；不得读取 Agent Resource 后重组权威候选或 Receipt。
 
 锁定规划、批准交叉审查、接受章节、提交 Entity 和晋升连续性时，主控智能体 必须提供当前项目仍在运行的 `trace_id`。生产 run、Reviewer run 和权威提交必须属于同一 Trace；MCP 在提交事务内写入 `authority_commits` 和 Trace step，禁止事后手工补记冒充追溯证据。
 

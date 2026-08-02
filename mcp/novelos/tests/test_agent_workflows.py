@@ -151,6 +151,37 @@ class AgentWorkflowTest(unittest.TestCase):
         self.assertEqual("方向智能体", candidate["producer_role"])
         self.assertEqual(run["id"], candidate["producer_run_id"])
 
+    def test_planning_candidate_is_validated_and_registered_from_run(self) -> None:
+        invalid = self.service.start_agent_run(
+            self.trace["id"], "direction_agent", self._bindings("direction_agent")
+        )
+        with self.assertRaisesRegex(NovelOSError, "output_type Schema"):
+            self.service.finish_agent_run(
+                invalid["id"],
+                "completed",
+                "planning_candidate",
+                {"content": "不允许的 typed result 外壳"},
+            )
+        self.assertEqual("running", self.service.get_agent_run(invalid["id"])["status"])
+        self.service.finish_agent_run(invalid["id"], "failed", error="输出格式错误")
+
+        run = complete_agent_run(
+            self.service,
+            self.trace["id"],
+            "direction_agent",
+            "planning_candidate",
+            "直接登记的故事方向",
+        )
+        candidate = self.service.create_planning_candidate_from_run(
+            self.project["id"],
+            "direction",
+            self.project["id"],
+            [],
+            run["id"],
+        )
+        self.assertEqual(run["id"], candidate["producer_run_id"])
+        self.assertEqual("直接登记的故事方向", self.service.get_resource(candidate["resource_ref"].rsplit("/", 1)[-1]))
+
     def test_change_proposal_must_target_transitive_upstream(self) -> None:
         direction = self.service.create_planning_candidate(
             self.project["id"], "direction", self.project["id"], "上游方向", [], "方向智能体"
@@ -240,6 +271,69 @@ class AgentWorkflowTest(unittest.TestCase):
             candidate["id"], review["id"], candidate["version"], self.trace["id"]
         )
         self.assertEqual("locked", locked["status"])
+
+    def test_review_output_is_validated_and_recorded_from_run(self) -> None:
+        producer = complete_agent_run(
+            self.service,
+            self.trace["id"],
+            "direction_agent",
+            "planning_candidate",
+            "方向",
+        )
+        candidate = self.service.create_planning_candidate_from_run(
+            self.project["id"],
+            "direction",
+            self.project["id"],
+            [],
+            producer["id"],
+        )
+        reviewer = self.service.start_agent_run(
+            self.trace["id"],
+            "review_agent",
+            {
+                "immutable_subject_ref": candidate["id"],
+                "subject_hash": candidate["subject_hash"],
+                "review_profile": "planning-direction",
+                "authority_context_refs": [candidate["resource_ref"]],
+            },
+            isolation_evidence={"source": "test_harness"},
+        )
+        base_output = {
+            "subject_type": "planning_asset",
+            "subject_ref": candidate["id"],
+            "subject_hash": candidate["subject_hash"],
+            "verdict": "approved",
+            "findings": [
+                {
+                    "severity": "note",
+                    "code": "direction.coherent",
+                    "message": "方向一致",
+                    "evidence_refs": [candidate["resource_ref"]],
+                }
+            ],
+            "reviewer_profile": "planning-direction",
+            "evidence_refs": [candidate["resource_ref"]],
+        }
+        with self.assertRaisesRegex(NovelOSError, "output_type Schema"):
+            self.service.finish_agent_run(
+                reviewer["id"],
+                "completed",
+                "review_receipt_candidate",
+                dict(base_output, reviewer_run_id=reviewer["id"]),
+            )
+        with self.assertRaisesRegex(NovelOSError, "output_type Schema"):
+            self.service.finish_agent_run(
+                reviewer["id"],
+                "completed",
+                "review_receipt_candidate",
+                dict(base_output, assessment={"summary": "不允许"}),
+            )
+        completed = self.service.finish_agent_run(
+            reviewer["id"], "completed", "review_receipt_candidate", base_output
+        )
+        review = self.service.record_review_from_run(completed["id"])
+        self.assertEqual(completed["id"], review["reviewer_run_id"])
+        self.assertEqual("direction.coherent", review["findings"][0]["code"])
 
     def test_lock_rejected_without_isolation_evidence(self) -> None:
         # 缺隔离凭据的 self-produced run 必须被 lock 拒绝（防御性校验）。

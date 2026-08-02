@@ -12,8 +12,9 @@ description: 独立审查不可变小说资产并生成绑定 subject_hash 的 R
 1. 接收不可变 `subject_ref`、`subject_hash`、资产类型对应的 Review Profile 和精确权威上下文 refs。
 2. 在隔离的 Review Agent 中审查；不要提供生产 Agent 的隐藏推理、预期结论或其他 Reviewer 结果。该 Review Agent 必须以独立 Codex Task 创建，其 agentId 作为 `isolation_evidence` 传入 `agent.start`；缺凭据的 reviewer run 无法用于 `planning.lock`/`chapter.accept`/`continuity.promote`。
 3. 检查上游忠实度、Canon、人物知识和动机、世界规则、时间顺序及目标 Profile 指定的质量维度。涉及作者约束时还要核对精确 Creator Profile/Direction refs、`book_soul` 的有代价矛盾、人物独立性、叙述者说教、廉价解决、人口属性推导、具体作者模仿与跨章立场漂移。
-4. 每个 finding 只使用 `blocking`、`warning` 或 `note`，并给出最小直接证据和来源 ref。
+4. 每个 finding 只使用 `blocking`、`warning` 或 `note`，并给出最小直接证据和来源 ref；可选 `code` 必须是非空稳定标识。
 5. 只要存在 `blocking` finding，verdict 必须是 `rejected`。
-6. 返回同一 `subject_hash`、verdict、findings、evidence refs 和 reviewer profile；由 Main Agent 调用 `review.record` 登记。
+6. `review_receipt_candidate` 只返回 `subject_type`、同一 `subject_ref`/`subject_hash`、`verdict`、`findings`、`reviewer_profile` 和 `evidence_refs`。只有 `subject_type=review_subject` 的质量评测可额外返回非空 `assessment`；不得返回 `reviewer_run_id` 或其他字段。
+7. 由 Main Agent 调用 `review.record_from_run(reviewer_run_id)` 登记，MCP 直接读取并校验不可变 Agent 输出；不要由 Main 读取 Resource 后重组 Receipt。
 
 正文使用 `prose-*` Profile，连续性使用 `continuity-*` Profile，规划资产使用 `$novel-planning` 表中与 `asset_type` 精确对应的 Profile。

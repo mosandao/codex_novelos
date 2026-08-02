@@ -10,12 +10,8 @@ from mcp.types import ToolAnnotations
 
 from novelos_mcp.service import NovelOSService
 from novelos_mcp.project_wizard import (
-    WIZARD_OPTIONS,
-    WIZARD_URI,
     normalize_project_setup,
-    project_wizard_html,
 )
-from novelos_mcp.archetype_recommendation import GENRE_TEMPERAMENT_MAP, TONE_TEMPERAMENT_MAP
 
 
 def create_server(
@@ -78,36 +74,6 @@ def create_server(
             assessment,
         )
 
-    def render_project_wizard() -> dict[str, Any]:
-        profiles_by_id = {profile["id"]: profile for profile in service.list_system_archetypes()}
-        system_archetypes_data = []
-        for metadata in service.system_archetypes:
-            profile = profiles_by_id[f"creator-profile:{metadata['id']}"]
-            latest = profile["latest_version"]
-            system_archetypes_data.append(
-                {
-                    "profile_id": profile["id"],
-                    "display_name": profile["display_name"],
-                    "profile_version_id": latest["id"],
-                    "revision": latest["revision"],
-                    "subject_hash": latest["subject_hash"],
-                    "constraint_ref": latest["constraint_ref"],
-                    "signature": latest["signature"],
-                    "reader_promise": metadata["reader_promise"],
-                    "genre_tags": metadata["genre_tags"],
-                    "temperament_tags": metadata["temperament_tags"],
-                }
-            )
-        return {
-            "form_version": 3,
-            "options": WIZARD_OPTIONS,
-            "system_archetypes": system_archetypes_data,
-            "recommendation_rules": {
-                "genre_temperaments": GENRE_TEMPERAMENT_MAP,
-                "tone_temperaments": TONE_TEMPERAMENT_MAP,
-            },
-        }
-
 
     def submit_project_wizard(setup: dict[str, Any]) -> dict[str, Any]:
         name, description, metadata, creator = normalize_project_setup(setup)
@@ -149,6 +115,7 @@ def create_server(
         "chapter.accept": service.accept_chapter,
         "chapter.supersede": service.supersede_chapter,
         "planning.create_candidate": create_planning_candidate,
+        "planning.create_candidate_from_run": service.create_planning_candidate_from_run,
         "planning.get": service.get_planning_asset,
         "planning.list": service.list_planning_assets,
         "planning.lock": service.lock_planning_asset,
@@ -196,6 +163,7 @@ def create_server(
         "agent.get": service.get_agent_run,
         "agent.list": service.list_agent_runs,
         "review.record": record_review,
+        "review.record_from_run": service.record_review_from_run,
         "review.get": service.get_review,
         "projection.get_snapshot": service.get_projection_snapshot,
         "projection.render_project_folder": service.render_project_projection,
@@ -204,19 +172,6 @@ def create_server(
     for name, handler in tools.items():
         server.tool(name=name)(handler)
 
-    server.tool(
-        name="project.wizard.render",
-        title="打开项目创建向导",
-        description="渲染小说项目创建向导；用户选择作者签名、频道、平台、规模、题材和创作偏好。",
-        # Keep the standard MCP Apps field first; the aliases let older hosts resolve
-        # the same resource while their nested UI metadata support is rolling out.
-        meta={
-            "ui": {"resourceUri": WIZARD_URI},
-            "ui/resourceUri": WIZARD_URI,
-            "openai/outputTemplate": WIZARD_URI,
-            "openai/widgetAccessible": True,
-        },
-    )(render_project_wizard)
     server.tool(
         name="project.wizard.submit",
         title="提交项目创建向导",
@@ -235,20 +190,6 @@ def create_server(
             "openai/widgetAccessible": True,
         },
     )(submit_project_wizard)
-    @server.resource(
-        WIZARD_URI,
-        mime_type="text/html;profile=mcp-app",
-        meta={
-            "ui": {
-                "csp": {"connectDomains": [], "resourceDomains": []},
-                "prefersBorder": True,
-            },
-            "openai/widgetDescription": "用于创建 NovelOS 小说项目的表单。",
-        },
-    )
-    def project_wizard_resource() -> str:
-        return project_wizard_html()
-
     @server.resource("novelos://resource/{resource_id}")
     def resource(resource_id: str) -> str:
         return service.get_resource(resource_id)

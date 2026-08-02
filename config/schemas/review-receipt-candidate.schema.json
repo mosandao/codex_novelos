@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://novelos.local/schemas/review-receipt-candidate.schema.json",
+  "title": "NovelOS Review Receipt 候选",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "subject_type",
+    "subject_ref",
+    "subject_hash",
+    "verdict",
+    "findings",
+    "reviewer_profile",
+    "evidence_refs"
+  ],
+  "properties": {
+    "subject_type": {
+      "type": "string",
+      "enum": [
+        "chapter",
+        "continuity_candidate_set",
+        "planning_asset",
+        "entity_mutation",
+        "planning_cross_check",
+        "review_subject"
+      ]
+    },
+    "subject_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "subject_hash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "verdict": {
+      "type": "string",
+      "enum": ["approved", "rejected"]
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["severity", "message", "evidence_refs"],
+        "properties": {
+          "severity": {
+            "type": "string",
+            "enum": ["blocking", "warning", "note"]
+          },
+          "code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1
+          },
+          "excerpt": {
+            "type": "string"
+          },
+          "evidence_refs": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "reviewer_profile": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence_refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "assessment": {
+      "type": "object",
+      "minProperties": 1
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "subject_type": {"const": "review_subject"}
+        },
+        "required": ["subject_type"]
+      },
+      "then": {
+        "required": ["assessment"]
+      },
+      "else": {
+        "not": {
+          "required": ["assessment"]
+        }
+      }
+    }
+  ]
+}

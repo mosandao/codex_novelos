@@ -482,18 +482,8 @@ async def finalize_case(case_id: str, database: Path, results_root: Path) -> dic
         )
         receipt = await call(
             session,
-            "review.record",
-            {
-                "subject_type": "review_subject",
-                "subject_ref": state["subject_ref"],
-                "subject_hash": state["subject_hash"],
-                "verdict": verdict,
-                "findings": findings,
-                "reviewer_profile": manifest["review_profile"],
-                "reviewer_run_id": state["reviewer_run_id"],
-                "evidence_refs": state["evidence_refs"],
-                "assessment": assessment,
-            },
+            "review.record_from_run",
+            {"reviewer_run_id": state["reviewer_run_id"]},
         )
         await call(session, "trace.finish", {"trace_id": state["trace_id"], "status": "completed"})
     assessment_path = results_root / "assessments" / f"{case_id}.json"

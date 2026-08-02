@@ -6,6 +6,10 @@ runtime:
   default_timeout_seconds: 900
   result_schema: config/schemas/agent-result.schema.json
   change_proposal_schema: config/schemas/change-proposal.schema.json
+  output_schemas:
+    planning_candidate: config/schemas/planning-candidate.schema.json
+    chapter_draft_candidate: config/schemas/text-candidate.schema.json
+    review_receipt_candidate: config/schemas/review-receipt-candidate.schema.json
 
 spawn_gates:
   context_builder:

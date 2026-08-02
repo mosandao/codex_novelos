@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://novelos.local/schemas/planning-candidate.schema.json",
+  "title": "NovelOS 规划候选输出",
+  "oneOf": [
+    {
+      "type": "string",
+      "minLength": 1
+    },
+    {
+      "title": "Agent 质量实验规划输出",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "asset_type",
+        "candidate",
+        "upstream_fidelity",
+        "evidence_and_impact",
+        "ownership_boundary",
+        "change_proposals"
+      ],
+      "properties": {
+        "asset_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "candidate": {
+          "type": "string",
+          "minLength": 1
+        },
+        "upstream_fidelity": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_and_impact": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ownership_boundary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "change_proposals": {
+          "type": "array"
+        }
+      }
+    }
+  ]
+}

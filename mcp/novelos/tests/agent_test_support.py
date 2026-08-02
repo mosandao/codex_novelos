@@ -62,15 +62,5 @@ def complete_review_run(
         },
         isolation_evidence=isolation_evidence,
     )
-    review = service.record_review(
-        subject_type,
-        subject_ref,
-        subject_hash,
-        verdict,
-        normalized_findings,
-        reviewer_profile,
-        normalized_evidence,
-        run["id"],
-        assessment,
-    )
+    review = service.record_review_from_run(run["id"])
     return run, review

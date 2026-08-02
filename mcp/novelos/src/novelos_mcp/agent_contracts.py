@@ -48,11 +48,19 @@ class AgentContractStore:
         proposal_path = root / payload["runtime"]["change_proposal_schema"]
         self.result_schema = json.loads(result_path.read_text(encoding="utf-8"))
         self.proposal_schema = json.loads(proposal_path.read_text(encoding="utf-8"))
+        self.output_schemas = {
+            output_type: json.loads((root / schema_path).read_text(encoding="utf-8"))
+            for output_type, schema_path in payload["runtime"].get("output_schemas", {}).items()
+        }
         registry = Registry().with_resource(
             self.proposal_schema["$id"], Resource.from_contents(self.proposal_schema)
         )
         self.result_validator = jsonschema.Draft202012Validator(self.result_schema, registry=registry)
         self.proposal_validator = jsonschema.Draft202012Validator(self.proposal_schema)
+        self.output_validators = {
+            output_type: jsonschema.Draft202012Validator(schema)
+            for output_type, schema in self.output_schemas.items()
+        }
 
     def get(self, role_id: str) -> dict[str, Any]:
         try:
@@ -108,6 +116,25 @@ class AgentContractStore:
             self.result_validator.validate(result)
         except jsonschema.ValidationError as exc:
             raise NovelOSError("invalid_agent_result", "Agent result 不符合 Schema", {"path": list(exc.path)}) from exc
+
+    def validate_output(self, output_type: str, output: Any) -> None:
+        validator = self.output_validators.get(output_type)
+        if validator is None:
+            return
+        try:
+            validator.validate(output)
+        except jsonschema.ValidationError as exc:
+            path = list(exc.path)
+            raise NovelOSError(
+                "invalid_agent_result",
+                f"Agent output 不符合 output_type Schema：path={path}，reason={exc.message}",
+                {
+                    "output_type": output_type,
+                    "path": path,
+                    "schema_path": list(exc.schema_path),
+                    "reason": exc.message,
+                },
+            ) from exc
 
     def validate_change_proposals(self, proposals: list[dict[str, Any]]) -> None:
         if not isinstance(proposals, list):

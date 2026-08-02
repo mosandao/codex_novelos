@@ -120,6 +120,43 @@ class AgentContractTest(unittest.TestCase):
         with self.assertRaises(jsonschema.ValidationError):
             jsonschema.Draft202012Validator(change_schema).validate({"reason": "缺少绑定字段"})
 
+    def test_output_type_schemas_fail_closed(self) -> None:
+        from novelos_mcp.agent_contracts import AgentContractStore
+        from novelos_mcp import NovelOSError
+
+        store = AgentContractStore(CONFIG_PATH)
+        store.validate_output("planning_candidate", "有效候选")
+        with self.assertRaisesRegex(NovelOSError, "output_type Schema"):
+            store.validate_output("planning_candidate", {"content": "错误外壳"})
+
+        receipt = {
+            "subject_type": "planning_asset",
+            "subject_ref": "planning:1",
+            "subject_hash": "sha256:" + "a" * 64,
+            "verdict": "approved",
+            "findings": [
+                {
+                    "severity": "note",
+                    "code": "direction.coherent",
+                    "message": "方向一致",
+                    "evidence_refs": ["planning:1"],
+                }
+            ],
+            "reviewer_profile": "planning-direction",
+            "evidence_refs": ["planning:1"],
+        }
+        store.validate_output("review_receipt_candidate", receipt)
+        with self.assertRaisesRegex(NovelOSError, "output_type Schema"):
+            store.validate_output(
+                "review_receipt_candidate",
+                dict(receipt, reviewer_run_id="agent-run:forbidden"),
+            )
+        with self.assertRaisesRegex(NovelOSError, "output_type Schema"):
+            store.validate_output(
+                "review_receipt_candidate",
+                dict(receipt, assessment={"summary": "普通 Review 不应携带"}),
+            )
+
     def test_review_profile_routes_validation_and_unknown_profile_fail_closed(self) -> None:
         from novelos_mcp.agent_contracts import AgentContractStore
         from novelos_mcp import NovelOSError

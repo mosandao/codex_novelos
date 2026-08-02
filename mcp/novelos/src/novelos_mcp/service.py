@@ -1280,6 +1280,37 @@ class NovelOSService:
             )
             return self._planning_asset(connection, asset_id)
 
+    def create_planning_candidate_from_run(
+        self,
+        project_id: str,
+        asset_type: str,
+        scope_ref: str,
+        upstream_refs: list[dict[str, Any]],
+        producer_run_id: str,
+        metadata: dict[str, Any] | None = None,
+        cross_check_id: str | None = None,
+    ) -> dict[str, Any]:
+        with self.database.read() as connection:
+            _, output = self._completed_agent_output(
+                connection, producer_run_id, "planning_candidate"
+            )
+        if not isinstance(output, str):
+            raise NovelOSError(
+                "invalid_producer_run",
+                "规划 Agent run 输出不是文本候选",
+                {"run_id": producer_run_id},
+            )
+        return self.create_planning_candidate(
+            project_id,
+            asset_type,
+            scope_ref,
+            output,
+            upstream_refs,
+            metadata=metadata,
+            producer_run_id=producer_run_id,
+            cross_check_id=cross_check_id,
+        )
+
     def get_planning_asset(self, asset_id: str) -> dict[str, Any]:
         with self.database.read() as connection:
             return self._planning_asset(connection, asset_id)
@@ -1506,6 +1537,25 @@ class NovelOSService:
                 ),
             )
             return self._row(self._get(connection, "reviews", review_id))
+
+    def record_review_from_run(self, reviewer_run_id: str) -> dict[str, Any]:
+        with self.database.read() as connection:
+            run, output = self._completed_agent_output(
+                connection, reviewer_run_id, "review_receipt_candidate"
+            )
+            self._validate_review_receipt_candidate(run, output)
+        assert isinstance(output, dict)
+        return self.record_review(
+            output["subject_type"],
+            output["subject_ref"],
+            output["subject_hash"],
+            output["verdict"],
+            output["findings"],
+            output["reviewer_profile"],
+            output["evidence_refs"],
+            reviewer_run_id,
+            output.get("assessment"),
+        )
 
     def get_review(self, review_id: str) -> dict[str, Any]:
         return self._get_public("reviews", review_id)
@@ -1971,6 +2021,10 @@ class NovelOSService:
                         "Agent output_type 不在角色契约内",
                         {"role_id": run["role_id"], "output_type": output_type},
                     )
+                assert output_type is not None
+                self.agent_contracts.validate_output(output_type, output)
+                if output_type == "review_receipt_candidate":
+                    self._validate_review_receipt_candidate(run, output)
                 if isinstance(output, str):
                     output_resource_id, _ = self._resource(connection, _require_text(output, "output"))
                 elif isinstance(output, (dict, list)):
@@ -2294,7 +2348,7 @@ class NovelOSService:
         if not isinstance(findings, list):
             raise NovelOSError("invalid_review", "findings 必须是数组")
         required = {"severity", "message", "evidence_refs"}
-        allowed = required | {"excerpt"}
+        allowed = required | {"code", "excerpt"}
         for index, finding in enumerate(findings):
             if not isinstance(finding, dict):
                 raise NovelOSError("invalid_review", "finding 必须是对象", {"index": index})
@@ -2303,13 +2357,17 @@ class NovelOSService:
             if missing or unknown:
                 raise NovelOSError(
                     "invalid_review",
-                    "finding 字段不合法",
+                    f"finding 字段不合法：index={index}，missing={missing}，unknown={unknown}",
                     {"index": index, "missing": missing, "unknown": unknown},
                 )
             if finding["severity"] not in {"blocking", "warning", "note"}:
                 raise NovelOSError("invalid_review", "finding severity 非法", {"index": index})
             if not isinstance(finding["message"], str) or not finding["message"].strip():
                 raise NovelOSError("invalid_review", "finding message 不能为空", {"index": index})
+            if "code" in finding and (
+                not isinstance(finding["code"], str) or not finding["code"].strip()
+            ):
+                raise NovelOSError("invalid_review", "finding code 不能为空", {"index": index})
             refs = finding["evidence_refs"]
             if not isinstance(refs, list) or len(refs) != len(set(refs)) or any(
                 not isinstance(ref, str) or not ref.strip() for ref in refs
@@ -2317,6 +2375,67 @@ class NovelOSService:
                 raise NovelOSError("invalid_review", "finding evidence_refs 非法", {"index": index})
             if "excerpt" in finding and not isinstance(finding["excerpt"], str):
                 raise NovelOSError("invalid_review", "finding excerpt 必须是字符串", {"index": index})
+
+    def _validate_review_receipt_candidate(
+        self, run: sqlite3.Row, output: Any
+    ) -> None:
+        self.agent_contracts.validate_output("review_receipt_candidate", output)
+        assert isinstance(output, dict)
+        self._validate_review_findings(output["findings"])
+        if any(item["severity"] == "blocking" for item in output["findings"]):
+            if output["verdict"] == "approved":
+                raise NovelOSError(
+                    "invalid_agent_result",
+                    "存在 blocking finding 时 Reviewer verdict 不能为 approved",
+                )
+        bindings = json.loads(run["input_bindings_json"])
+        expected_bindings = {
+            "immutable_subject_ref": output["subject_ref"],
+            "subject_hash": output["subject_hash"],
+            "review_profile": output["reviewer_profile"],
+        }
+        mismatched = {
+            field: {"expected": expected, "actual": bindings.get(field)}
+            for field, expected in expected_bindings.items()
+            if bindings.get(field) != expected
+        }
+        if mismatched:
+            raise NovelOSError(
+                "invalid_agent_result",
+                "Reviewer output 与 run 输入绑定不一致",
+                {"mismatched": mismatched},
+            )
+
+    def _completed_agent_output(
+        self,
+        connection: sqlite3.Connection,
+        run_id: str,
+        expected_output_type: str,
+    ) -> tuple[sqlite3.Row, Any]:
+        run = self._get(connection, "agent_runs", run_id)
+        if run["status"] != "completed" or run["output_type"] != expected_output_type:
+            raise NovelOSError(
+                "invalid_agent_result",
+                "Agent run 未完成或 output_type 不匹配",
+                {
+                    "run_id": run_id,
+                    "status": run["status"],
+                    "expected_output_type": expected_output_type,
+                    "actual_output_type": run["output_type"],
+                },
+            )
+        resource = self._get(connection, "resources", str(run["output_resource_id"]))
+        raw = bytes(resource["content"]).decode("utf-8")
+        if resource["media_type"] != "application/json":
+            return run, raw
+        try:
+            return run, json.loads(raw)
+        except json.JSONDecodeError as exc:
+            raise NovelOSError(
+                "invalid_agent_result",
+                "Agent output Resource 不是合法 JSON",
+                {"run_id": run_id},
+            ) from exc
 
     def _validate_agent_quality_subject(
         self,

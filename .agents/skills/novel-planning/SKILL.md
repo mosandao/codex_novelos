@@ -28,6 +28,6 @@ description: 识别小说规划层级并准备对应权威资产的最小输入�
 4. 用 `skill_catalog.validate` 校验选择属于同一候选快照；只对选中项调用 `skill_catalog.get` 读取 Prompt、Schema 或 examples。
 5. 探索性讨论直接返回方案，不创建 Agent、不持久化。
 6. 需要正式版本时，只创建目标资产对应的临时 Agent，提供精确上游 refs、选中 Catalog refs、用户约束和必要 Canon。Direction 必须额外接收项目当前的精确 `creator_signature_ref`，候选 metadata 必须包含同一 ref 和契约完整的 `book_soul`；不得根据人口属性推导思想或模仿具体作者。Chapter Plan 必须给出可追溯到锁定 Direction 的 `soul_pressure` 与 `moral_residue`，纯过渡场景允许明确降低思想前景强度。创建 Codex Task sub-agent 时，必须把其返回的 agentId 作为 `isolation_evidence`（形如 `{"source":"codex_task","agent_id":"..."}`）传入 `agent.start`；缺凭据的 run 无法通过 `planning.lock`。
-7. Agent 返回候选后，由 Main Agent 调用 `planning.create_candidate`；再使用 `$novel-review` 取得精确 Profile 的独立审查，最后由 Main Agent 调用 `planning.lock`。
+7. 正式资产 Agent 必须把 `planning_candidate` 作为非空文本返回；Main Agent 调用 `planning.create_candidate_from_run` 直接登记不可变输出，不读取后重传正文。延期的 Agent 质量实验可使用专用结构化规划输出，但该输出不能登记为权威候选。再使用 `$novel-review` 取得精确 Profile 的独立审查，最后由 Main Agent 调用 `planning.lock`。
 
 若下游 Agent 发现上游问题，只返回 change proposal；不要把上游修改混入本层候选。Character 与 World 可并行，但进入 Story Arc 前必须完成交叉一致性审查。

@@ -1,0 +1,7 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://novelos.local/schemas/text-candidate.schema.json",
+  "title": "NovelOS 文本候选",
+  "type": "string",
+  "minLength": 1
+}

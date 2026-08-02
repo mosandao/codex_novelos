@@ -36,7 +36,7 @@ Creator Profile 版本、创建项目、建立精确绑定并刷新投影。
 1. `trace.start` 建立操作 Trace。
 2. `agent.start` 校验角色与输入，生成唯一 `agent-run` 和 `agent-context`，自动记录 `agent.spawn`。
 3. Main 在新 Codex 上下文执行临时 Agent，只提供白名单工具。
-4. `agent.finish` 校验 typed result；完成、失败或超时均自动记录 `agent.destroy`。
+4. `agent.finish` 同时校验 typed result 外壳和已注册 `output_type` 的 payload Schema；完成、失败或超时均自动记录 `agent.destroy`。
 5. 权威提交在同一事务内写入 `authority_commits` 和 Trace step，并校验 Producer/Reviewer run 属于同一 Trace。
 6. `trace.audit_authority` 检查项目内每个已提交状态是否具有精确 subject Hash、Review Receipt 和 Trace step；有活动 run 时 `trace.finish` 失败。
 
@@ -44,7 +44,7 @@ Creator Profile 版本、创建项目、建立精确绑定并刷新投影。
 
 ## 审查隔离
 
-Reviewer run 必须读取不可变 subject ref、精确 `subject_hash`、Review Profile 和权威上下文。MCP 比较 Reviewer 输入、结构化输出和 `review.record` 参数，并拒绝生产 run 冒充 Reviewer。
+Reviewer run 必须读取不可变 subject ref、精确 `subject_hash`、Review Profile 和权威上下文。Main 调用 `review.record_from_run`，MCP 直接读取不可变结构化输出并与 Reviewer 输入比较，拒绝生产 run 冒充 Reviewer或由 Main 重组 Receipt。
 
 Agent 质量实验使用 `review.prepare_subject` 构造不含执行模式的不可变盲评包。MCP 绑定已完成 Producer runs 和输出 refs，Review Receipt 额外绑定结构化 assessment Resource；该 Receipt 只用于评测证据，不具备小说权威提交权限。
 

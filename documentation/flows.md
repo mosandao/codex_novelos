@@ -33,9 +33,9 @@ Trace 记录旧/新 ref 和影响列表，系统不自动重生成。
 
 1. Main 从 Catalog 选择与目标 `asset_type` 匹配的包并冻结候选快照。
 2. Main 使用 `agent.start` 创建唯一资产 owner run；MCP 校验最小输入和角色契约。
-3. 临时 Agent 返回 `planning_candidate` 或绑定上游精确版本/Hash 的 change proposal；`agent.finish` 校验 Schema 并记录 Destroy。
-4. Main 调用 `planning.create_candidate`；MCP 验证生产 run、输出正文、唯一 owner 和上游依赖。
-5. Main 创建独立 Review run，随后调用 `review.record`；MCP 验证 subject Hash、Reviewer 输出和隔离 context。
+3. 正式资产 Agent 返回非空文本 `planning_candidate` 或绑定上游精确版本/Hash 的 change proposal；`agent.finish` 按 `output_type` Schema 校验并记录 Destroy。Agent 质量实验的专用结构化规划输出只用于评测，不得登记为权威候选。
+4. Main 调用 `planning.create_candidate_from_run`；MCP 直接读取不可变生产输出，并验证唯一 owner 和上游依赖。`planning.create_candidate` 仅保留为兼容入口。
+5. Main 创建独立 Review run，随后调用 `review.record_from_run`；MCP 直接读取符合专用 Schema 的 Reviewer 输出，并验证 subject Hash、Profile 和隔离 context。`review.record` 仅保留为兼容入口。
 6. Main 调用 `planning.lock` 并提供当前 `trace_id`；MCP 重新验证 Review Profile、verdict、blocking finding、依赖版本和 Producer/Reviewer Trace 一致性，在同一事务写入 `authority_commits`。
 7. 新版本锁定时，旧版本变为 `superseded`，所有后代递归变为 `stale`。
 
@@ -76,7 +76,7 @@ Character 与 World 可以有同时运行的独立 run。Story Arc 前必须创�
 1. Main + Skill 基线通过 `resource.create` 登记 Trace 绑定的不可变输出；临时 Agent 输出由 `agent.finish` 登记。
 2. Main 用匿名标签、输入 Hash、输出 refs/Hash 和 Review Profile 调用 `review.prepare_subject`；MCP 同时绑定已完成的 Producer runs。
 3. 独立 审查智能体 只读取不可变评测 subject，不读取 execution manifest 的模式映射。
-4. `review.record` 只接受同 Trace、输入和输出完全一致的 Reviewer run，并把结构化 assessment 保存为不可变 Resource 后绑定到 Receipt。
+4. `review.record_from_run` 只接受同 Trace、输入和输出完全一致的 Reviewer run，并把质量评测专用的结构化 assessment 保存为不可变 Resource 后绑定到 Receipt。
 5. 离线汇总器逐层复核原始输入、匿名输出、subject、Receipt、assessment 和 Hash，最后才解盲计算角色策略。
 
 评测 Receipt 不进入 `authority_commits`，不能锁定规划、接受正文或修改 Canon。

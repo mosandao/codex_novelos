@@ -43,6 +43,7 @@ class NovelOSProtocolTest(unittest.IsolatedAsyncioTestCase):
                     self.assertIn("project.create", names)
                     self.assertIn("chapter.accept", names)
                     self.assertIn("planning.create_candidate", names)
+                    self.assertIn("planning.create_candidate_from_run", names)
                     self.assertIn("planning.lock", names)
                     self.assertIn("planning.prepare_cross_check", names)
                     self.assertIn("planning.approve_cross_check", names)
@@ -51,6 +52,7 @@ class NovelOSProtocolTest(unittest.IsolatedAsyncioTestCase):
                     self.assertIn("skill_catalog.validate_output", names)
                     self.assertIn("skill_catalog.validate_input", names)
                     self.assertIn("review.record", names)
+                    self.assertIn("review.record_from_run", names)
                     self.assertIn("review.prepare_subject", names)
                     self.assertIn("review.get_subject", names)
                     self.assertIn("resource.create", names)
@@ -59,7 +61,7 @@ class NovelOSProtocolTest(unittest.IsolatedAsyncioTestCase):
                     self.assertIn("entity.commit_mutation", names)
                     self.assertIn("projection.get_snapshot", names)
                     self.assertIn("projection.render_project_folder", names)
-                    self.assertIn("project.wizard.render", names)
+                    self.assertNotIn("project.wizard.render", names)
                     self.assertIn("project.wizard.submit", names)
                     self.assertNotIn("project.wizard.suggest_secondary_directions", names)
                     self.assertIn("projection.verify_manifest", names)
@@ -70,23 +72,8 @@ class NovelOSProtocolTest(unittest.IsolatedAsyncioTestCase):
                     self.assertNotIn("timeline.upsert", names)
                     by_name = {tool.name: tool for tool in tools.tools}
                     self.assertEqual(
-                        "ui://novelos/project-wizard-v3.html",
-                        by_name["project.wizard.render"].meta["ui"]["resourceUri"],
-                    )
-                    self.assertEqual(
-                        "ui://novelos/project-wizard-v3.html",
-                        by_name["project.wizard.render"].meta["ui/resourceUri"],
-                    )
-                    self.assertEqual(
-                        "ui://novelos/project-wizard-v3.html",
-                        by_name["project.wizard.render"].meta["openai/outputTemplate"],
-                    )
-                    self.assertEqual(
                         ["app"],
                         by_name["project.wizard.submit"].meta["ui"]["visibility"],
-                    )
-                    self.assertTrue(
-                        by_name["project.wizard.render"].meta["openai/widgetAccessible"]
                     )
                     self.assertTrue(
                         by_name["project.wizard.submit"].meta["openai/widgetAccessible"]
@@ -96,18 +83,6 @@ class NovelOSProtocolTest(unittest.IsolatedAsyncioTestCase):
                     self.assertFalse(submit_annotations.destructiveHint)
                     self.assertFalse(submit_annotations.idempotentHint)
                     self.assertFalse(submit_annotations.openWorldHint)
-                    wizard_model = await session.call_tool("project.wizard.render", {})
-                    self.assertFalse(wizard_model.isError, wizard_model.content)
-                    self.assertEqual(3, wizard_model.structuredContent["form_version"])
-                    self.assertEqual(18, len(wizard_model.structuredContent["system_archetypes"]))
-                    first_archetype = wizard_model.structuredContent["system_archetypes"][0]
-                    self.assertTrue(first_archetype["reader_promise"])
-                    self.assertTrue(first_archetype["genre_tags"])
-                    self.assertTrue(first_archetype["temperament_tags"])
-                    self.assertIn("genre_temperaments", wizard_model.structuredContent["recommendation_rules"])
-                    self.assertIn("慢热沉浸", wizard_model.structuredContent["recommendation_rules"]["tone_temperaments"])
-
-                    self.assertIn("西方玄幻", wizard_model.structuredContent["options"]["secondary_directions_by_primary_genre"]["奇幻"])
                     self.assertIn(
                         "producer_run_id",
                         by_name["planning.create_candidate"].inputSchema["required"],
@@ -119,6 +94,10 @@ class NovelOSProtocolTest(unittest.IsolatedAsyncioTestCase):
                     self.assertIn(
                         "reviewer_run_id",
                         by_name["review.record"].inputSchema["required"],
+                    )
+                    self.assertEqual(
+                        ["reviewer_run_id"],
+                        by_name["review.record_from_run"].inputSchema["required"],
                     )
                     for tool_name in (
                         "planning.lock",
@@ -186,18 +165,13 @@ class NovelOSProtocolTest(unittest.IsolatedAsyncioTestCase):
                         },
                         {str(template.uriTemplate) for template in templates.resourceTemplates},
                     )
-                    resources = await session.list_resources()
-                    self.assertIn("ui://novelos/project-wizard-v3.html", {str(resource.uri) for resource in resources.resources})
-                    wizard = await session.read_resource("ui://novelos/project-wizard-v3.html")
-                    self.assertEqual("text/html;profile=mcp-app", wizard.contents[0].mimeType)
-                    self.assertEqual([], wizard.contents[0].meta["ui"]["csp"]["connectDomains"])
-                    self.assertEqual([], wizard.contents[0].meta["ui"]["csp"]["resourceDomains"])
-                    self.assertIn("新建小说项目", wizard.contents[0].text)
-
                     wizard_title = f"向导协议项目-{Path(directory).name}"
-                    wizard_render = await session.call_tool("project.wizard.render", {})
-                    archetype_id = wizard_render.structuredContent["system_archetypes"][0]["profile_version_id"]
-                    archetype_hash = wizard_render.structuredContent["system_archetypes"][0]["subject_hash"]
+                    archetype = await session.call_tool(
+                        "creator_profile.get_version",
+                        {"profile_version_id": "creator-profile-version:system-epic-framework:1"},
+                    )
+                    archetype_id = archetype.structuredContent["id"]
+                    archetype_hash = archetype.structuredContent["subject_hash"]
                     wizard_result = await session.call_tool(
                         "project.wizard.submit",
                         {
@@ -332,10 +306,13 @@ class NovelOSProtocolTest(unittest.IsolatedAsyncioTestCase):
                                 return text.strip("'\"")
                         return None
 
-                    # 3. 通过 V3 向导原子创建作者绑定项目与规划资产
-                    wizard_render = await session.call_tool("project.wizard.render", {})
-                    archetype_id = wizard_render.structuredContent["system_archetypes"][0]["profile_version_id"]
-                    archetype_hash = wizard_render.structuredContent["system_archetypes"][0]["subject_hash"]
+                    # 3. 通过本地向导生成的 setup 原子创建作者绑定项目与规划资产
+                    archetype = await session.call_tool(
+                        "creator_profile.get_version",
+                        {"profile_version_id": "creator-profile-version:system-epic-framework:1"},
+                    )
+                    archetype_id = archetype.structuredContent["id"]
+                    archetype_hash = archetype.structuredContent["subject_hash"]
 
                     proj_res = await session.call_tool("project.wizard.submit", {
                         "setup": {
@@ -386,11 +363,10 @@ class NovelOSProtocolTest(unittest.IsolatedAsyncioTestCase):
                     })
                     self.assertFalse(finish_res.isError, str(finish_res))
 
-                    dir_cand = await session.call_tool("planning.create_candidate", {
+                    dir_cand = await session.call_tool("planning.create_candidate_from_run", {
                         "project_id": proj_id,
                         "asset_type": "direction",
                         "scope_ref": proj_id,
-                        "content": "Story Direction Content",
                         "upstream_refs": [],
                         "metadata": {
                             "creator_signature_ref": creator_ref,
@@ -450,15 +426,8 @@ class NovelOSProtocolTest(unittest.IsolatedAsyncioTestCase):
                         "producer_run_ids": [producer_run_id],
                     })
 
-                    rec_rev = await session.call_tool("review.record", {
-                        "subject_type": "planning_asset",
-                        "subject_ref": _get_res(dir_cand, "id"),
-                        "subject_hash": _get_res(dir_cand, "subject_hash"),
-                        "verdict": "approved",
-                        "findings": [],
-                        "reviewer_profile": "planning-direction",
+                    rec_rev = await session.call_tool("review.record_from_run", {
                         "reviewer_run_id": reviewer_run_id,
-                        "evidence_refs": [_get_res(dir_cand, "id")],
                     })
 
                     lock_res = await session.call_tool("planning.lock", {
