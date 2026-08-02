@@ -107,32 +107,27 @@ def _creator_request(value: Any) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise NovelOSError("invalid_project_setup", "creator 必须是对象")
     mode = value.get("mode")
-    expected = {
-        "reuse": {"mode", "profile_version_id", "subject_hash"},
-        "create": {"mode", "display_name", "signature"},
-        "derive": {"mode", "parent_version_id", "parent_subject_hash", "display_name", "overrides"},
-    }
-    if mode not in expected or set(value) != expected[mode]:
+    if mode != "derive":
         raise NovelOSError(
             "invalid_project_setup",
-            "creator 模式或字段非法",
+            "项目向导仅支持原型派生 (mode='derive')",
+            {"mode": mode},
+        )
+    expected = {"mode", "parent_version_id", "parent_subject_hash", "display_name", "overrides"}
+    if set(value) != expected:
+        raise NovelOSError(
+            "invalid_project_setup",
+            "creator 派生模式字段非法",
             {"mode": mode, "fields": sorted(value)},
         )
     normalized = dict(value)
-    if mode == "reuse":
-        normalized["profile_version_id"] = _text(value["profile_version_id"], "profile_version_id")
-        normalized["subject_hash"] = _text(value["subject_hash"], "subject_hash")
-    elif mode == "create":
-        normalized["display_name"] = _text(value["display_name"], "display_name")
-        if not isinstance(value["signature"], dict):
-            raise NovelOSError("invalid_project_setup", "creator.signature 必须是对象")
-    else:
-        normalized["parent_version_id"] = _text(value["parent_version_id"], "parent_version_id")
-        normalized["parent_subject_hash"] = _text(value["parent_subject_hash"], "parent_subject_hash")
-        normalized["display_name"] = _text(value["display_name"], "display_name")
-        if not isinstance(value["overrides"], dict) or not value["overrides"]:
-            raise NovelOSError("invalid_project_setup", "creator.overrides 必须是非空对象")
+    normalized["parent_version_id"] = _text(value["parent_version_id"], "parent_version_id")
+    normalized["parent_subject_hash"] = _text(value["parent_subject_hash"], "parent_subject_hash")
+    normalized["display_name"] = _text(value["display_name"], "display_name")
+    if not isinstance(value["overrides"], dict) or not value["overrides"]:
+        raise NovelOSError("invalid_project_setup", "creator.overrides 必须是非空对象")
     return normalized
+
 
 
 def _text(value: Any, field: str) -> str:

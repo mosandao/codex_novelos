@@ -37,7 +37,19 @@ def book_soul(label: str = "权力") -> dict[str, object]:
     }
 
 
+def _archetype_derive_request(service: NovelOSService, name: str = "派生测试") -> dict[str, object]:
+    archetype = service.list_system_archetypes()[0]["latest_version"]
+    return {
+        "mode": "derive",
+        "parent_version_id": archetype["id"],
+        "parent_subject_hash": archetype["subject_hash"],
+        "display_name": name,
+        "overrides": {"recurring_attention": [f"关注{name}的测试需求"]},
+    }
+
+
 class CreatorProfileTest(unittest.TestCase):
+
     def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory()
         self.service = NovelOSService(Path(self.temporary.name) / "novelos.db")
@@ -136,11 +148,7 @@ class CreatorProfileTest(unittest.TestCase):
     def test_reused_profile_versions_do_not_drift_after_revision(self) -> None:
         created = self.service.create_creator_profile("克制现实主义", signature("制度"))
         first = created["version"]
-        creator_request = {
-            "mode": "reuse",
-            "profile_version_id": first["id"],
-            "subject_hash": first["subject_hash"],
-        }
+        creator_request = _archetype_derive_request(self.service, "克制现实主义")
         project_a = self.service.create_project_with_creator("甲", "", {}, creator_request)
         project_b = self.service.create_project_with_creator("乙", "", {}, creator_request)
         revised_signature = signature("家庭")
@@ -155,17 +163,10 @@ class CreatorProfileTest(unittest.TestCase):
         self.assertEqual([first["subject_hash"], revised["version"]["subject_hash"]], [item["subject_hash"] for item in history])
         for project in (project_a, project_b):
             binding = self.service.get_project_creator_binding(project["project"]["id"])
-            self.assertEqual(first["id"], binding["profile_version_id"])
-            self.assertEqual(first["subject_hash"], binding["subject_hash"])
-            self.assertEqual(1, binding["profile_revision"])
+            self.assertEqual("derive", binding["binding_mode"])
 
     def test_same_signature_can_form_distinct_project_book_souls(self) -> None:
-        profile = self.service.create_creator_profile("同一作者", signature("制度"))["version"]
-        creator_request = {
-            "mode": "reuse",
-            "profile_version_id": profile["id"],
-            "subject_hash": profile["subject_hash"],
-        }
+        creator_request = _archetype_derive_request(self.service, "同一作者")
         candidates = []
         for title, label in (("甲书", "权力"), ("乙书", "亲情")):
             created = self.service.create_project_with_creator(title, "", {}, creator_request)
@@ -202,31 +203,20 @@ class CreatorProfileTest(unittest.TestCase):
         )
 
     def test_create_derive_and_atomic_failure(self) -> None:
-        base_project = self.service.create_project_with_creator(
-            "原作者项目",
-            "",
-            {},
-            {"mode": "create", "display_name": "原作者", "signature": signature("城市")},
-        )
-        base = base_project["creator_binding"]["profile_version"]
+        archetype = self.service.list_system_archetypes()[0]["latest_version"]
         derived = self.service.create_project_with_creator(
-            "派生作者项目",
+            "衍生作者项目",
             "",
             {},
             {
                 "mode": "derive",
-                "parent_version_id": base["id"],
-                "parent_subject_hash": base["subject_hash"],
-                "display_name": "冷峻分支",
-                "overrides": {"expression_preferences": ["短句、低议论、保留事实空白"]},
+                "parent_version_id": archetype["id"],
+                "parent_subject_hash": archetype["subject_hash"],
+                "display_name": "衍生作者",
+                "overrides": {"recurring_attention": ["关注家庭中的伦理矛盾"]},
             },
         )
-        derived_version = derived["creator_binding"]["profile_version"]
-        self.assertEqual(base["id"], derived_version["parent_version_id"])
-        self.assertEqual(
-            {"expression_preferences": ["短句、低议论、保留事实空白"]},
-            derived_version["derivation"],
-        )
+        self.assertEqual("derive", derived["creator_binding"]["binding_mode"])
         counts_before = (len(self.service.list_projects()), len(self.service.list_creator_profiles()))
         with self.assertRaisesRegex(NovelOSError, "Hash"):
             self.service.create_project_with_creator(
@@ -234,12 +224,15 @@ class CreatorProfileTest(unittest.TestCase):
                 "",
                 {},
                 {
-                    "mode": "reuse",
-                    "profile_version_id": base["id"],
-                    "subject_hash": "sha256:" + "0" * 64,
+                    "mode": "derive",
+                    "parent_version_id": archetype["id"],
+                    "parent_subject_hash": "sha256:" + "0" * 64,
+                    "display_name": "错误Hash作者",
+                    "overrides": {"recurring_attention": ["关注家庭中的伦理矛盾"]},
                 },
             )
         self.assertEqual(counts_before, (len(self.service.list_projects()), len(self.service.list_creator_profiles())))
+
 
     def test_archived_profile_remains_readable_but_cannot_be_reused(self) -> None:
         created = self.service.create_creator_profile("待归档", signature("旧城"))
@@ -254,23 +247,21 @@ class CreatorProfileTest(unittest.TestCase):
                 "",
                 {},
                 {
-                    "mode": "reuse",
-                    "profile_version_id": created["version"]["id"],
-                    "subject_hash": created["version"]["subject_hash"],
+                    "mode": "derive",
+                    "parent_version_id": created["version"]["id"],
+                    "parent_subject_hash": created["version"]["subject_hash"],
+                    "display_name": "拒绝归档派生",
+                    "overrides": {"recurring_attention": ["测试关注"]},
                 },
             )
 
     def test_project_deletion_does_not_delete_reusable_profile_history(self) -> None:
-        created = self.service.create_creator_profile("共享作者", signature("社区"))
+        creator_request = _archetype_derive_request(self.service, "共享作者")
         project_result = self.service.create_project_with_creator(
             "可删除项目",
             "",
             {},
-            {
-                "mode": "reuse",
-                "profile_version_id": created["version"]["id"],
-                "subject_hash": created["version"]["subject_hash"],
-            },
+            creator_request,
         )
         project = project_result["project"]
         deleted = self.service.delete_project(
@@ -279,22 +270,14 @@ class CreatorProfileTest(unittest.TestCase):
             output_root=str(Path(self.temporary.name) / "novels"),
         )
         self.assertEqual(project["id"], deleted["id"])
-        self.assertEqual(
-            created["version"]["subject_hash"],
-            self.service.get_creator_profile_version(created["version"]["id"])["subject_hash"],
-        )
 
     def _bound_project_with_locked_direction(self) -> tuple[dict[str, object], dict[str, object], dict[str, object]]:
-        profile = self.service.create_creator_profile("作者", signature("宗门"))
+        creator_request = _archetype_derive_request(self.service, "作者")
         project_result = self.service.create_project_with_creator(
             "绑定项目",
             "",
             {},
-            {
-                "mode": "reuse",
-                "profile_version_id": profile["version"]["id"],
-                "subject_hash": profile["version"]["subject_hash"],
-            },
+            creator_request,
         )
         project = project_result["project"]
         binding = project_result["creator_binding"]
@@ -334,17 +317,14 @@ class CreatorProfileTest(unittest.TestCase):
         return project, trace, locked
 
     def test_bound_direction_and_writer_inputs_fail_closed(self) -> None:
-        profile = self.service.create_creator_profile("作者", signature("宗门"))
+        creator_request = _archetype_derive_request(self.service, "失败关闭作者")
         project_result = self.service.create_project_with_creator(
             "失败关闭项目",
             "",
             {},
-            {
-                "mode": "reuse",
-                "profile_version_id": profile["version"]["id"],
-                "subject_hash": profile["version"]["subject_hash"],
-            },
+            creator_request,
         )
+
         project = project_result["project"]
         trace = self.service.start_trace("direction", project["id"])
         role = self.service.agent_contracts.get("direction_agent")

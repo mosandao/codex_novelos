@@ -99,7 +99,14 @@ class NovelOSProtocolTest(unittest.IsolatedAsyncioTestCase):
                     wizard_model = await session.call_tool("project.wizard.render", {})
                     self.assertFalse(wizard_model.isError, wizard_model.content)
                     self.assertEqual(3, wizard_model.structuredContent["form_version"])
-                    self.assertEqual([], wizard_model.structuredContent["creator_profiles"])
+                    self.assertEqual(18, len(wizard_model.structuredContent["system_archetypes"]))
+                    first_archetype = wizard_model.structuredContent["system_archetypes"][0]
+                    self.assertTrue(first_archetype["reader_promise"])
+                    self.assertTrue(first_archetype["genre_tags"])
+                    self.assertTrue(first_archetype["temperament_tags"])
+                    self.assertIn("genre_temperaments", wizard_model.structuredContent["recommendation_rules"])
+                    self.assertIn("慢热沉浸", wizard_model.structuredContent["recommendation_rules"]["tone_temperaments"])
+
                     self.assertIn("西方玄幻", wizard_model.structuredContent["options"]["secondary_directions_by_primary_genre"]["奇幻"])
                     self.assertIn(
                         "producer_run_id",
@@ -188,23 +195,21 @@ class NovelOSProtocolTest(unittest.IsolatedAsyncioTestCase):
                     self.assertIn("新建小说项目", wizard.contents[0].text)
 
                     wizard_title = f"向导协议项目-{Path(directory).name}"
+                    wizard_render = await session.call_tool("project.wizard.render", {})
+                    archetype_id = wizard_render.structuredContent["system_archetypes"][0]["profile_version_id"]
+                    archetype_hash = wizard_render.structuredContent["system_archetypes"][0]["subject_hash"]
                     wizard_result = await session.call_tool(
                         "project.wizard.submit",
                         {
                             "setup": {
                                 "title": wizard_title,
                                 "creator": {
-                                    "mode": "create",
+                                    "mode": "derive",
+                                    "parent_version_id": archetype_id,
+                                    "parent_subject_hash": archetype_hash,
                                     "display_name": "协议测试作者",
-                                    "signature": {
-                                        "schema_version": 1,
-                                        "sympathies": ["维护承担具体代价者的尊严"],
-                                        "distrusts": ["警惕不承担后果的权力"],
+                                    "overrides": {
                                         "recurring_attention": ["观察制度如何进入日常关系"],
-                                        "narrative_principles": ["通过选择和后果表达判断"],
-                                        "forbidden_conveniences": ["不得用独白替代因果"],
-                                        "expression_preferences": ["克制议论并保留事实空白"],
-                                        "negative_constraints": ["不模仿具体作者"],
                                     },
                                 },
                                 "channel": "女频",
@@ -220,8 +225,9 @@ class NovelOSProtocolTest(unittest.IsolatedAsyncioTestCase):
                     )
                     self.assertFalse(wizard_result.isError, wizard_result.content)
                     self.assertEqual(wizard_title, wizard_result.structuredContent["project"]["name"])
-                    self.assertEqual("create", wizard_result.structuredContent["creator_binding"]["binding_mode"])
+                    self.assertEqual("derive", wizard_result.structuredContent["creator_binding"]["binding_mode"])
                     self.assertEqual(1, wizard_result.structuredContent["creator_binding"]["profile_revision"])
+
 
     async def test_stdio_validates_seed_inventory_before_knowledge_query(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -327,21 +333,20 @@ class NovelOSProtocolTest(unittest.IsolatedAsyncioTestCase):
                         return None
 
                     # 3. 通过 V3 向导原子创建作者绑定项目与规划资产
+                    wizard_render = await session.call_tool("project.wizard.render", {})
+                    archetype_id = wizard_render.structuredContent["system_archetypes"][0]["profile_version_id"]
+                    archetype_hash = wizard_render.structuredContent["system_archetypes"][0]["subject_hash"]
+
                     proj_res = await session.call_tool("project.wizard.submit", {
                         "setup": {
                             "title": "Boundary Flow Project",
                             "creator": {
-                                "mode": "create",
+                                "mode": "derive",
+                                "parent_version_id": archetype_id,
+                                "parent_subject_hash": archetype_hash,
                                 "display_name": "Boundary Flow Creator",
-                                "signature": {
-                                    "schema_version": 1,
-                                    "sympathies": ["维护承担具体代价者的尊严"],
-                                    "distrusts": ["警惕不承担后果的权力"],
+                                "overrides": {
                                     "recurring_attention": ["观察制度如何进入日常关系"],
-                                    "narrative_principles": ["通过选择和后果表达判断"],
-                                    "forbidden_conveniences": ["不得用独白替代因果"],
-                                    "expression_preferences": ["克制议论并保留事实空白"],
-                                    "negative_constraints": ["不模仿具体作者"],
                                 },
                             },
                             "channel": "全向",
@@ -354,6 +359,7 @@ class NovelOSProtocolTest(unittest.IsolatedAsyncioTestCase):
                             "reference_material": None,
                         }
                     })
+
                     self.assertFalse(proj_res.isError, str(proj_res))
                     proj_id = proj_res.structuredContent["project"]["id"]
                     creator_ref = proj_res.structuredContent["creator_binding"]["constraint_ref"]

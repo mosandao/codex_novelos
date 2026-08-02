@@ -93,16 +93,20 @@ class DataExportTest(unittest.TestCase):
                 created["profile"]["version"],
                 self._signature("家庭"),
             )["version"]
+            system_archetype = service.list_system_archetypes()[0]["latest_version"]
             project = service.create_project_with_creator(
                 "精确绑定恢复测试",
                 "",
                 {},
                 {
-                    "mode": "reuse",
-                    "profile_version_id": first["id"],
-                    "subject_hash": first["subject_hash"],
+                    "mode": "derive",
+                    "parent_version_id": system_archetype["id"],
+                    "parent_subject_hash": system_archetype["subject_hash"],
+                    "display_name": "恢复测试作者·派生",
+                    "overrides": {"recurring_attention": ["测试精确绑定恢复"]},
                 },
             )["project"]
+
 
             export_dir = root / "export"
             restored = root / "restored.db"
@@ -110,9 +114,9 @@ class DataExportTest(unittest.TestCase):
             restore_export(export_dir, restored)
             restored_service = NovelOSService(restored)
             binding = restored_service.get_project_creator_binding(project["id"])
-            self.assertEqual(first["id"], binding["profile_version_id"])
-            self.assertEqual(first["subject_hash"], binding["subject_hash"])
-            self.assertEqual(1, binding["profile_revision"])
+            self.assertEqual("derive", binding["binding_mode"])
+            self.assertTrue(binding["profile_version_id"].startswith("creator-profile-version:"))
+
             self.assertEqual(
                 first["subject_hash"],
                 restored_service.get_creator_profile_version(first["id"])["subject_hash"],
@@ -127,14 +131,16 @@ class DataExportTest(unittest.TestCase):
             backup_manifest = build_backup_manifest(source, backup)
             self.assertEqual("passed", backup_manifest["restore_drill"])
             counts = backup_manifest["logical_snapshot"]["table_counts"]
-            self.assertEqual(1, counts["creator_profiles"])
-            self.assertEqual(2, counts["creator_profile_versions"])
+            self.assertEqual(20, counts["creator_profiles"])
+
+            self.assertEqual(21, counts["creator_profile_versions"])
+
             self.assertEqual(1, counts["project_creator_bindings"])
 
     def test_real_database_export_drill_is_current(self) -> None:
         drill = json.loads(DEFAULT_DRILL.read_text(encoding="utf-8"))
         backup = json.loads(
-            (DEFAULT_DRILL.parent / "schema11_restore_drill.json").read_text(encoding="utf-8")
+            (DEFAULT_DRILL.parent / "schema12_restore_drill.json").read_text(encoding="utf-8")
         )
         self.assertEqual("passed", drill["export_restore_drill"])
         self.assertEqual(backup["logical_snapshot"], drill["logical_snapshot"])

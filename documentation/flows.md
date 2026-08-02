@@ -2,22 +2,23 @@
 
 ## 项目创建向导
 
-参与者：用户、主控智能体、MCP Apps 宿主、NovelOS MCP。
+参与者：用户、主控智能体、本地项目向导、NovelOS MCP。
 
-1. Main 在支持 MCP Apps 的宿主中调用 `project.wizard.render`；宿主加载
-   `ui://novelos/project-wizard-v3.html`，而不是直接以 `file://` 打开仓库文件。
-2. 用户选择 `reuse`、`derive` 或 `create` 作者签名模式；页面展示已有 Profile 的显示名、精确
-   revision、Hash 摘要，派生模式只提交用户明确填写的差异。
-3. 用户填写项目名、频道、平台、规模和一级题材；页面依据一级题材显示静态的二级方向候选。
+1. 用户要求创建项目时，Main 提供 `mcp/novelos/src/novelos_mcp/ui/project-wizard.html` 的绝对本地路径。
+   页面和同目录的 `project-wizard-data.js` 可通过 `file://` 打开，不依赖 MCP Apps proxy。
+2. 用户填写项目名、频道、平台、规模和一级题材；页面依据一级题材显示静态的二级方向候选。
    二级方向可多选，主情绪基调可多选，美学风格最多两项，创作资料可留空且最多 10,000 字。
-4. 页面调用 `project.wizard.submit`。MCP 只接受固定频道、平台、规模、一级题材和该题材
-   对应的二级方向，拒绝已移除的自定义项、知乎盐选、无效字段或跨题材二级方向。
-5. MCP 在同一事务中确认或创建不可变 Creator Profile 版本、创建项目、写入
+3. 页面按项目定位确定性推荐三个系统叙事原型并显示匹配分；用户仍可浏览全部 18 个原型，
+   查看只读继承项，并编辑或清空本书差异。提交只使用 `derive`，不允许 `create` 或 `reuse`。
+4. 页面生成 `novelos.project.create.v1` JSON，显示在页面底部并尝试自动复制；复制失败时提供
+   手动复制按钮。用户把原始 JSON 发送给 Main，Main 只提取 `setup` 并调用 `project.wizard.submit`。
+5. MCP 只接受固定频道、平台、规模、一级题材和该题材对应的二级方向，拒绝已移除的自定义项、
+   知乎盐选、无效字段或跨题材二级方向；随后在同一事务中确认或创建不可变 Creator Profile 版本、创建项目、写入
    `metadata.project_setup` 并绑定精确 revision/Hash，随后刷新默认投影。
 6. Main 读取项目约束与 `creator_binding.constraint_ref`，启动 Trace，并把精确 ref 交给方向智能体；
    候选 metadata 必须包含同一 ref 和完整 `book_soul`。向导本身不会生成、锁定或提交 Direction。
 
-拒绝路径：直接本地预览页面没有 MCP Apps 通信桥，不能创建项目；参数不符合表单契约时，
+拒绝路径：本地页面只生成 JSON，不声称项目已创建；参数不符合表单契约时，
 `project.wizard.submit` 不写入项目；前端选择不替代规划、审查或 authority commit 门禁。
 
 作者 Profile 新建版本不会改变既有项目绑定。显式 rebind 必须使用当前 `expected_version`、运行中的

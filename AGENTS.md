@@ -101,15 +101,16 @@ Character 与 World 可以并行生成，但进入 Story Arc 前必须完成交�
 
 ### 项目创建向导
 
-`project.wizard.render` 为 MCP Apps 宿主提供 `ui://novelos/project-wizard-v3.html` 资源。Main
-使用它创建项目时，必须按以下顺序执行：
+项目创建的默认入口是仓库内本地向导 `mcp/novelos/src/novelos_mcp/ui/project-wizard.html`。
+同目录 `project-wizard-data.js` 提供独立模式所需的 18 个原型。MCP Apps 的
+`project.wizard.render` 保留为兼容入口；使用本地入口时必须按以下顺序执行：
 
-1. 通过支持 MCP Apps 的宿主调用 `project.wizard.render` 并打开资源，不把仓库中的
-   `file://.../project-wizard.html` 预览页当作可提交入口。
-2. 用户先在 `reuse`、`derive`、`create` 三种模式中选择作者签名，再填写项目名、频道、目标平台、
-   作品规模、一级题材、二级方向、主情绪基调、美学风格和可选创作资料；宿主提交
-   `project.wizard.submit`。
-3. 提交在同一事务中确认或创建不可变 Creator Profile 版本、创建项目并绑定精确 revision/Hash；
+1. Main 向用户提供本地 HTML 的绝对路径；用户先填写项目名、频道、目标平台、作品规模、一级题材、二级方向、主情绪基调、美学风格和
+   可选创作资料；页面按这些约束确定性推荐三个系统叙事原型。用户选择原型、确认只读继承项并
+   编辑本书最小差异后，页面生成 `novelos.project.create.v1` JSON 并显示/复制到页面底部；Main
+   解析 JSON 的 `setup` 后以 `derive` 模式调用 `project.wizard.submit`。新向导不得提交
+   `reuse` 或 `create`；历史绑定仍保持可读。
+3. MCP 在同一事务中确认或创建不可变 Creator Profile 版本、创建项目并绑定精确 revision/Hash；
    任一步失败都不得留下项目或孤立绑定。
 4. Main 从返回值读取 `metadata.project_setup` 和 `creator_binding.constraint_ref`，启动 Trace 后把二者
    交给方向智能体；Direction 候选 metadata 必须绑定同一 ref 并包含完整 `book_soul`。
@@ -119,8 +120,8 @@ Character 与 World 可以并行生成，但进入 Story Arc 前必须完成交�
 向导的频道、平台、规模和一级题材为固定选项；二级方向按一级题材显示 18 个静态、LLM
 预生成候选，不在提交时调用 LLM，也不接受自定义方向。`emotional_tones` 可多选，
 `aesthetic_styles` 最多两项，`reference_material` 为可选多行资料，最多 10,000 个字符。
-“知乎盐选”、所有“自定义”选项和自定义字数均不属于 V3 契约。本地 `file://` 页面只能
-检查样式和静态联动，因没有 MCP Apps 通信桥而不能创建项目。
+“知乎盐选”、所有“自定义”选项和自定义字数均不属于 V3 契约。本地 `file://` 页面只生成 JSON，
+不直接写入数据库，也不声称项目已经创建。
 
 向导只创建项目容器并记录 `project_setup` 约束；页面不得直接生成、锁定或提交规划资产，
 也不得跳过 Trace、Agent、Review 或 authority commit 门禁。

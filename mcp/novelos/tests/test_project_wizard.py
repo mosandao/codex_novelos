@@ -28,13 +28,21 @@ class ProjectWizardTest(unittest.TestCase):
             "negative_constraints": ["不模仿具体作者，不根据人口属性推导文风"],
         }
 
-    def _setup(self) -> dict:
+    def _setup(self, service: NovelOSService | None = None) -> dict:
+        parent_id = "creator-profile-version:system-youthful-bonds:v1"
+        parent_hash = "sha256:" + "0" * 64
+        if service is not None:
+            archetype = service.list_system_archetypes()[0]["latest_version"]
+            parent_id = archetype["id"]
+            parent_hash = archetype["subject_hash"]
         return {
             "title": "向导测试项目",
             "creator": {
-                "mode": "create",
+                "mode": "derive",
+                "parent_version_id": parent_id,
+                "parent_subject_hash": parent_hash,
                 "display_name": "向导测试作者",
-                "signature": self._signature(),
+                "overrides": {"recurring_attention": ["观察少年羁绊与日常矛盾"]},
             },
             "channel": "男频",
             "platform": "起点",
@@ -47,19 +55,19 @@ class ProjectWizardTest(unittest.TestCase):
         }
 
     def test_normalizes_structured_constraints_for_project_metadata(self) -> None:
-        title, description, metadata, creator = normalize_project_setup(self._setup())
-        self.assertEqual("向导测试项目", title)
-        self.assertIn("男频", description)
-        self.assertEqual("create", creator["mode"])
-        self.assertEqual(3, metadata["project_setup"]["version"])
-        self.assertEqual("create", metadata["project_setup"]["creator_selection"]["mode"])
-        self.assertEqual("起点", metadata["project_setup"]["creation_context"]["platform"])
-        self.assertEqual("主角从边境小镇出发，避免无敌开局。", metadata["project_setup"]["creation_context"]["reference_material"])
-        self.assertEqual(["史诗厚重", "黑暗压抑"], metadata["project_setup"]["taxonomy"]["emotional_tones"])
-        self.assertEqual(["西幻史诗", "黑暗哥特"], metadata["project_setup"]["taxonomy"]["aesthetic_styles"])
-
         with tempfile.TemporaryDirectory() as directory:
             service = NovelOSService(Path(directory) / "wizard.db")
+            title, description, metadata, creator = normalize_project_setup(self._setup(service))
+            self.assertEqual("向导测试项目", title)
+            self.assertIn("男频", description)
+            self.assertEqual("derive", creator["mode"])
+            self.assertEqual(3, metadata["project_setup"]["version"])
+            self.assertEqual("derive", metadata["project_setup"]["creator_selection"]["mode"])
+            self.assertEqual("起点", metadata["project_setup"]["creation_context"]["platform"])
+            self.assertEqual("主角从边境小镇出发，避免无敌开局。", metadata["project_setup"]["creation_context"]["reference_material"])
+            self.assertEqual(["史诗厚重", "黑暗压抑"], metadata["project_setup"]["taxonomy"]["emotional_tones"])
+            self.assertEqual(["西幻史诗", "黑暗哥特"], metadata["project_setup"]["taxonomy"]["aesthetic_styles"])
+
             created = service.create_project_with_creator(title, description, metadata, creator)
             stored = service.get_project(created["project"]["id"])
             self.assertEqual(metadata, stored["metadata"])
@@ -68,29 +76,16 @@ class ProjectWizardTest(unittest.TestCase):
                 service.get_project_creator_binding(stored["id"])["subject_hash"],
             )
 
-    def test_normalizes_and_creates_reuse_and_derive_modes(self) -> None:
+    def test_normalizes_and_creates_derive_mode(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             service = NovelOSService(Path(directory) / "wizard.db")
-            base = service.create_creator_profile("基础作者", self._signature("城市"))["version"]
-            reuse_setup = self._setup() | {
-                "title": "复用作者项目",
-                "creator": {
-                    "mode": "reuse",
-                    "profile_version_id": base["id"],
-                    "subject_hash": base["subject_hash"],
-                },
-            }
-            name, description, metadata, creator = normalize_project_setup(reuse_setup)
-            reused = service.create_project_with_creator(name, description, metadata, creator)
-            self.assertEqual("reuse", reused["creator_binding"]["binding_mode"])
-            self.assertEqual(base["id"], reused["creator_binding"]["profile_version_id"])
-
-            derive_setup = self._setup() | {
+            archetype = service.list_system_archetypes()[0]["latest_version"]
+            derive_setup = self._setup(service) | {
                 "title": "派生作者项目",
                 "creator": {
                     "mode": "derive",
-                    "parent_version_id": base["id"],
-                    "parent_subject_hash": base["subject_hash"],
+                    "parent_version_id": archetype["id"],
+                    "parent_subject_hash": archetype["subject_hash"],
                     "display_name": "城市冷峻分支",
                     "overrides": {"expression_preferences": ["短句、低议论、保留事实空白"]},
                 },
@@ -99,8 +94,9 @@ class ProjectWizardTest(unittest.TestCase):
             derived = service.create_project_with_creator(name, description, metadata, creator)
             derived_version = derived["creator_binding"]["profile_version"]
             self.assertEqual("derive", derived["creator_binding"]["binding_mode"])
-            self.assertEqual(base["id"], derived_version["parent_version_id"])
+            self.assertEqual(archetype["id"], derived_version["parent_version_id"])
             self.assertEqual(creator["overrides"], derived_version["derivation"])
+
 
     def test_rejects_removed_options_and_invalid_choices(self) -> None:
         with self.assertRaisesRegex(NovelOSError, "最多选择两项"):
@@ -127,16 +123,37 @@ class ProjectWizardTest(unittest.TestCase):
         self.assertNotIn('value="自定义"', html)
         self.assertIn("reference_material", html)
         self.assertIn("emotional_tones", html)
-        self.assertIn('name="creator_mode" value="reuse"', html)
-        self.assertIn('name="creator_mode" value="derive"', html)
-        self.assertIn('name="creator_mode" value="create"', html)
-        for field in self._signature():
+        self.assertNotIn('name="creator_mode"', html)
+        self.assertNotIn('id="creator_reuse"', html)
+        self.assertNotIn('id="creator_create"', html)
+        self.assertIn('id="archetype_recommendations"', html)
+        self.assertIn("recommendationScore", html)
+        self.assertIn("继承自原型（只读）", html)
+        self.assertIn("本书新增 / 替换（可编辑）", html)
+        self.assertIn('id="generate_derived_signature"', html)
+        self.assertIn('id="reset_derived_signature"', html)
+        self.assertIn("已清空本书差异", html)
+        self.assertIn("生成基础差异草稿", html)
+        self.assertIn("fillGeneratedDerivation", html)
+        self.assertIn('mode: "derive"', html)
+        self.assertNotIn("fillGeneratedSignature", html)
+        for field in ("recurring_attention", "narrative_principles", "forbidden_conveniences", "expression_preferences"):
             self.assertIn(field, html)
         self.assertIn('appInfo: { name: "novelos-project-wizard", version: "3.0.0" }', html)
         self.assertNotIn("clientInfo:", html)
         self.assertIn("if (!standalone) void initializeBridge().then(loadCreatorProfiles).catch(() => {});", html)
         self.assertIn("bridgePromise = undefined;", html)
-        self.assertIn("本地预览页不能创建项目", html)
+        self.assertIn("window.NOVELOS_WIZARD_DATA?.system_archetypes", html)
+        self.assertIn('get("mode") === "offline"', html)
+        self.assertIn('request_type: "novelos.project.create.v1"', html)
+        self.assertIn("generateStandaloneJson", html)
+        self.assertIn('submit.textContent = standalone ? "生成项目提交 JSON" : "创建项目";', html)
+        self.assertIn("JSON.stringify(request, null, 2)", html)
+        self.assertIn("navigator.clipboard.writeText", html)
+        self.assertIn('document.execCommand("copy")', html)
+        self.assertIn('id="json_output"', html)
+        self.assertIn('id="copy_json"', html)
+        self.assertIn('script src="./project-wizard-data.js"', html)
 
 
 if __name__ == "__main__":

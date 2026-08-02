@@ -237,17 +237,20 @@ class ProjectionTest(unittest.TestCase):
         self.assertTrue(len(manifest["files"]) >= 10)
 
     def test_creator_signature_and_only_locked_book_soul_are_projected(self) -> None:
-        profile = self.service.create_creator_profile("克制作者", creator_signature())
+        archetype = self.service.list_system_archetypes()[0]["latest_version"]
         created = self.service.create_project_with_creator(
             "作者约束投影",
             "",
             {},
             {
-                "mode": "reuse",
-                "profile_version_id": profile["version"]["id"],
-                "subject_hash": profile["version"]["subject_hash"],
+                "mode": "derive",
+                "parent_version_id": archetype["id"],
+                "parent_subject_hash": archetype["subject_hash"],
+                "display_name": "克制作者",
+                "overrides": {"recurring_attention": ["观察克制下的选择与代价"]},
             },
         )
+
         project = created["project"]
         binding = created["creator_binding"]
         trace = self.service.start_trace("projection-author-constraints", project["id"])

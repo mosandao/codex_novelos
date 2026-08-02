@@ -15,6 +15,7 @@ from novelos_mcp.project_wizard import (
     normalize_project_setup,
     project_wizard_html,
 )
+from novelos_mcp.archetype_recommendation import GENRE_TEMPERAMENT_MAP, TONE_TEMPERAMENT_MAP
 
 
 def create_server(
@@ -78,22 +79,35 @@ def create_server(
         )
 
     def render_project_wizard() -> dict[str, Any]:
-        profiles = []
-        for profile in service.list_creator_profiles():
-            for version in profile["versions"]:
-                signature = version["signature"]
-                profiles.append(
-                    {
-                        "profile_id": profile["id"],
-                        "display_name": profile["display_name"],
-                        "profile_version_id": version["id"],
-                        "revision": version["revision"],
-                        "subject_hash": version["subject_hash"],
-                        "constraint_ref": version["constraint_ref"],
-                        "summary": f"同情：{signature['sympathies'][0]}；警惕：{signature['distrusts'][0]}",
-                    }
-                )
-        return {"form_version": 3, "options": WIZARD_OPTIONS, "creator_profiles": profiles}
+        profiles_by_id = {profile["id"]: profile for profile in service.list_system_archetypes()}
+        system_archetypes_data = []
+        for metadata in service.system_archetypes:
+            profile = profiles_by_id[f"creator-profile:{metadata['id']}"]
+            latest = profile["latest_version"]
+            system_archetypes_data.append(
+                {
+                    "profile_id": profile["id"],
+                    "display_name": profile["display_name"],
+                    "profile_version_id": latest["id"],
+                    "revision": latest["revision"],
+                    "subject_hash": latest["subject_hash"],
+                    "constraint_ref": latest["constraint_ref"],
+                    "signature": latest["signature"],
+                    "reader_promise": metadata["reader_promise"],
+                    "genre_tags": metadata["genre_tags"],
+                    "temperament_tags": metadata["temperament_tags"],
+                }
+            )
+        return {
+            "form_version": 3,
+            "options": WIZARD_OPTIONS,
+            "system_archetypes": system_archetypes_data,
+            "recommendation_rules": {
+                "genre_temperaments": GENRE_TEMPERAMENT_MAP,
+                "tone_temperaments": TONE_TEMPERAMENT_MAP,
+            },
+        }
+
 
     def submit_project_wizard(setup: dict[str, Any]) -> dict[str, Any]:
         name, description, metadata, creator = normalize_project_setup(setup)

@@ -19,7 +19,7 @@ V1 没有用户登录、tenant、管理员角色或 RLS。Scope 来自 Main 提�
 | 资源/操作 | Main | 规划/Writer/Context | Reviewer | MCP 强制条件 |
 |---|---:|---:|---:|---|
 | 读取 Project/Canon/Planning/Catalog | 允许 | 白名单内允许 | 白名单内允许 | ID 存在、项目关系有效 |
-| 打开/提交项目创建向导 | 允许 | 禁止 | 禁止 | V3 仅接受 `reuse/derive/create` 作者模式、精确版本/Hash、固定题材选项、最多两项美学风格和 10,000 字资料；项目与绑定同事务 |
+| 打开/提交项目创建向导 | 允许 | 禁止 | 禁止 | V3 仅接受系统叙事原型 `derive`、精确父版本/Hash、固定题材选项、最多两项美学风格和 10,000 字资料；项目与绑定同事务 |
 | 管理 Creator Profile | 允许 | 只读精确版本 | 只读精确版本 | 内容修订创建不可变 revision；归档不破坏历史读取；禁止人口属性推导和具体作者模仿目标 |
 | rebind 项目作者版本 | 允许 | 禁止 | 禁止 | 当前 `expected_version`、运行中的本项目 Trace、目标精确 Hash；Direction 及后代递归 `stale`，不自动重生成 |
 | 删除无权威项目 | 允许 | 禁止 | 禁止 | 当前 `expected_version`、无运行中 Trace、无 `authority_commits`、投影 manifest 归属匹配 |

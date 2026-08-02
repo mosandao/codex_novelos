@@ -4,7 +4,9 @@
 
 ## 当前工作
 
-当前没有进行中的顶层任务。
+| Task | 状态 | 目标 |
+|---|---|---|
+| 无 | - | - |
 
 ## 延期工作
 
@@ -27,6 +29,7 @@
 | [Task 06](./06_user_project_projection.md) | 完成用户项目 Markdown 文件夹派生投影、原子渲染与 156 项全量自动化测试 |
 | [Task 07](./07_prompt_catalog_expansion.md) | 完成 08 (F1-F6) 治理、三方 Hash 校验与 150 项全量自动化测试 |
 | [Task 08](./08_author_signature_and_book_soul.md) | 完成 Creator Profile 精确版本绑定、书级创作灵魂、投影和 Schema 11；受控语义质量实验保持 `BLOCKED` |
+| [Task 09](./09_narrative_archetype_derivation.md) | 完成 18 个系统叙事原型、仅派生向导、确定性 Top 3 推荐、Schema 12 数据生命周期和 190 项全量自动化测试 |
 
 ## 目录边界
 

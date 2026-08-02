@@ -64,11 +64,11 @@
   },
   "status": "completed",
   "storage": {
-    "export_manifest_hash": "sha256:9faf9f682cd427750d9d1e76d01cbd9861b3f1e9a2bed806f9d4c594463dd622",
+    "export_manifest_hash": "sha256:e8183ed59c164aba2ee34ab00c6574e24d7796ad44f2c05ff06a8abde2204857",
     "export_restore_drill": "passed",
     "legacy_import_id": "legacy-import:6835b453-dd8c-4253-a2ae-97e13b118d54",
     "legacy_source_hash": "sha256:aaadc9bedf499e9a10534422064d4d91862293529bccac160843e0ab846ae1ba",
-    "logical_hash": "sha256:ce4ba26ed61cbd7efd150b65c848e9f386bcf649cab2589f7addeb58b9ba9557",
+    "logical_hash": "sha256:7e49e616a4737f338848e34f35ef4796847cbebac6dfcf1343f264ef11155ee2",
     "migrated_counts": {
       "books": 3,
       "chapters": 4,
@@ -89,7 +89,8 @@
       8,
       9,
       10,
-      11
+      11,
+      12
     ],
     "target_hashes": {
       "books": "sha256:07b2fc7304f53bb99932980379c3d531fc082f7600f5803d1746a1359691d86a",

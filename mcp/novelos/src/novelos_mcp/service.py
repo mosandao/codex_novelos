@@ -23,6 +23,14 @@ from novelos_mcp.creative_contracts import (
 from novelos_mcp.hashing import content_hash
 from novelos_mcp.knowledge import KnowledgeStore
 from novelos_mcp.storage import Database
+from novelos_mcp.system_archetypes import (
+    load_system_archetypes_config,
+    sync_system_archetypes_to_db,
+)
+from novelos_mcp.archetype_recommendation import (
+    recommend_archetypes,
+    generate_derivation_draft,
+)
 
 
 def _id(prefix: str) -> str:
@@ -49,7 +57,7 @@ def _require_sha256(value: Any, field: str) -> str:
         or not value.startswith("sha256:")
         or any(character not in "0123456789abcdef" for character in value[7:])
     ):
-        raise NovelOSError("invalid_argument", f"{field} 必须是 sha256 Hash")
+        raise NovelOSError("invalid_argument", f"{field} 必须是 sha256: 格式的 64 位十六进制字符串", {"field": field})
     return value
 
 
@@ -104,6 +112,10 @@ class NovelOSService:
         self.catalog = CatalogStore(catalog_path)
         self.agent_contracts = AgentContractStore(agent_contract_path)
         self.creative_contracts = CreativeContractStore()
+        self.system_archetypes = load_system_archetypes_config()
+        with self.database.transaction() as connection:
+            sync_system_archetypes_to_db(connection, self.system_archetypes)
+
 
     @staticmethod
     def _row(row: sqlite3.Row) -> dict[str, Any]:
@@ -543,8 +555,11 @@ class NovelOSService:
         with self.database.transaction() as connection:
             profile = self._get(connection, "creator_profiles", profile_id)
             self._check_version(profile, expected_version)
+            if profile["ownership"] == "system_archetype":
+                raise NovelOSError("invalid_state", "系统叙事原型为只读资源，无法直接修改或修订")
             if profile["status"] != "active":
                 raise NovelOSError("invalid_state", "已归档作者 Profile 不能修订")
+
             parent = connection.execute(
                 "SELECT * FROM creator_profile_versions WHERE profile_id=? ORDER BY revision DESC LIMIT 1",
                 (profile_id,),
@@ -572,8 +587,11 @@ class NovelOSService:
         with self.database.transaction() as connection:
             profile = self._get(connection, "creator_profiles", profile_id)
             self._check_version(profile, expected_version)
+            if profile["ownership"] == "system_archetype":
+                raise NovelOSError("invalid_state", "系统叙事原型为只读资源，无法归档")
             if profile["status"] == "archived":
                 raise NovelOSError("invalid_state", "作者 Profile 已归档")
+
             connection.execute(
                 "UPDATE creator_profiles SET status='archived', version=version+1, updated_at=CURRENT_TIMESTAMP WHERE id=?",
                 (profile_id,),
@@ -588,23 +606,45 @@ class NovelOSService:
         with self.database.read() as connection:
             return self._creator_profile_version(connection, profile_version_id)
 
+    def list_system_archetypes(self) -> list[dict[str, Any]]:
+        with self.database.read() as connection:
+            rows = connection.execute(
+                "SELECT id FROM creator_profiles WHERE ownership='system_archetype' ORDER BY id"
+            ).fetchall()
+            return [self._creator_profile(connection, str(row["id"])) for row in rows]
+
     def list_creator_profiles(
         self,
         status: str = "active",
+        ownership: str = "user",
         limit: int = 50,
         offset: int = 0,
     ) -> list[dict[str, Any]]:
         if status not in {"active", "archived", "all"}:
             raise NovelOSError("invalid_argument", "作者 Profile status 非法")
+        if ownership not in {"user", "system_archetype", "all"}:
+            raise NovelOSError("invalid_argument", "作者 Profile ownership 非法")
         self._validate_page(limit, offset)
-        clause = "" if status == "all" else "WHERE status=?"
-        values: tuple[Any, ...] = (limit, offset) if status == "all" else (status, limit, offset)
+
+        conditions: list[str] = []
+        params: list[Any] = []
+        if status != "all":
+            conditions.append("status=?")
+            params.append(status)
+        if ownership != "all":
+            conditions.append("ownership=?")
+            params.append(ownership)
+
+        where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+        params.extend([limit, offset])
+
         with self.database.read() as connection:
             rows = connection.execute(
-                f"SELECT id FROM creator_profiles {clause} ORDER BY created_at, id LIMIT ? OFFSET ?",
-                values,
+                f"SELECT id FROM creator_profiles {where_clause} ORDER BY created_at, id LIMIT ? OFFSET ?",
+                tuple(params),
             ).fetchall()
             return [self._creator_profile(connection, str(row["id"])) for row in rows]
+
 
     def get_project_creator_binding(self, project_id: str) -> dict[str, Any]:
         with self.database.read() as connection:
@@ -3026,26 +3066,29 @@ class NovelOSService:
                 "作者绑定模式或字段非法",
                 {"mode": mode, "actual": sorted(creator)},
             )
-        if mode == "reuse":
-            version = self._get(connection, "creator_profile_versions", str(creator["profile_version_id"]))
-            if version["subject_hash"] != _require_sha256(creator["subject_hash"], "subject_hash"):
-                raise NovelOSError("hash_mismatch", "复用作者签名版本 Hash 不一致")
-            profile = self._get(connection, "creator_profiles", str(version["profile_id"]))
-            if profile["status"] != "active":
-                raise NovelOSError("invalid_state", "不能为新项目选择已归档作者 Profile")
-            return version, mode
-        if mode == "create":
-            signature = self.creative_contracts.validate_signature(creator["signature"])
-            _, created = self._create_creator_profile_in_transaction(
-                connection,
-                creator["display_name"],
-                signature,
+        if mode != "derive":
+            raise NovelOSError(
+                "invalid_creator_binding",
+                "项目创建向导只支持从系统原型派生 (mode='derive')",
+                {"mode": mode},
             )
-            return self._get(connection, "creator_profile_versions", str(created["id"])), mode
 
         parent = self._get(connection, "creator_profile_versions", str(creator["parent_version_id"]))
         if parent["subject_hash"] != _require_sha256(creator["parent_subject_hash"], "parent_subject_hash"):
             raise NovelOSError("hash_mismatch", "派生父作者签名版本 Hash 不一致")
+
+        parent_profile = self._get(connection, "creator_profiles", str(parent["profile_id"]))
+        if parent_profile["status"] != "active":
+            raise NovelOSError("invalid_state", "不能从已归档作者 Profile 派生")
+        if parent_profile["ownership"] != "system_archetype":
+            raise NovelOSError(
+                "invalid_creator_binding",
+                "新项目派生必须以系统叙事原型为父版本",
+                {"parent_profile_id": parent["profile_id"]},
+            )
+
+
+
         base = self._creator_profile_version(connection, str(parent["id"]))["signature"]
         signature, overrides = self.creative_contracts.derive_signature(base, creator["overrides"])
         _, created = self._create_creator_profile_in_transaction(
@@ -3056,6 +3099,7 @@ class NovelOSService:
             derivation=overrides,
         )
         return self._get(connection, "creator_profile_versions", str(created["id"])), mode
+
 
     def _insert_project_creator_binding(
         self,

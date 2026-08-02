@@ -59,12 +59,12 @@ class ShippingArtifactsTest(unittest.TestCase):
 
     def test_restore_manifest_proves_logical_identity(self) -> None:
         manifest = json.loads(
-            (ROOT / "tasks" / "migration" / "schema11_restore_drill.json").read_text(encoding="utf-8")
+            (ROOT / "tasks" / "migration" / "schema12_restore_drill.json").read_text(encoding="utf-8")
         )
         self.assertEqual("passed", manifest["restore_drill"])
         snapshot = manifest["logical_snapshot"]
         self.assertEqual("ok", snapshot["quick_check"])
-        self.assertEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], snapshot["schema_versions"])
+        self.assertEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], snapshot["schema_versions"])
         self.assertRegex(snapshot["logical_hash"], r"^sha256:[0-9a-f]{64}$")
 
 

@@ -12,8 +12,8 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SOURCE = ROOT / "data" / "novelos-v2.db"
-DEFAULT_BACKUP = ROOT / "data" / "migration" / "novelos-v2-schema11-backup.db"
-DEFAULT_MANIFEST = ROOT / "tasks" / "migration" / "schema11_restore_drill.json"
+DEFAULT_BACKUP = ROOT / "data" / "migration" / "novelos-v2-schema12-backup.db"
+DEFAULT_MANIFEST = ROOT / "tasks" / "migration" / "schema12_restore_drill.json"
 
 
 def _file_hash(path: Path) -> str:

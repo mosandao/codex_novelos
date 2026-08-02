@@ -95,8 +95,8 @@ def build() -> dict[str, Any]:
         "automation.md",
     }
     actual_docs = {path.name for path in (ROOT / "documentation").glob("*.md")}
-    restore = _json(ROOT / "tasks" / "migration" / "schema11_restore_drill.json")
-    export_drill = _json(ROOT / "tasks" / "migration" / "schema11_export_drill.json")
+    restore = _json(ROOT / "tasks" / "migration" / "schema12_restore_drill.json")
+    export_drill = _json(ROOT / "tasks" / "migration" / "schema12_export_drill.json")
     quality = _json(DEFAULT_RESULTS / "summary.json")
     quality_evidence_valid = summary_is_current(DEFAULT_DATASET, DEFAULT_RESULTS)
     authorization = (ROOT / "tasks" / "migration" / "seed_authorization_audit.md").read_text(encoding="utf-8")
