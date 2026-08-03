@@ -32,7 +32,7 @@ class UnifiedRunnerProtocolTest(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual("novelos", initialized.serverInfo.name)
                     tools = await session.list_tools()
                     names = {tool.name for tool in tools.tools}
-                    self.assertEqual(82, len(names))
+                    self.assertEqual(83, len(names))
                     for tool_name in (
                         "creator_profile.create",
                         "creator_profile.derive",
@@ -48,6 +48,7 @@ class UnifiedRunnerProtocolTest(unittest.IsolatedAsyncioTestCase):
                         self.assertIn(tool_name, names)
                     self.assertNotIn("project.wizard.render", names)
                     self.assertIn("project.wizard.submit", names)
+                    self.assertIn("project.wizard.reconcile_archetypes", names)
                     self.assertIn("project.delete", names)
                     self.assertIn("agent.start", names)
                     self.assertIn("planning.create_candidate_from_run", names)

@@ -11,7 +11,9 @@
 3. 页面按项目定位确定性推荐三个系统叙事原型并显示匹配分；用户仍可浏览全部 18 个原型，
    查看只读继承项，并编辑或清空本书差异。提交只使用 `derive`，不允许 `create` 或 `reuse`。
 4. 页面生成 `novelos.project.create.v1` JSON，显示在页面底部并尝试自动复制；复制失败时提供
-   手动复制按钮。用户把原始 JSON 发送给 Main，Main 只提取 `setup` 并调用 `project.wizard.submit`。
+   手动复制按钮。用户把原始 JSON 发送给 Main。页面产出的 `creator.selected_archetypes` 是
+   多原型数组，Main 先调用 `project.wizard.reconcile_archetypes` 把多原型融合为单一 parent
+   的 derive 结构，再以该结构调用 `project.wizard.submit`。
 5. MCP 只接受固定频道、平台、规模、一级题材和该题材对应的二级方向，拒绝已移除的自定义项、
    知乎盐选、无效字段或跨题材二级方向；随后在同一事务中确认或创建不可变 Creator Profile 版本、创建项目、写入
    `metadata.project_setup` 并绑定精确 revision/Hash，随后刷新默认投影。
