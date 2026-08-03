@@ -169,6 +169,17 @@ def create_server(
         "projection.render_project_folder": service.render_project_projection,
         "projection.verify_manifest": service.verify_project_projection,
     }
+
+    def reconcile_project_wizard_archetypes(
+        selected_archetypes: list[dict[str, Any]],
+        project_setup: dict[str, Any],
+        display_name: str,
+    ) -> dict[str, Any]:
+        return service.reconcile_project_wizard_archetypes(
+            selected_archetypes,
+            project_setup,
+            display_name,
+        )
     for name, handler in tools.items():
         server.tool(name=name)(handler)
 
@@ -190,6 +201,24 @@ def create_server(
             "openai/widgetAccessible": True,
         },
     )(submit_project_wizard)
+    server.tool(
+        name="project.wizard.reconcile_archetypes",
+        title="融合项目向导多原型选择",
+        description=(
+            "把项目向导产出的多原型 selected_archetypes 与项目 setup 确定性融合为"
+            "合规的单 parent derive 结构，供 project.wizard.submit 直接使用。"
+        ),
+        annotations=ToolAnnotations(
+            readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=False,
+        ),
+        meta={
+            "ui": {"visibility": ["app"]},
+            "openai/widgetAccessible": True,
+        },
+    )(reconcile_project_wizard_archetypes)
     @server.resource("novelos://resource/{resource_id}")
     def resource(resource_id: str) -> str:
         return service.get_resource(resource_id)

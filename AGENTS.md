@@ -107,9 +107,12 @@ Character 与 World 可以并行生成，但进入 Story Arc 前必须完成交�
 
 1. Main 向用户提供本地 HTML 的绝对路径；用户先填写项目名、频道、目标平台、作品规模、一级题材、二级方向、主情绪基调、美学风格和
    可选创作资料；页面按这些约束确定性推荐三个系统叙事原型。用户选择原型、确认只读继承项并
-   编辑本书最小差异后，页面生成 `novelos.project.create.v1` JSON 并显示/复制到页面底部；Main
-   解析 JSON 的 `setup` 后以 `derive` 模式调用 `project.wizard.submit`。新向导不得提交
-   `reuse` 或 `create`；历史绑定仍保持可读。
+   编辑本书最小差异后，页面生成 `novelos.project.create.v1` JSON 并显示/复制到页面底部。
+   页面产出的 `creator.selected_archetypes` 是多原型数组，Main 解析 JSON 的 `setup` 后
+   必须先调用 `project.wizard.reconcile_archetypes`，把多原型选择确定性融合为单一 parent
+   的 derive 结构（取打分最高的原型作 parent，生成基础 overrides，并把其余原型的读者承诺
+   作为辅风格追加到 `recurring_attention`），再以 `derive` 模式调用 `project.wizard.submit`。
+   新向导不得提交 `reuse` 或 `create`；历史绑定仍保持可读。
 3. MCP 在同一事务中确认或创建不可变 Creator Profile 版本、创建项目并绑定精确 revision/Hash；
    任一步失败都不得留下项目或孤立绑定。
 4. Main 从返回值读取 `metadata.project_setup` 和 `creator_binding.constraint_ref`，启动 Trace 后把二者
