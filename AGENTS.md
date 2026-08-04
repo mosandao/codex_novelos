@@ -24,7 +24,7 @@ Agent 的机器可校验业务契约以 `config/agents.yaml` 为唯一来源。�
 
 ### 规划资产 Agent
 
-当前角色清单共 12 类：1 个常驻 主控智能体、8 个临时规划资产 Agent，以及 Writer、Review、上下文构建智能体 3 个临时执行角色。这个数字表示可用职责模板，不表示一次请求会同时创建 12 个 Agent。
+当前角色清单共 13 类：1 个常驻 主控智能体、8 个临时规划资产 Agent，以及 Writer、Review、上下文构建智能体 3 个临时执行角色，加上项目创建阶段做多原型 LLM 融合的 引导融合智能体。这个数字表示可用职责模板，不表示一次请求会同时创建 13 个 Agent。
 
 | Agent | 负责的资产或结果 | 主要上游 |
 |---|---|---|
@@ -55,8 +55,9 @@ Architecture、Strategy 和 Story Arc 必须保持为三个资产层级：Archit
 | 写作智能体 | 完整章节、长场景或需要隔离创作上下文 | 正文候选 |
 | 审查智能体 | 权威资产锁定、正文接受或连续性晋升前需要独立复核 | 绑定 `subject_hash` 的 Review Receipt |
 | 上下文构建智能体 | 跨卷、多线、事实冲突或上下文超出单次 Memory Skill 可控范围 | 精选上下文包和遗漏风险 |
+| 引导融合智能体 | 项目创建阶段用户选了 ≥2 个系统原型，确定性融合不足以承载跨原型约束 | `creator_derivation_candidate`（判定的 parent + 深度融合 signature + 融合理由） |
 
-Writer、Review 和 上下文构建智能体 不拥有规划资产。审查智能体 通过不同 Review Profile 复用同一隔离审查角色，不按资产类型继续拆成多个 Reviewer。
+Writer、Review、上下文构建和 引导融合智能体 不拥有规划资产。审查智能体 通过不同 Review Profile 复用同一隔离审查角色，不按资产类型继续拆成多个 Reviewer。引导融合智能体 只在项目创建 Trace 内运行，输出经 `reconcile_archetypes` 确定性校验后由 `project.wizard.submit` 落库，自身不持有提交权限。
 
 完整 70-case 质量实验当前按用户决定延期。实验完成前采用保守路由：写作智能体 只用于完整章节、长场景或明确需要隔离创作上下文的任务；上下文构建智能体 只用于跨卷、多线、事实冲突或上下文溢出。现有部分实验结果不构成质量结论，也不得据此扩大触发范围。
 
@@ -111,9 +112,20 @@ Character 与 World 可以并行生成，但进入 Story Arc 前必须完成交�
    可选创作资料；页面按这些约束确定性推荐三个系统叙事原型。用户选择原型、确认只读继承项并
    编辑本书最小差异后，页面生成 `novelos.project.create.v1` JSON 并显示/复制到页面底部。
    页面产出的 `creator.selected_archetypes` 是多原型数组，Main 解析 JSON 的 `setup` 后
-   必须先调用 `project.wizard.reconcile_archetypes`，把多原型选择确定性融合为单一 parent
-   的 derive 结构（取打分最高的原型作 parent，生成基础 overrides，并把其余原型的读者承诺
-   作为辅风格追加到 `recurring_attention`），再以 `derive` 模式调用 `project.wizard.submit`。
+   按 `selected_archetypes` 数量选择签名融合路径：
+
+   - **单原型**：直接调用 `project.wizard.reconcile_archetypes`，把选择确定性融合为单一 parent
+     的 derive 结构（取打分最高的原型作 parent，生成基础 overrides，并把其余原型的读者承诺
+     作为辅风格追加到 `recurring_attention`），再以 `derive` 模式调用 `project.wizard.submit`。
+   - **多原型（≥2）**：`reconcile_archetypes` 的确定性融合只把辅原型压缩成 `recurring_attention`
+     脚注，会丢弃大量跨原型约束。因此必须先在 Trace 内创建临时 `onboarding_agent` run，把
+     `selected_archetypes`、`project_setup` 和各原型完整签名交给它，由 LLM 判定 parent 并对
+     跨原型约束做深度融合，产出 `creator_derivation_candidate`（含完整 `signature` 与
+     `merge_rationale`）。随后用 Agent 判定的 parent 调用 `project.wizard.reconcile_archetypes`
+     做确定性合规收口（校验 parent/Hash 与配置一致、签名过 schema 校验），再以 `derive` 模式调用
+     `project.wizard.submit`。无论哪条路径，落库前签名都必须通过确定性 schema 校验；LLM 只在
+     `onboarding_agent` run 内推理，MCP 不调 LLM。详见 Task 12。
+
    新向导不得提交 `reuse` 或 `create`；历史绑定仍保持可读。
 3. MCP 在同一事务中确认或创建不可变 Creator Profile 版本、创建项目并绑定精确 revision/Hash；
    任一步失败都不得留下项目或孤立绑定。
@@ -123,7 +135,9 @@ Character 与 World 可以并行生成，但进入 Story Arc 前必须完成交�
    输出仍必须再次刷新投影。
 
 向导的频道、平台、规模和一级题材为固定选项；二级方向按一级题材显示 18 个静态、LLM
-预生成候选，不在提交时调用 LLM，也不接受自定义方向。`emotional_tones` 可多选，
+预生成候选，本地 `file://` 页面与 `project.wizard.submit` 落库事务本身不调用 LLM，
+也不接受自定义方向。多原型签名融合由临时 `onboarding_agent` 在 MCP 外的 Codex run 内完成，
+落库前仍经 `reconcile_archetypes` 确定性校验。`emotional_tones` 可多选，
 `aesthetic_styles` 最多两项，`reference_material` 为可选多行资料，最多 10,000 个字符。
 “知乎盐选”、所有“自定义”选项和自定义字数均不属于 V3 契约。本地 `file://` 页面只生成 JSON，
 不直接写入数据库，也不声称项目已经创建。
@@ -131,8 +145,10 @@ Character 与 World 可以并行生成，但进入 Story Arc 前必须完成交�
 向导只创建项目容器并记录 `project_setup` 约束；页面不得直接生成、锁定或提交规划资产，
 也不得跳过 Trace、Agent、Review 或 authority commit 门禁。
 
-`creator_signature` 是用户拥有的跨项目配置，不是 Agent。Profile 修订创建新版本，不推动既有
-项目漂移。项目切换作者版本必须在运行中的本项目 Trace 内调用 `project.creator.rebind` 并提供
+`creator_signature` 是用户拥有的跨项目配置，不是规划资产。Profile 修订创建新版本，不推动既有
+项目漂移。临时 `onboarding_agent` 只在项目创建时做多原型 LLM 融合推理，输出
+`creator_derivation_candidate`，不拥有 Creator Profile 资产，也不持有提交权限；落库仍由
+`project.wizard.submit` 在确定性校验后完成。项目切换作者版本必须在运行中的本项目 Trace 内调用 `project.creator.rebind` 并提供
 当前 `expected_version`、目标 Hash 和原因；成功后当前 Direction 及全部后代标记为 `stale`，
 保留旧版本与 Trace 证据，不自动重生成。`book_soul` 属于 Story Direction；修改它必须生成、
 审查并锁定新的 Direction 候选。Writer `style_refs` 至少包含当前作者签名精确 ref 与 locked

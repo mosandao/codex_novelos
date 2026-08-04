@@ -5,10 +5,13 @@
 Codex 主控智能体 是唯一自动化编排者。NovelOS 不运行后台 worker、cron、Webhook 或自主循环；业务 Agent 只能在用户任务期间由 Main 按需创建，完成一次结果后销毁。
 
 项目创建向导由 Main 编排：Main 提供本地 HTML 路径，页面生成结构化
-`novelos.project.create.v1` JSON；用户将其发回后，Main 先调用 `project.wizard.reconcile_archetypes`
-把多原型选择融合为单一 parent 的 derive 结构，再调用 `project.wizard.submit` 原子创建或确认
-Creator Profile 版本、创建项目、建立精确绑定并刷新投影。新向导不得提交 `reuse` 或 `create`。
-该步骤不创建业务 Agent，也不产生规划资产；Main 必须随后读取 `metadata.project_setup` 与
+`novelos.project.create.v1` JSON；用户将其发回后，Main 按 `selected_archetypes` 数量选择签名融合
+路径。单原型直接调用 `project.wizard.reconcile_archetypes` 确定性融合；多原型（≥2）先在 Trace 内
+创建临时 `onboarding_agent` run，由 LLM 判定 parent 并深度融合跨原型约束，产出
+`creator_derivation_candidate`，再经 `project.wizard.reconcile_archetypes` 确定性合规收口。两条路径
+最终都调用 `project.wizard.submit` 原子创建或确认 Creator Profile 版本、创建项目、建立精确绑定并
+刷新投影。新向导不得提交 `reuse` 或 `create`。落库事务本身不调用 LLM，LLM 只在 `onboarding_agent`
+的 Codex run 内运行；该步骤不产生规划资产；Main 必须随后读取 `metadata.project_setup` 与
 `creator_binding.constraint_ref`、启动 Trace，并按正常流程创建方向智能体。本地页面不直接写数据库，
 只负责原型选择、表单校验和 JSON 生成。
 
@@ -20,10 +23,12 @@ Creator Profile 版本、创建项目、建立精确绑定并刷新投影。新�
 | 写作智能体 | 完整章节、长场景或需隔离创作上下文 | `chapter_draft_candidate` | 无；Main 创建草稿 |
 | 审查智能体 | 规划锁定、章节接受、Entity 提交、连续性晋升前 | `review_receipt_candidate` | 无；Main 记录 Review |
 | 上下文构建智能体 | 跨卷、多线、事实冲突或上下文溢出 | `context_package` | 无 |
+| 引导融合智能体 | 项目创建阶段用户选了 ≥2 个系统原型 | `creator_derivation_candidate` | 无；Main 用其输出经 reconcile 收口后 submit |
 
 精确角色、最小输入、输出类型、Catalog 包、Review Profile、spawn gate、运行时 enforcement 和工具白名单位于 `config/agents.yaml`。`review_profile_routes` 的 key 是合法 Profile 名唯一注册表；roles、交叉一致性检查和章节、连续性、Entity 等业务用途都只保存引用。MCP 启动时验证引用结构、非空值和注册关系，缺失、拼错、未知字段或未注册 Profile 均失败关闭。
 
-作者签名不是 Agent，也不新增常驻角色或第九种规划资产 owner。它是用户拥有的不可变版本配置；
+作者签名不是规划资产，也不新增常驻角色或第九种规划资产 owner。它是用户拥有的不可变版本配置；
+多原型签名融合由临时 `onboarding_agent` 在项目创建 Trace 内完成，run 结束即销毁，不持有提交权限。
 本书 `book_soul` 由既有方向智能体生成，Writer 仍按完整章节/长场景的保守条件临时创建。
 
 ## Steering 与硬门禁

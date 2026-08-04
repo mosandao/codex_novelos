@@ -1,5 +1,7 @@
 # Task 09：叙事原型与项目化作者派生
 
+> 本任务的「非目标」第 1、3 条已被 [Task 12](./12_archetype_llm_merge_agent.md) 修订：允许新增 temporary `onboarding_agent` 在项目创建 Trace 内做多原型 LLM 深度融合，落库仍经确定性校验。本任务的确定性 reconcile 流程保持不变，继续作为单原型路径与多原型路径的合规校验收口。
+
 ## 状态
 
 `DONE`

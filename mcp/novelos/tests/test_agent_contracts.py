@@ -302,6 +302,88 @@ class AgentContractTest(unittest.TestCase):
         with self.assertRaisesRegex(NovelOSError, "非法"):
             AgentContractStore._validate_enforcement({"strict_unknown": True})
 
+    def test_onboarding_agent_contract_is_well_formed(self) -> None:
+        """引导融合智能体：受契约约束的临时角色，承载多原型 LLM 深度融合。"""
+        from novelos_mcp.agent_contracts import AgentContractStore
+
+        role = self.roles["onboarding_agent"]
+        self.assertEqual("onboarding", role["kind"])
+        self.assertEqual("temporary", role["lifecycle"])
+        self.assertTrue(role["must_destroy"])
+        self.assertIsNone(role["owned_asset_type"])
+        self.assertIsNone(role["review_profile"])
+        self.assertIsNone(role["catalog_package"])
+        self.assertEqual(["creator_derivation_candidate", "change_proposal"], role["output_types"])
+        self.assertEqual(set(self.roles["direction_agent"]["allowed_tools"]), set(role["allowed_tools"]))
+        for required_input in ("selected_archetypes", "project_setup", "system_archetype_refs"):
+            self.assertIn(required_input, role["minimum_inputs"])
+
+        store = AgentContractStore(CONFIG_PATH)
+        self.assertIn("onboarding_agent", store.roles)
+        self.assertIn("creator_derivation_candidate", store.output_schemas)
+        store.validate_spawn("onboarding_agent", {})
+
+    def test_creator_derivation_candidate_schema_fail_closed(self) -> None:
+        """creator_derivation_candidate 输出 schema：合法 payload 通过，缺字段被拒。"""
+        from novelos_mcp.agent_contracts import AgentContractStore
+        from novelos_mcp import NovelOSError
+
+        store = AgentContractStore(CONFIG_PATH)
+        candidate = {
+            "parent_version_id": "creator-profile-version:system-epic-framework:1",
+            "parent_subject_hash": "sha256:" + "a" * 64,
+            "display_name": "次子铸神纪",
+            "signature": {
+                "schema_version": 1,
+                "sympathies": ["同理在规则缝隙中抗争的个体"],
+                "distrusts": ["警惕无代价力量膨胀"],
+                "recurring_attention": ["持续关注力量体系演进"],
+                "narrative_principles": ["遵循力量必有代价的叙事逻辑"],
+                "forbidden_conveniences": ["禁止无代价机械降神"],
+                "expression_preferences": ["偏好宏阔克制的史诗笔触"],
+                "negative_constraints": ["不得放弃力量体系的严密性"],
+            },
+            "merge_rationale": "体系史诗延展性最强，匹配神战/创世终局。",
+        }
+        store.validate_output("creator_derivation_candidate", candidate)
+
+        incomplete = dict(candidate)
+        incomplete["signature"] = {"schema_version": 1, "sympathies": ["x"]}
+        with self.assertRaisesRegex(NovelOSError, "output_type Schema"):
+            store.validate_output("creator_derivation_candidate", incomplete)
+
+        with self.assertRaisesRegex(NovelOSError, "output_type Schema"):
+            store.validate_output(
+                "creator_derivation_candidate",
+                dict(candidate, parent_subject_hash="not-a-hash"),
+            )
+
+    def test_creator_derivation_candidate_signature_passes_deterministic_validation(self) -> None:
+        """onboarding_agent 的 LLM 融合输出经确定性 validate_signature 收口可用。"""
+        from novelos_mcp.agent_contracts import AgentContractStore
+        from novelos_mcp.creative_contracts import CreativeContractStore
+
+        store = AgentContractStore(CONFIG_PATH)
+        cc = CreativeContractStore()
+        candidate = {
+            "parent_version_id": "creator-profile-version:system-epic-framework:1",
+            "parent_subject_hash": "sha256:" + "a" * 64,
+            "display_name": "次子铸神纪",
+            "signature": {
+                "schema_version": 1,
+                "sympathies": ["同理在规则缝隙中抗争的个体"],
+                "distrusts": ["警惕无代价力量膨胀"],
+                "recurring_attention": ["持续关注力量体系演进"],
+                "narrative_principles": ["遵循力量必有代价的叙事逻辑"],
+                "forbidden_conveniences": ["禁止无代价机械降神"],
+                "expression_preferences": ["偏好宏阔克制的史诗笔触"],
+                "negative_constraints": ["不得放弃力量体系的严密性"],
+            },
+            "merge_rationale": "体系史诗为骨架，经营复兴承载起点。",
+        }
+        store.validate_output("creator_derivation_candidate", candidate)
+        cc.validate_signature(candidate["signature"])
+
 
 if __name__ == "__main__":
     unittest.main()

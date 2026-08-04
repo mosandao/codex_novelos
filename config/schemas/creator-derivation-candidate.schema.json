@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://novelos.local/schemas/creator-derivation-candidate.schema.json",
+  "title": "NovelOS 原型 LLM 融合候选输出",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "parent_version_id",
+    "parent_subject_hash",
+    "display_name",
+    "signature",
+    "merge_rationale"
+  ],
+  "properties": {
+    "parent_version_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "LLM 判定的主体 parent 原型 profile_version_id"
+    },
+    "parent_subject_hash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "description": "parent 原型的 subject_hash，必须与 system_archetypes 配置一致"
+    },
+    "display_name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120,
+      "description": "融合后作者签名的展示名"
+    },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "sympathies",
+        "distrusts",
+        "recurring_attention",
+        "narrative_principles",
+        "forbidden_conveniences",
+        "expression_preferences",
+        "negative_constraints"
+      ],
+      "properties": {
+        "schema_version": {"const": 1},
+        "sympathies": {"$ref": "#/$defs/non_empty_text_list"},
+        "distrusts": {"$ref": "#/$defs/non_empty_text_list"},
+        "recurring_attention": {"$ref": "#/$defs/non_empty_text_list"},
+        "narrative_principles": {"$ref": "#/$defs/non_empty_text_list"},
+        "forbidden_conveniences": {"$ref": "#/$defs/non_empty_text_list"},
+        "expression_preferences": {"$ref": "#/$defs/non_empty_text_list"},
+        "negative_constraints": {"$ref": "#/$defs/non_empty_text_list"}
+      },
+      "description": "深度融合后的完整作者签名，必须能通过 creator-signature schema 校验"
+    },
+    "merge_rationale": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000,
+      "description": "LLM 判定 parent 与跨原型约束融合的理由，用于追溯与审查"
+    }
+  },
+  "$defs": {
+    "non_empty_text_list": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 24,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 500,
+        "pattern": "\\S"
+      }
+    }
+  }
+}

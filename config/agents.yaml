@@ -14,6 +14,7 @@ runtime:
     planning_candidate: config/schemas/planning-candidate.schema.json
     chapter_draft_candidate: config/schemas/text-candidate.schema.json
     review_receipt_candidate: config/schemas/review-receipt-candidate.schema.json
+    creator_derivation_candidate: config/schemas/creator-derivation-candidate.schema.json
 
 spawn_gates:
   context_builder:
@@ -339,6 +340,25 @@ roles:
     review_profile: null
     catalog_package: null
     spawn_condition: cross_volume_or_context_overflow
+    must_destroy: true
+
+  onboarding_agent:
+    display_name: 引导融合智能体
+    kind: onboarding
+    lifecycle: temporary
+    owned_asset_type: null
+    required_upstream_types: []
+    minimum_inputs:
+      - selected_archetypes
+      - project_setup
+      - system_archetype_refs
+    allowed_tools: *read_only_tools
+    output_types:
+      - creator_derivation_candidate
+      - change_proposal
+    review_profile: null
+    catalog_package: null
+    spawn_condition: archetype_merge_required
     must_destroy: true
 
 cross_consistency_gate:

@@ -6,7 +6,7 @@
 
 | Task | 状态 | 目标 |
 |---|---|---|
-| 无 | - | - |
+| [Task 12](./12_archetype_llm_merge_agent.md) | `IN PROGRESS` | 新增临时 `onboarding_agent` 角色固化多原型 LLM 深度融合流程 |
 
 ## 延期工作
 
