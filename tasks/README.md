@@ -34,6 +34,7 @@
 | [Task 13](./13_planning_skill_schema_checklists.md) | 完成规划/审查 Skill 操作前置检查、book_soul 速查表与 `creative_contracts._validate` 错误信息改进，通过 53 项根测试与 158 项 MCP 测试 |
 | [Task 14](./14_planning_catalog_and_id_checklists.md) | 新增 Catalog 搜索参数值、snapshot hash 校验、项目 ID 前缀与 upstream_refs 格式操作前置检查 |
 | [Task 15](./15_volume_outline_pacing_density.md) | 新增 Volume Outline 节奏密度约束（战略骨架不可碎 + 并行冲突线/副高潮/POV 多样性 + 节奏阀门） |
+| [Task 16](./16_review_prompt_self_containment.md) | 修复审查 sub-agent token 暴涨：审查 prompt 必须自包含全部上游原文，禁止依赖 sub-agent 自行读文件 |
 
 ## 目录边界
 

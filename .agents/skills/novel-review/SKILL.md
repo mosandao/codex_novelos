@@ -42,3 +42,15 @@ description: 独立审查不可变小说资产并生成绑定 subject_hash 的 R
 - `subject_type != review_subject` 时**不得**包含 `assessment` 字段（schema 用 `allOf/if-then-else` 约束）。
 - findings 的 `severity` 只接受 `blocking`、`warning`、`note`。
 - `verdict` 只接受 `approved`、`rejected`；存在 `blocking` finding 时必须是 `rejected`。
+
+### 审查 prompt 自包含约束
+
+创建审查 Codex Task sub-agent 时，prompt 必须包含**审查所需的全部上游文本原文**，不能只传摘要或"铁律速查"。
+
+根因实例：Architecture 审查 prompt 传入了完整的 Direction 全文（含 book_soul 9 字段原文），sub-agent 0 次 tool_uses、39K tokens；Strategy 审查 prompt 只传了上游摘要，sub-agent 自己用 22 次工具调用去读文件补充信息，消耗 613K tokens（15.5 倍）。摘要不完整 → sub-agent 自行探索 → token 失控。
+
+规则：
+
+- **传入完整原文**：候选正文全文 + 全部已锁定上游资产的正文全文（不是摘要）。多层资产审查时（如 Strategy 的上游是 Direction + Architecture），所有上游都要传完整原文。
+- **禁止依赖 sub-agent 自行读文件**：审查 sub-agent 的 prompt 自包含全部审查依据后，应在 prompt 中明确指示「依据已在 prompt 中提供，不需要读取文件或搜索」。
+- **token 预算**：若候选+全部上游原文总和超过约 2 万字，优先压缩候选摘要（保留关键段落原文引用），但上游铁律（forbidden_resolutions、central_contradiction、守恒律等）必须保留原文，不可摘要化。
