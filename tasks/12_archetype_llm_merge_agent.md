@@ -2,7 +2,7 @@
 
 ## 状态
 
-`IN PROGRESS`
+`DONE`
 
 ## 背景
 
@@ -59,18 +59,18 @@ Task 09 非目标第 1 条「新增作者 Agent、叙事原型 Agent 或任何�
 
 ## 来源信息
 
-- 来源 commit：本次变更所在 commit（待回填）
+- 来源 commit：`5b4b6ef` feat: 新增临时 onboarding_agent 固化多原型 LLM 深度融合
 - 触发实例：项目 `project:ea0831c1-cb35-4404-8df4-b69e2a136967`（西幻）创建时，4 原型经人工 LLM 融合为 revision 2 签名（22 条约束），证明确定性融合不足以承载多原型场景。
 
 ## 验收标准
 
-- [ ] `onboarding_agent` 角色在 `AgentContractStore` 加载成功，13 个角色全部就绪。
-- [ ] `onboarding_agent` 的 `lifecycle: temporary`、`must_destroy: true`、`review_profile: null`、`owned_asset_type: null`，能通过 `start_agent_run` 的生命周期门控。
-- [ ] `creator_derivation_candidate` schema 注册到 `runtime.output_schemas`，合法 payload 通过校验，缺字段 payload 被拒绝。
-- [ ] `creator_derivation_candidate.signature` 能通过 `CreativeContractStore.validate_signature`，保证确定性收口可用。
-- [ ] `.agents/skills/novel-project/SKILL.md` 与 `AGENTS.md` 一致描述单/多原型两条路径。
-- [ ] Task 09 顶部指针指向本任务的非目标修订。
-- [ ] 根测试、MCP 测试、`compileall` 全部通过。
+- [x] `onboarding_agent` 角色在 `AgentContractStore` 加载成功，13 个角色全部就绪。
+- [x] `onboarding_agent` 的 `lifecycle: temporary`、`must_destroy: true`、`review_profile: null`、`owned_asset_type: null`，能通过 `start_agent_run` 的生命周期门控。
+- [x] `creator_derivation_candidate` schema 注册到 `runtime.output_schemas`，合法 payload 通过校验，缺字段 payload 被拒绝。
+- [x] `creator_derivation_candidate.signature` 能通过 `CreativeContractStore.validate_signature`，保证确定性收口可用。
+- [x] `.agents/skills/novel-project/SKILL.md` 与 `AGENTS.md` 一致描述单/多原型两条路径。
+- [x] Task 09 顶部指针指向本任务的非目标修订。
+- [x] 根测试、MCP 测试、`compileall` 全部通过。
 
 ## 验证命令
 

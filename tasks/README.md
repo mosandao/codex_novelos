@@ -4,9 +4,7 @@
 
 ## 当前工作
 
-| Task | 状态 | 目标 |
-|---|---|---|
-| [Task 12](./12_archetype_llm_merge_agent.md) | `IN PROGRESS` | 新增临时 `onboarding_agent` 角色固化多原型 LLM 深度融合流程 |
+无。全部 Task 已完成。
 
 ## 延期工作
 
@@ -32,6 +30,7 @@
 | [Task 09](./09_narrative_archetype_derivation.md) | 完成 18 个系统叙事原型、仅派生向导、确定性 Top 3 推荐、Schema 12 数据生命周期和 190 项全量自动化测试 |
 | [Task 10](./10_service_module_split.md) | 完成 `service.py` 到 8 个领域 Mixin + 共享内部 Mixin 的无契约变化拆分，并通过 53 项根测试与 154 项 MCP 测试 |
 | [Task 11](./11_audit_architecture_pruning.md) | 完成 Review Profile 单一注册表、默认 lenient/可选 strict 门禁、启动期 fail-closed 校验及完整边界测试 |
+| [Task 12](./12_archetype_llm_merge_agent.md) | 新增临时 `onboarding_agent` 角色固化多原型 LLM 深度融合，`creator_derivation_candidate` schema + 确定性收口双路径，13 角色契约就绪 |
 | [Task 13](./13_planning_skill_schema_checklists.md) | 完成规划/审查 Skill 操作前置检查、book_soul 速查表与 `creative_contracts._validate` 错误信息改进，通过 53 项根测试与 158 项 MCP 测试 |
 
 ## 目录边界
