@@ -28,3 +28,13 @@ description: 管理 NovelOS 小说项目、书、卷和章节容器。创建或�
 无论哪条路径，落库前签名都必须通过确定性 schema 校验；LLM 只在 `onboarding_agent` run 内推理，MCP 不调 LLM。
 
 不要为一次容器查询或创建临时 Agent，也不要直接访问数据库或文件。
+
+## 操作前置检查
+
+### 项目 ID 前缀
+
+通过 `project.wizard.submit` 创建的项目，其 ID 格式为 `project:<uuid>`（带 `project:` 前缀）。在所有需要 `project_id` 参数的 MCP 工具调用（`planning.list`、`agent.start`、`planning.create_candidate_from_run`、`planning.lock` 等）中，必须使用带前缀的完整 ID。
+
+常见错误：从记忆或文档中只复制 UUID 部分（如 `ea0831c1-...`），遗漏 `project:` 前缀，导致 `not_found: projects 记录不存在`。
+
+确认方法：调用 `project.list`，从返回值的 `id` 字段读取完整 ID。`project.list` 可能返回多个同名项目（历史遗留的裸 UUID 项目与新前缀项目并存），以 `metadata.project_setup` 非空且 `version >= 2` 的那个为准。

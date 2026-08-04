@@ -52,6 +52,21 @@ description: 识别小说规划层级并准备对应权威资产的最小输入�
 - `planning_candidate` schema 接受非空字符串（正式候选）或实验结构化对象（延期实验专用），不接受 resource ref 对象。
 - 系统在 finish 事务内自动把 output 字符串存为 resource，不需要先手动创建 resource 再传 ref。
 
+### Catalog 搜索与校验规则
+
+调用 `skill_catalog.search` 和 `skill_catalog.validate` 时：
+
+- `asset` 参数值是**规划资产类型枚举**（如 `architecture`、`direction`、`strategy`），不是 Catalog skill 的展示名（如 `story-architecture`）。常见错误：用 skill name 做搜索参数，导致返回空 candidates。本文件「资产路由」表的 `asset_type` 列即为正确的 `asset` 值。
+- `snapshot_hash` 锚定的是**本次搜索返回的 candidates 子集**，不同搜索参数（宽窄不同）会返回不同 candidates 子集 → 不同 hash。因此搜索后必须**立即**用同一返回值里的 hash 调 `validate`，中间不能插入新的搜索或任何会改变候选集的操作；否则会报 `stale_catalog: Catalog 候选快照已变化`。
+
+### planning.create_candidate_from_run 的 upstream_refs 格式
+
+调用 `planning.create_candidate_from_run` 登记候选时：
+
+- `upstream_refs` 必须是 `list[dict]`，每个 dict 精确包含 `{"asset_id": str, "version": int}` 两个 key——不能多、不能少、不能传字符串数组或 novelos:// URI。
+- `asset_id` 是锁定资产的 ID（如 `planning:0eab6bf8-...`），`version` 是该资产锁定时的版本号（整数，从 `planning.list` 或 `planning.lock` 返回值的 `version` 字段读取）。
+- MCP 会校验每个上游资产的 `status == "locked"` 且 `version` 匹配；版本号错误会报 `stale_upstream`。
+
 ### book_soul 构造规则
 
 构造 Direction 候选的 `metadata.book_soul` 前，参考本文件末尾「book_soul 字段速查表」。常见错误：

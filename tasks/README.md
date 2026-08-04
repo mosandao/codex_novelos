@@ -32,6 +32,7 @@
 | [Task 11](./11_audit_architecture_pruning.md) | 完成 Review Profile 单一注册表、默认 lenient/可选 strict 门禁、启动期 fail-closed 校验及完整边界测试 |
 | [Task 12](./12_archetype_llm_merge_agent.md) | 新增临时 `onboarding_agent` 角色固化多原型 LLM 深度融合，`creator_derivation_candidate` schema + 确定性收口双路径，13 角色契约就绪 |
 | [Task 13](./13_planning_skill_schema_checklists.md) | 完成规划/审查 Skill 操作前置检查、book_soul 速查表与 `creative_contracts._validate` 错误信息改进，通过 53 项根测试与 158 项 MCP 测试 |
+| [Task 14](./14_planning_catalog_and_id_checklists.md) | 新增 Catalog 搜索参数值、snapshot hash 校验、项目 ID 前缀与 upstream_refs 格式操作前置检查 |
 
 ## 目录边界
 
