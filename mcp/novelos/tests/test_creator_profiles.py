@@ -145,6 +145,16 @@ class CreatorProfileTest(unittest.TestCase):
                 chapter_contract | {"moral_residue": {"kind": "none"}}
             )
 
+    def test_validation_error_message_includes_schema_reason(self) -> None:
+        """_validate 的错误信息应包含 jsonschema 的 message，便于定位缺失字段。"""
+        missing_version = book_soul()
+        del missing_version["schema_version"]
+        with self.assertRaises(NovelOSError) as ctx:
+            self.service.creative_contracts.validate_book_soul(missing_version)
+        self.assertIn("schema_version", ctx.exception.message)
+        details = ctx.exception.details
+        self.assertIn("required", details.get("schema_path", []))
+
     def test_reused_profile_versions_do_not_drift_after_revision(self) -> None:
         created = self.service.create_creator_profile("克制现实主义", signature("制度"))
         first = created["version"]

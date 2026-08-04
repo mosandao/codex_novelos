@@ -18,3 +18,27 @@ description: 独立审查不可变小说资产并生成绑定 subject_hash 的 R
 7. 由 Main Agent 调用 `review.record_from_run(reviewer_run_id)` 登记，MCP 直接读取并校验不可变 Agent 输出；不要由 Main 读取 Resource 后重组 Receipt。
 
 正文使用 `prose-*` Profile，连续性使用 `continuity-*` Profile，规划资产使用 `$novel-planning` 表中与 `asset_type` 精确对应的 Profile。
+
+## 操作前置检查
+
+以下规则来自实际审查执行中遇到的工具调用失败，在构造数据前必须确认。
+
+### 规划资产审查路径
+
+规划资产审查**不走** `review.prepare_subject`——该方法只接受 `subject_kind=agent_quality_evaluation`，是 Agent 质量实验专用入口。
+
+正确路径：
+
+1. 创建 `review_agent` run。`input_bindings` 必须精确包含 `immutable_subject_ref`、`subject_hash`、`review_profile`、`authority_context_refs` 四个字段（从 `config/agents.yaml` 的 `review_agent.minimum_inputs` 确认），每个 value 是非空字符串或非空字符串数组。
+2. 在隔离上下文中完成审查，`agent.finish` 时 `output_type=review_receipt_candidate`，`output` 传 `review_receipt_candidate` dict（不是正文文本字符串）。
+3. Main 调用 `review.record_from_run(reviewer_run_id)` 登记。
+
+### review_receipt_candidate 构造规则
+
+派生自 `config/schemas/review-receipt-candidate.schema.json`：
+
+- 每个 finding 必须含 `evidence_refs`（required，非空字符串数组，uniqueItems）；遗漏会导致整个 receipt 被拒。
+- `subject_type` 只接受 `chapter`、`continuity_candidate_set`、`planning_asset`、`entity_mutation`、`planning_cross_check`、`review_subject`。
+- `subject_type != review_subject` 时**不得**包含 `assessment` 字段（schema 用 `allOf/if-then-else` 约束）。
+- findings 的 `severity` 只接受 `blocking`、`warning`、`note`。
+- `verdict` 只接受 `approved`、`rejected`；存在 `blocking` finding 时必须是 `rejected`。
