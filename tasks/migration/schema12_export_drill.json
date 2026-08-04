@@ -1,8 +1,8 @@
 {
-  "export_manifest_hash": "sha256:e8183ed59c164aba2ee34ab00c6574e24d7796ad44f2c05ff06a8abde2204857",
+  "export_manifest_hash": "sha256:024385a828f2a0a309bb27a570ec0a6725d2eb3d5b37e54002dbb0ff34500776",
   "export_restore_drill": "passed",
   "logical_snapshot": {
-    "logical_hash": "sha256:7e49e616a4737f338848e34f35ef4796847cbebac6dfcf1343f264ef11155ee2",
+    "logical_hash": "sha256:c79758b3336f6a8c8f22276c50920589504657d1f3917f69ba33f8c8218258ef",
     "quick_check": "ok",
     "schema_versions": [
       1,
@@ -19,10 +19,10 @@
       12
     ],
     "table_counts": {
-      "agent_runs": 30,
+      "agent_runs": 0,
       "arc_states": 0,
-      "authority_commits": 11,
-      "books": 4,
+      "authority_commits": 0,
+      "books": 3,
       "chapter_completion_checkpoints": 0,
       "chapter_facts": 0,
       "chapters": 4,
@@ -37,27 +37,27 @@
       "legacy_imports": 1,
       "legacy_quarantine": 0,
       "narrative_promises": 0,
-      "planning_asset_dependencies": 13,
-      "planning_assets": 13,
-      "planning_cross_checks": 1,
+      "planning_asset_dependencies": 0,
+      "planning_assets": 0,
+      "planning_cross_checks": 0,
       "project_creator_bindings": 0,
-      "projects": 5,
+      "projects": 4,
       "relationship_states": 0,
-      "resources": 80,
+      "resources": 24,
       "review_subjects": 0,
-      "reviews": 11,
+      "reviews": 0,
       "rules": 0,
       "schema_migrations": 12,
       "timelines": 0,
-      "trace_steps": 77,
-      "traces": 21,
+      "trace_steps": 0,
+      "traces": 0,
       "volumes": 3,
       "worlds": 0
     }
   },
-  "row_count": 324,
+  "row_count": 89,
   "schema_version": 1,
-  "source_file_hash": "sha256:39f1d378862a4e1c0de1b909151ce5c0156d0b3b8eff52c31e6c216a8af4ee27",
+  "source_file_hash": "sha256:4a0c9d5e5ddbeed2b15d4968fac8036366887c10704bad638a7da3519516591e",
   "source_path": "/Users/yiyi/Documents/codex_novelos/data/novelos-v2.db",
   "table_count": 34
 }

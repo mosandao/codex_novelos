@@ -97,7 +97,7 @@ mcp/novelos/src/novelos_mcp/
 - 2026-08-03：`service.py` 已由 8 个领域 Mixin、`_ServiceInternals`、共享 helper/constant 与聚合 `service/__init__.py` 完整取代。
 - `test_runner_protocol.py` 继续确认 82 个 MCP 工具；stdio 协议测试通过。
 - 根测试 53 项、MCP 测试 154 项全部通过；全部 manifest、seed、备份、导出、hygiene、cutover 与 `compileall` 检查通过。
-- 正式库恢复前快照保存在 `data/migration/novelos-v2-before-task10-11-20260803.db`，恢复演练清单为 `tasks/migration/novelos-v2-before-task10-11-20260803.json`。
+- 2026-08-03 的恢复前快照清单保留在 `tasks/migration/novelos-v2-before-task10-11-20260803.json`。快照数据库已于 2026-08-04 按用户授权清理；正式库从冻结 Legacy 来源重新初始化为 Schema 12 基线，并重建当前 Schema 12 备份与恢复证据。
 
 ## 非目标
 
