@@ -38,10 +38,12 @@ scripts/run_novelos_mcp.sh
 
 该脚本供 Codex stdio MCP 配置调用，不是交互式命令。它显式使用 `data/novelos-v2.db`、`catalog/skills`、`config/agents.yaml` 和已授权的只读 seed；seed 必须匹配固定 inventory，且生产 runner 拒绝环境变量替换。
 
+`NovelOSService` 从 `novelos_mcp.service` 导入，实际由 `mcp/novelos/src/novelos_mcp/service/__init__.py` 聚合 8 个领域 Mixin 和共享 `_ServiceInternals`。原 `service.py` 已移除；外部导入、构造签名和 MCP 工具契约保持兼容。Review Profile 名以 `config/agents.yaml` 的 `review_profile_routes` 为唯一注册表，默认采用 lenient 声明性门禁，可通过同文件的 `runtime.enforcement` 切换 strict 行为。
+
 ## 验证
 
 ```bash
-PYTHONWARNINGS='error::ResourceWarning' .venv/bin/python -m unittest discover -s tests -v
+.venv/bin/python -m unittest discover -s tests -v
 PYTHONWARNINGS='error::ResourceWarning' PYTHONPATH=mcp/novelos/src .venv/bin/python -m unittest discover -s mcp/novelos/tests -v
 .venv/bin/python scripts/build_migration_manifest.py --output-dir tasks/migration --check
 .venv/bin/python scripts/build_catalog_manifest.py --check
@@ -63,11 +65,11 @@ PYTHONWARNINGS='error::ResourceWarning' PYTHONPATH=mcp/novelos/src .venv/bin/pyt
 
 ## 项目创建向导
 
-`project.wizard.render` 提供一个 MCP Apps HTML 向导资源 `ui://novelos/project-wizard-v3.html`。在支持 MCP Apps 的 Codex 宿主中调用该工具后，用户填写表单，页面通过 `project.wizard.submit` 校验并原子创建项目与作者签名精确版本绑定，随后自动刷新默认 `novels/<项目目录>/` 投影。
+默认入口是可直接打开的本地页面 `mcp/novelos/src/novelos_mcp/ui/project-wizard.html`，`project.wizard.render` 的 MCP Apps Resource 仅作兼容入口。本地页面不直接写数据库，只生成 `novelos.project.create.v1` JSON；用户将 JSON 发回后，主控智能体先调用 `project.wizard.reconcile_archetypes` 融合多原型选择，再以单一 parent 的 `derive` 结构调用 `project.wizard.submit`。MCP 在同一事务中确认或创建 Creator Profile 版本、创建项目并绑定精确 revision/Hash，成功后刷新默认 `novels/<项目目录>/` 投影。
 
-向导先要求在 `reuse`、`derive`、`create` 中选择作者签名：复用绑定已有精确 revision/Hash；派生从已有精确版本创建新 Profile 并只保存显式差异；新建创建首个版本。随后使用固定的频道（男频、女频、全向、出版、剧本）、目标平台（起点、番茄、晋江、七猫）、四档作品规模和 14 个一级题材。二级方向随一级题材切换，每个题材提供 18 个静态、LLM 预生成候选；不会在表单提交时调用 LLM，也不提供自定义选项、知乎盐选或自定义字数。主情绪基调可以多选，美学风格最多选择两项，用户创作资料为最多 10,000 字的可选多行文本。
+V3 新向导只允许 `derive`，不得提交 `reuse` 或 `create`；历史绑定仍可读取。页面使用固定频道（男频、女频、全向、出版、剧本）、目标平台（起点、番茄、晋江、七猫）、四档作品规模和 14 个一级题材。二级方向随一级题材切换，每个题材提供 18 个静态、LLM 预生成候选；不会在提交时调用 LLM，也不提供自定义选项、知乎盐选或自定义字数。主情绪基调可以多选，美学风格最多两项，用户创作资料为最多 10,000 字的可选多行文本。页面按约束确定性推荐三个系统叙事原型，用户确认继承项并编辑本书最小差异。
 
-表单结果保存为项目 `metadata.project_setup`：`creation_context` 包含频道、平台、规模、题材、二级方向和资料，`taxonomy` 包含情绪与美学偏好，`creator_selection` 记录绑定模式。主控智能体必须读取这些约束和返回的 `creator_binding.constraint_ref`，再启动正式 Trace 并将其交给方向智能体；方向候选形成该项目独有的 `book_soul`，向导本身不生成、锁定或提交任何规划资产。直接用 `file://.../project-wizard.html` 打开只能预览页面和静态题材联动，因没有 MCP Apps 通信桥，提交会被禁用。
+表单结果保存为项目 `metadata.project_setup`：`creation_context` 包含频道、平台、规模、题材、二级方向和资料，`taxonomy` 包含情绪与美学偏好，`creator_selection` 记录绑定模式。主控智能体必须读取这些约束和返回的 `creator_binding.constraint_ref`，再启动正式 Trace 并将其交给方向智能体；方向候选形成该项目独有的 `book_soul`，向导本身不生成、锁定或提交任何规划资产。直接用 `file://.../project-wizard.html` 打开可以完整填写并生成 JSON，但不会声称项目已经创建。
 
 Creator Profile 是用户拥有的跨项目不可变版本配置，不是常驻 Agent。Profile 后续修订不会让旧项目漂移；显式 rebind 会把当前 Direction 及全部后代标记为 `stale`，保留旧版本与 Trace 审计，并且不会自动重生成。Writer 只读取当前精确作者签名、locked Direction、POV 和局部风格引用，不自行决定作者思想。
 

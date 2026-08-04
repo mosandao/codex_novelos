@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import json
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
+
+import yaml
 
 from novelos_mcp import NovelOSError, NovelOSService
 from novelos_mcp.hashing import content_hash
@@ -26,6 +29,55 @@ class AgentWorkflowTest(unittest.TestCase):
             name: f"test:{name}"
             for name in self.service.agent_contracts.get(role_id)["minimum_inputs"]
         }
+
+    def _service_with_enforcement(self, *, strict_isolation: bool) -> NovelOSService:
+        root = Path(self.temporary.name) / ("strict-config" if strict_isolation else "lenient-config")
+        config_dir = root / "config"
+        shutil.copytree(Path(__file__).resolve().parents[3] / "config" / "schemas", config_dir / "schemas")
+        config = yaml.safe_load((Path(__file__).resolve().parents[3] / "config" / "agents.yaml").read_text(encoding="utf-8"))
+        config["runtime"]["enforcement"]["strict_isolation_evidence"] = strict_isolation
+        config_dir.mkdir(exist_ok=True)
+        config_path = config_dir / "agents.yaml"
+        config_path.write_text(yaml.safe_dump(config, allow_unicode=True, sort_keys=False), encoding="utf-8")
+        return NovelOSService(root / "novelos.db", agent_contract_path=config_path)
+
+    def _missing_evidence_review(self, service: NovelOSService) -> tuple[dict, dict, dict]:
+        project = service.create_project("缺失隔离凭据测试")
+        trace = service.start_trace("missing-isolation", project["id"])
+        bindings = {
+            name: f"test:{name}"
+            for name in service.agent_contracts.get("direction_agent")["minimum_inputs"]
+        }
+        producer = service.start_agent_run(trace["id"], "direction_agent", bindings)
+        service.finish_agent_run(producer["id"], "completed", "planning_candidate", "方向")
+        candidate = service.create_planning_candidate(
+            project["id"], "direction", project["id"], "方向", [], producer_run_id=producer["id"]
+        )
+        reviewer = service.start_agent_run(
+            trace["id"],
+            "review_agent",
+            {
+                "immutable_subject_ref": candidate["id"],
+                "subject_hash": candidate["subject_hash"],
+                "review_profile": "planning-direction",
+                "authority_context_refs": candidate["resource_ref"],
+            },
+        )
+        output = {
+            "subject_type": "planning_asset",
+            "subject_ref": candidate["id"],
+            "subject_hash": candidate["subject_hash"],
+            "verdict": "approved",
+            "findings": [],
+            "reviewer_profile": "planning-direction",
+            "evidence_refs": [candidate["resource_ref"]],
+        }
+        service.finish_agent_run(reviewer["id"], "completed", "review_receipt_candidate", output)
+        review = service.record_review(
+            "planning_asset", candidate["id"], candidate["subject_hash"], "approved", [],
+            "planning-direction", [candidate["resource_ref"]], reviewer["id"],
+        )
+        return candidate, review, trace
 
     def test_simple_task_finishes_without_spawning_agent(self) -> None:
         self.assertEqual(self.project["id"], self.service.get_project(self.project["id"])["id"])
@@ -336,54 +388,24 @@ class AgentWorkflowTest(unittest.TestCase):
         self.assertEqual("direction.coherent", review["findings"][0]["code"])
 
     def test_lock_rejected_without_isolation_evidence(self) -> None:
-        # 缺隔离凭据的 self-produced run 必须被 lock 拒绝（防御性校验）。
-        # 复刻 主控智能体 自审的真实路径：直接 start_agent_run 不传 isolation_evidence。
-        role = self.service.agent_contracts.get("direction_agent")
-        producer_run = self.service.start_agent_run(
-            self.trace["id"],
-            "direction_agent",
-            {name: f"test:{name}" for name in role["minimum_inputs"]},
+        lenient_service = self._service_with_enforcement(strict_isolation=False)
+        candidate, review, trace = self._missing_evidence_review(lenient_service)
+        locked = lenient_service.lock_planning_asset(
+            candidate["id"], review["id"], candidate["version"], trace["id"]
         )
-        self.service.finish_agent_run(producer_run["id"], "completed", "planning_candidate", "方向")
-        candidate = self.service.create_planning_candidate(
-            self.project["id"], "direction", self.project["id"], "方向", [], producer_run_id=producer_run["id"]
-        )
-        review_role = self.service.agent_contracts.get("review_agent")
-        reviewer_run = self.service.start_agent_run(
-            self.trace["id"],
-            "review_agent",
-            {
-                "immutable_subject_ref": candidate["id"],
-                "subject_hash": candidate["subject_hash"],
-                "review_profile": "planning-direction",
-                "authority_context_refs": candidate["resource_ref"],
-            },
-        )
-        review_output = {
-            "subject_type": "planning_asset",
-            "subject_ref": candidate["id"],
-            "subject_hash": candidate["subject_hash"],
-            "verdict": "approved",
-            "findings": [],
-            "reviewer_profile": "planning-direction",
-            "evidence_refs": [candidate["resource_ref"]],
-        }
-        self.service.finish_agent_run(
-            reviewer_run["id"], "completed", "review_receipt_candidate", review_output
-        )
-        review = self.service.record_review(
-            "planning_asset",
-            candidate["id"],
-            candidate["subject_hash"],
-            "approved",
-            [],
-            "planning-direction",
-            [candidate["resource_ref"]],
-            reviewer_run["id"],
-        )
+        self.assertEqual("locked", locked["status"])
+        warnings = [
+            step for step in lenient_service.get_trace(trace["id"])["steps"]
+            if step["step_type"] == "isolation.evidence.missing"
+        ]
+        self.assertEqual({"reviewer", "producer"}, {step["details"]["role"] for step in warnings})
+        self.assertTrue(all(step["status"] == "completed" and step["details"]["severity"] == "warning" for step in warnings))
+
+        strict_service = self._service_with_enforcement(strict_isolation=True)
+        strict_candidate, strict_review, strict_trace = self._missing_evidence_review(strict_service)
         with self.assertRaisesRegex(NovelOSError, "missing_isolation_evidence"):
-            self.service.lock_planning_asset(
-                candidate["id"], review["id"], candidate["version"], self.trace["id"]
+            strict_service.lock_planning_asset(
+                strict_candidate["id"], strict_review["id"], strict_candidate["version"], strict_trace["id"]
             )
 
     def test_agent_quality_subject_has_a_real_isolated_review_receipt_path(self) -> None:

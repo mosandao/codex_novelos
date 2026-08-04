@@ -80,6 +80,8 @@ Character 与 World 可以并行生成，但进入 Story Arc 前必须完成交�
 
 锁定规划、批准交叉审查、接受章节、提交 Entity 和晋升连续性时，主控智能体 必须提供当前项目仍在运行的 `trace_id`。生产 run、Reviewer run 和权威提交必须属于同一 Trace；MCP 在提交事务内写入 `authority_commits` 和 Trace step，禁止事后手工补记冒充追溯证据。
 
+`config/agents.yaml` 的 `review_profile_routes` 是合法 Review Profile 名的唯一注册表；roles、cross-consistency 和业务用途只能引用其中已注册的 key。`isolation_evidence` 与 Story Arc 的 Character/World cross-check 受 `runtime.enforcement` 控制，默认 lenient：缺失时在权威提交事务中记录 `status=completed`、`details.severity=warning` 的 Trace step 后放行；strict 模式才阻断。无论模式，Trace 串联、不可变 subject/hash、独立 `review_agent` run、Review 输出绑定、上游 locked 和 stale 检查仍强制。`context_id` 只标识 run context，不构成真实模型上下文隔离证明。
+
 ## 分层边界
 
 - 主控智能体：负责任务规划、Agent 路由、最终决策和结果汇总，不拥有业务规划资产。
@@ -146,6 +148,12 @@ Direction 精确 ref，不能自行发明或改写作者思想。
 删除投影或权威数据。
 
 V1 只注册一个名为 `novelos` 的 stdio MCP Server。Memory、Planning、Catalog、Review 和 Trace 是同一 Server 内的工具命名空间，不拆成多个 MCP 进程。
+
+`NovelOSService` 的稳定导入入口仍是 `novelos_mcp.service`，实现位于
+`mcp/novelos/src/novelos_mcp/service/`：`service/__init__.py` 聚合 8 个领域 Mixin，
+`_ServiceInternals` 保存共享事务与校验 helper。不得恢复同名 `service.py`，也不得绕过聚合服务
+另建可独立写权威数据的子服务。包级兼容常量可以保留，但运行时 Review Profile 必须从当前
+`AgentContractStore` 查询，不能把兼容快照当作第二权威源。
 
 仓库已经完成纯 Codex 切换，不保留 Python Agent、Skill、LLM Provider 或旧 Memory MCP Runtime。所有权威数据访问必须经过统一 `novelos` MCP，并通过 `authority_commits` 追溯到 Trace、subject Hash 和 Review Receipt。
 

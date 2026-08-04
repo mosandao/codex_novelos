@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import copy
 import json
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
@@ -15,6 +17,7 @@ from novelos_mcp.service import (
     PLANNING_REVIEW_PROFILES,
     PLANNING_UPSTREAM_TYPES,
 )
+from agent_test_support import complete_review_run
 
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -28,6 +31,19 @@ class AgentContractTest(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.config = yaml.safe_load(CONFIG_PATH.read_text(encoding="utf-8"))
         cls.roles = cls.config["roles"]
+
+    def _store_from_config(self, config: dict) -> "AgentContractStore":
+        from novelos_mcp.agent_contracts import AgentContractStore
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            shutil.copytree(SCHEMA_ROOT, root / "config" / "schemas")
+            config_path = root / "config" / "agents.yaml"
+            config_path.write_text(
+                yaml.safe_dump(config, allow_unicode=True, sort_keys=False),
+                encoding="utf-8",
+            )
+            return AgentContractStore(config_path)
 
     def test_only_main_agent_is_persistent(self) -> None:
         persistent = [role_id for role_id, role in self.roles.items() if role["lifecycle"] == "persistent"]
@@ -162,15 +178,7 @@ class AgentContractTest(unittest.TestCase):
         from novelos_mcp import NovelOSError
 
         store = AgentContractStore(CONFIG_PATH)
-        expected_profiles = [
-            "planning-direction", "planning-architecture", "planning-strategy",
-            "planning-character-contract", "planning-world-contract", "planning-story-arc",
-            "planning-volume-outline", "planning-chapter-plan",
-            "planning-character-world-cross-consistency", "entity-character",
-            "entity-world", "entity-faction", "entity-rule", "entity-timeline",
-            "prose-v1", "continuity-v1",
-        ]
-        for profile in expected_profiles:
+        for profile in self.config["review_profile_routes"]:
             packages = store.review_packages(profile)
             self.assertTrue(isinstance(packages, list) and len(packages) > 0, profile)
 
@@ -188,6 +196,111 @@ class AgentContractTest(unittest.TestCase):
 
         with self.assertRaisesRegex(NovelOSError, "未知 Review Profile"):
             store.review_packages("unknown-profile-x")
+
+    def test_review_profile_bindings_are_configured_and_queryable(self) -> None:
+        from novelos_mcp.agent_contracts import AgentContractStore
+        from novelos_mcp import NovelOSError
+
+        store = AgentContractStore(CONFIG_PATH)
+        self.assertFalse(store.is_strict("isolation_evidence"))
+        self.assertFalse(store.is_strict("cross_consistency"))
+        with self.assertRaisesRegex(NovelOSError, "未知 enforcement"):
+            store.is_strict("unknown")
+        self.assertEqual("planning-direction", store.review_profile_for_asset("direction"))
+        self.assertEqual("prose-v1", store.review_profile_for_binding("chapter_acceptance"))
+        self.assertEqual("continuity-v1", store.review_profile_for_binding("continuity_promotion"))
+        self.assertEqual("entity-world", store.review_profile_for_entity("world"))
+        self.assertEqual(
+            "planning-character-world-cross-consistency",
+            store.cross_consistency_profile(),
+        )
+
+    def test_review_profile_binding_shape_fails_closed_at_startup(self) -> None:
+        from novelos_mcp import NovelOSError
+
+        mutations = {
+            "missing chapter acceptance": lambda payload: payload["review_profile_bindings"].pop("chapter_acceptance"),
+            "misspelled continuity promotion": lambda payload: payload["review_profile_bindings"].__setitem__(
+                "continuity_promotoin",
+                payload["review_profile_bindings"].pop("continuity_promotion"),
+            ),
+            "missing timeline entity": lambda payload: payload["review_profile_bindings"]["entity_authority"].pop("timeline"),
+            "empty reviewer profile": lambda payload: payload["roles"]["review_agent"].__setitem__("review_profile", ""),
+            "unregistered business profile": lambda payload: payload["review_profile_bindings"].__setitem__(
+                "chapter_acceptance", "not-registered"
+            ),
+            "unregistered planning profile": lambda payload: payload["roles"]["direction_agent"].__setitem__(
+                "review_profile", "not-registered"
+            ),
+        }
+        for label, mutate in mutations.items():
+            with self.subTest(label=label):
+                config = copy.deepcopy(self.config)
+                mutate(config)
+                with self.assertRaisesRegex(NovelOSError, "configuration_error"):
+                    self._store_from_config(config)
+
+    def test_custom_service_profile_mapping_does_not_use_compatibility_snapshot(self) -> None:
+        from novelos_mcp import NovelOSService
+
+        config = copy.deepcopy(self.config)
+        packages = config["review_profile_routes"].pop("planning-direction")
+        config["review_profile_routes"]["custom-direction-review"] = packages
+        config["roles"]["direction_agent"]["review_profile"] = "custom-direction-review"
+        store = self._store_from_config(config)
+        self.assertEqual("custom-direction-review", store.review_profile_for_asset("direction"))
+        self.assertEqual("planning-direction", PLANNING_REVIEW_PROFILES["direction"])
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            shutil.copytree(SCHEMA_ROOT, root / "config" / "schemas")
+            config_path = root / "config" / "agents.yaml"
+            config_path.write_text(
+                yaml.safe_dump(config, allow_unicode=True, sort_keys=False),
+                encoding="utf-8",
+            )
+            service = NovelOSService(root / "novelos.db", agent_contract_path=config_path)
+            project = service.create_project("自定义 Profile")
+            trace = service.start_trace("custom-profile", project["id"])
+            candidate = service.create_planning_candidate(
+                project["id"],
+                "direction",
+                project["id"],
+                "方向",
+                [],
+                "方向智能体",
+            )
+            _, review = complete_review_run(
+                service,
+                trace["id"],
+                "planning_asset",
+                candidate["id"],
+                candidate["subject_hash"],
+                "custom-direction-review",
+            )
+            locked = service.lock_planning_asset(
+                candidate["id"], review["id"], candidate["version"], trace["id"]
+            )
+            self.assertEqual("locked", locked["status"])
+
+    def test_enforcement_config_fails_closed(self) -> None:
+        from novelos_mcp.agent_contracts import AgentContractStore
+        from novelos_mcp import NovelOSError
+
+        self.assertEqual(
+            {"strict_isolation_evidence": False, "strict_cross_consistency": False},
+            AgentContractStore._validate_enforcement(None),
+        )
+        self.assertEqual(
+            {"strict_isolation_evidence": True, "strict_cross_consistency": True},
+            AgentContractStore._validate_enforcement(
+                {"strict_isolation_evidence": True, "strict_cross_consistency": True}
+            ),
+        )
+        with self.assertRaisesRegex(NovelOSError, "boolean"):
+            AgentContractStore._validate_enforcement({"strict_isolation_evidence": "false"})
+        with self.assertRaisesRegex(NovelOSError, "非法"):
+            AgentContractStore._validate_enforcement({"strict_unknown": True})
 
 
 if __name__ == "__main__":

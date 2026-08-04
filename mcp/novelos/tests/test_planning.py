@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
 from typing import Any
+
+import yaml
 
 from novelos_mcp import NovelOSError, NovelOSService
 from agent_test_support import complete_review_run
@@ -20,13 +23,36 @@ class PlanningAssetTest(unittest.TestCase):
     def tearDown(self) -> None:
         self.temporary.cleanup()
 
+    def _service_with_cross_enforcement(self, *, strict: bool) -> NovelOSService:
+        root = Path(self.temporary.name) / ("strict-cross" if strict else "lenient-cross")
+        config_dir = root / "config"
+        shutil.copytree(Path(__file__).resolve().parents[3] / "config" / "schemas", config_dir / "schemas")
+        config = yaml.safe_load(
+            (Path(__file__).resolve().parents[3] / "config" / "agents.yaml").read_text(encoding="utf-8")
+        )
+        config["runtime"]["enforcement"]["strict_cross_consistency"] = strict
+        config_path = config_dir / "agents.yaml"
+        config_path.write_text(yaml.safe_dump(config, allow_unicode=True, sort_keys=False), encoding="utf-8")
+        service = NovelOSService(root / "novelos.db", agent_contract_path=config_path)
+        project = service.create_project(f"cross-check-{strict}")
+        service._test_project = project
+        service._test_trace = service.start_trace("planning-test", project["id"])
+        return service
+
     def _candidate(
         self,
         asset_type: str,
         content: str,
         upstream: list[dict[str, Any]] | None = None,
         cross_check_id: str | None = None,
+        *,
+        service: NovelOSService | None = None,
+        project_id: str | None = None,
+        scope_ref: str | None = None,
     ) -> dict[str, Any]:
+        service = service or self.service
+        project_id = project_id or self.project["id"]
+        scope_ref = scope_ref or self.scope
         producers = {
             "direction": "方向智能体",
             "architecture": "架构智能体",
@@ -37,29 +63,36 @@ class PlanningAssetTest(unittest.TestCase):
             "volume_outline": "卷规划智能体",
             "chapter_plan": "章节规划智能体",
         }
-        return self.service.create_planning_candidate(
-            self.project["id"],
+        return service.create_planning_candidate(
+            project_id,
             asset_type,
-            self.scope,
+            scope_ref,
             content,
             upstream or [],
             producers[asset_type],
             cross_check_id=cross_check_id,
         )
 
-    def _lock(self, candidate: dict[str, Any]) -> dict[str, Any]:
+    def _lock(
+        self,
+        candidate: dict[str, Any],
+        *,
+        service: NovelOSService | None = None,
+        review: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        service = service or self.service
+        trace_id = getattr(service, "_test_trace", self.trace)["id"]
         profile = f"planning-{candidate['asset_type'].replace('_', '-')}"
-        _, review = complete_review_run(
-            self.service,
-            self.trace["id"],
-            "planning_asset",
-            candidate["id"],
-            candidate["subject_hash"],
-            profile,
-        )
-        return self.service.lock_planning_asset(
-            candidate["id"], review["id"], candidate["version"], self.trace["id"]
-        )
+        if review is None:
+            _, review = complete_review_run(
+                service,
+                trace_id,
+                "planning_asset",
+                candidate["id"],
+                candidate["subject_hash"],
+                profile,
+            )
+        return service.lock_planning_asset(candidate["id"], review["id"], candidate["version"], trace_id)
 
     def test_candidate_content_is_resource_and_lock_requires_exact_review(self) -> None:
         candidate = self._candidate("direction", "# 故事方向\n\n守城者必须决定是否开门。")
@@ -159,8 +192,18 @@ class PlanningAssetTest(unittest.TestCase):
             {"asset_id": characters["id"], "version": 2},
             {"asset_id": world["id"], "version": 2},
         ]
-        with self.assertRaisesRegex(NovelOSError, "cross_check_required"):
-            self._candidate("story_arc", "缺少交叉审查", story_upstream)
+        lenient_candidate = self._candidate("story_arc", "缺少交叉审查", story_upstream)
+        self.assertEqual("candidate", lenient_candidate["status"])
+        lenient_locked = self._lock(lenient_candidate)
+        self.assertEqual("locked", lenient_locked["status"])
+        self.assertTrue(
+            any(
+                step["step_type"] == "cross_check.missing"
+                and step["status"] == "completed"
+                and step["details"]["severity"] == "warning"
+                for step in self.service.get_trace(self.trace["id"])["steps"]
+            )
+        )
         cross_check = self.service.prepare_planning_cross_check(
             self.project["id"], characters["id"], world["id"]
         )
@@ -206,6 +249,198 @@ class PlanningAssetTest(unittest.TestCase):
         assets = self.service.list_planning_assets(self.project["id"], status="locked")
         self.assertEqual(8, len(assets))
         self.assertEqual("chapter_plan", chapter["asset_type"])
+
+    def _story_prerequisites(self, service: NovelOSService) -> tuple[dict, dict, dict, dict, dict]:
+        project = service._test_project
+        direction = self._lock(
+            self._candidate("direction", "方向", service=service, project_id=project["id"]),
+            service=service,
+        )
+        architecture = self._lock(
+            self._candidate(
+                "architecture",
+                "架构",
+                [{"asset_id": direction["id"], "version": direction["version"]}],
+                service=service,
+                project_id=project["id"],
+            ),
+            service=service,
+        )
+        strategy = self._lock(
+            self._candidate(
+                "strategy",
+                "战略",
+                [
+                    {"asset_id": direction["id"], "version": direction["version"]},
+                    {"asset_id": architecture["id"], "version": architecture["version"]},
+                ],
+                service=service,
+                project_id=project["id"],
+            ),
+            service=service,
+        )
+        shared = [
+            {"asset_id": architecture["id"], "version": architecture["version"]},
+            {"asset_id": strategy["id"], "version": strategy["version"]},
+        ]
+        characters = self._lock(
+            self._candidate("character_contract", "人物", shared, service=service, project_id=project["id"]),
+            service=service,
+        )
+        world = self._lock(
+            self._candidate("world_contract", "世界", shared, service=service, project_id=project["id"]),
+            service=service,
+        )
+        return project, strategy, characters, world, shared
+
+    def test_missing_cross_check_enforcement_is_loaded_from_config(self) -> None:
+        for strict in (False, True):
+            with self.subTest(strict=strict):
+                service = self._service_with_cross_enforcement(strict=strict)
+                project, strategy, characters, world, _ = self._story_prerequisites(service)
+                upstream = [
+                    {"asset_id": strategy["id"], "version": strategy["version"]},
+                    {"asset_id": characters["id"], "version": characters["version"]},
+                    {"asset_id": world["id"], "version": world["version"]},
+                ]
+                if strict:
+                    with self.assertRaisesRegex(NovelOSError, "cross_check_required"):
+                        self._candidate("story_arc", "strict 缺少交叉审查", upstream, service=service, project_id=project["id"])
+                else:
+                    candidate = self._candidate(
+                        "story_arc", "lenient 缺少交叉审查", upstream, service=service, project_id=project["id"]
+                    )
+                    locked = self._lock(candidate, service=service)
+                    self.assertEqual("locked", locked["status"])
+                    self.assertTrue(
+                        any(
+                            step["step_type"] == "cross_check.missing"
+                            and step["details"]["severity"] == "warning"
+                            for step in service.get_trace(service._test_trace["id"])["steps"]
+                        )
+                    )
+
+    def test_invalid_mismatched_and_stale_cross_checks_are_rejected_in_both_modes(self) -> None:
+        for strict in (False, True):
+            with self.subTest(strict=strict):
+                service = self._service_with_cross_enforcement(strict=strict)
+                project, strategy, characters, world, shared = self._story_prerequisites(service)
+                check = service.prepare_planning_cross_check(project["id"], characters["id"], world["id"])
+                base_upstream = [
+                    {"asset_id": strategy["id"], "version": strategy["version"]},
+                    {"asset_id": characters["id"], "version": characters["version"]},
+                    {"asset_id": world["id"], "version": world["version"]},
+                ]
+                with self.assertRaisesRegex(NovelOSError, "cross_check_required"):
+                    self._candidate(
+                        "story_arc", "pending cross-check", base_upstream,
+                        service=service, project_id=project["id"], cross_check_id=check["id"],
+                    )
+                _, review = complete_review_run(
+                    service,
+                    service._test_trace["id"],
+                    "planning_cross_check",
+                    check["id"],
+                    check["subject_hash"],
+                    "planning-character-world-cross-consistency",
+                    evidence_refs=[characters["resource_ref"], world["resource_ref"]],
+                )
+                approved = service.approve_planning_cross_check(
+                    check["id"], review["id"], check["version"], service._test_trace["id"]
+                )
+
+                alternate = self._lock(
+                    self._candidate(
+                        "character_contract", "另一人物", shared,
+                        service=service, project_id=project["id"], scope_ref="alternate-character",
+                    ),
+                    service=service,
+                )
+                mismatched_upstream = [
+                    {"asset_id": strategy["id"], "version": strategy["version"]},
+                    {"asset_id": alternate["id"], "version": alternate["version"]},
+                    {"asset_id": world["id"], "version": world["version"]},
+                ]
+                with self.assertRaisesRegex(NovelOSError, "cross_check_mismatch"):
+                    self._candidate(
+                        "story_arc", "mismatched cross-check", mismatched_upstream,
+                        service=service, project_id=project["id"], cross_check_id=approved["id"],
+                    )
+
+                candidate = self._candidate(
+                    "story_arc", "will become stale", base_upstream,
+                    service=service, project_id=project["id"], cross_check_id=approved["id"],
+                )
+                newer_characters = self._lock(
+                    self._candidate(
+                        "character_contract", "新版人物", shared,
+                        service=service, project_id=project["id"],
+                    ),
+                    service=service,
+                )
+                stale_upstream = [
+                    {"asset_id": strategy["id"], "version": strategy["version"]},
+                    {"asset_id": newer_characters["id"], "version": newer_characters["version"]},
+                    {"asset_id": world["id"], "version": world["version"]},
+                ]
+                with self.assertRaisesRegex(NovelOSError, "stale_cross_check"):
+                    self._candidate(
+                        "story_arc", "stale cross-check", stale_upstream,
+                        service=service, project_id=project["id"], cross_check_id=approved["id"],
+                    )
+                _, candidate_review = complete_review_run(
+                    service,
+                    service._test_trace["id"],
+                    "planning_asset",
+                    candidate["id"],
+                    candidate["subject_hash"],
+                    "planning-story-arc",
+                )
+                stale_candidate = service.get_planning_asset(candidate["id"])
+                self.assertEqual("stale", stale_candidate["status"])
+                with self.assertRaisesRegex(NovelOSError, "invalid_state"):
+                    self._lock(stale_candidate, service=service, review=candidate_review)
+
+    def test_bound_cross_check_is_revalidated_at_lock(self) -> None:
+        service = self._service_with_cross_enforcement(strict=False)
+        project, strategy, characters, world, _ = self._story_prerequisites(service)
+        check = service.prepare_planning_cross_check(project["id"], characters["id"], world["id"])
+        _, check_review = complete_review_run(
+            service,
+            service._test_trace["id"],
+            "planning_cross_check",
+            check["id"],
+            check["subject_hash"],
+            "planning-character-world-cross-consistency",
+        )
+        approved = service.approve_planning_cross_check(
+            check["id"], check_review["id"], check["version"], service._test_trace["id"]
+        )
+        upstream = [
+            {"asset_id": strategy["id"], "version": strategy["version"]},
+            {"asset_id": characters["id"], "version": characters["version"]},
+            {"asset_id": world["id"], "version": world["version"]},
+        ]
+        candidate = self._candidate(
+            "story_arc", "锁定前交叉审查失效", upstream,
+            service=service, project_id=project["id"], cross_check_id=approved["id"],
+        )
+        _, candidate_review = complete_review_run(
+            service,
+            service._test_trace["id"],
+            "planning_asset",
+            candidate["id"],
+            candidate["subject_hash"],
+            "planning-story-arc",
+        )
+        with service.database.transaction() as connection:
+            connection.execute(
+                "UPDATE planning_cross_checks SET status='pending' WHERE id=?",
+                (approved["id"],),
+            )
+        with self.assertRaisesRegex(NovelOSError, "cross_check_required"):
+            self._lock(candidate, service=service, review=candidate_review)
+        self.assertEqual("candidate", service.get_planning_asset(candidate["id"])["status"])
 
 
 if __name__ == "__main__":

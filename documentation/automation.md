@@ -5,8 +5,9 @@
 Codex 主控智能体 是唯一自动化编排者。NovelOS 不运行后台 worker、cron、Webhook 或自主循环；业务 Agent 只能在用户任务期间由 Main 按需创建，完成一次结果后销毁。
 
 项目创建向导由 Main 编排：Main 提供本地 HTML 路径，页面生成结构化
-`novelos.project.create.v1` JSON；用户将其发回后，Main 调用 `project.wizard.submit` 原子创建或确认
-Creator Profile 版本、创建项目、建立精确绑定并刷新投影。
+`novelos.project.create.v1` JSON；用户将其发回后，Main 先调用 `project.wizard.reconcile_archetypes`
+把多原型选择融合为单一 parent 的 derive 结构，再调用 `project.wizard.submit` 原子创建或确认
+Creator Profile 版本、创建项目、建立精确绑定并刷新投影。新向导不得提交 `reuse` 或 `create`。
 该步骤不创建业务 Agent，也不产生规划资产；Main 必须随后读取 `metadata.project_setup` 与
 `creator_binding.constraint_ref`、启动 Trace，并按正常流程创建方向智能体。本地页面不直接写数据库，
 只负责原型选择、表单校验和 JSON 生成。
@@ -20,7 +21,7 @@ Creator Profile 版本、创建项目、建立精确绑定并刷新投影。
 | 审查智能体 | 规划锁定、章节接受、Entity 提交、连续性晋升前 | `review_receipt_candidate` | 无；Main 记录 Review |
 | 上下文构建智能体 | 跨卷、多线、事实冲突或上下文溢出 | `context_package` | 无 |
 
-精确角色、最小输入、输出类型、Catalog 包、Review Profile、spawn gate 和工具白名单位于 `config/agents.yaml`。
+精确角色、最小输入、输出类型、Catalog 包、Review Profile、spawn gate、运行时 enforcement 和工具白名单位于 `config/agents.yaml`。`review_profile_routes` 的 key 是合法 Profile 名唯一注册表；roles、交叉一致性检查和章节、连续性、Entity 等业务用途都只保存引用。MCP 启动时验证引用结构、非空值和注册关系，缺失、拼错、未知字段或未注册 Profile 均失败关闭。
 
 作者签名不是 Agent，也不新增常驻角色或第九种规划资产 owner。它是用户拥有的不可变版本配置；
 本书 `book_soul` 由既有方向智能体生成，Writer 仍按完整章节/长场景的保守条件临时创建。
@@ -50,7 +51,9 @@ Agent 质量实验使用 `review.prepare_subject` 构造不含执行模式的不
 
 完整 70-case 实验当前延期。延期期间 Writer 只处理完整章节、长场景或明确需要隔离上下文的写作；上下文构建智能体 只在 `complexity_reasons` 命中跨卷、多线、事实冲突或上下文溢出时创建。已完成的部分 case 仅作为恢复证据，不用于宣称胜率或改变路由。
 
-Character/World 交叉审查将两个 locked 资产的 ID、版本和 Hash 组成独立 subject；Story Arc 只能消费已批准且仍有效的检查。
+Character/World 交叉审查将两个 locked 资产的 ID、版本和 Hash 组成独立 subject。调用方提供检查时，无论 enforcement 模式如何，都必须是当前项目已批准、来源未失效且与 Story Arc 上游精确匹配的检查；候选创建后还会在 lock 时重新验证。默认 lenient 允许不提供检查，并在 lock 事务中写入 `status=completed`、`details.severity=warning`、`details.enforcement_mode=lenient` 的 Trace step；`runtime.enforcement.strict_cross_consistency=true` 时缺失检查会阻断。
+
+`isolation_evidence` 同样受 `runtime.enforcement.strict_isolation_evidence` 控制：默认 lenient 对缺失的 Producer 或 Reviewer 凭据分别记录上述 warning Trace step 后放行，strict 才维持拒绝。该字段和 `context_id` 都是审计记录，不构成真实模型上下文隔离证明；独立 `review_agent` run、不可变 subject/hash、同 Trace 和输出绑定在两种模式下始终强制。
 
 ## 操作控制
 

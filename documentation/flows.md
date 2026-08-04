@@ -37,13 +37,13 @@ Trace 记录旧/新 ref 和影响列表，系统不自动重生成。
 2. Main 使用 `agent.start` 创建唯一资产 owner run；MCP 校验最小输入和角色契约。
 3. 正式资产 Agent 返回非空文本 `planning_candidate` 或绑定上游精确版本/Hash 的 change proposal；`agent.finish` 按 `output_type` Schema 校验并记录 Destroy。Agent 质量实验的专用结构化规划输出只用于评测，不得登记为权威候选。
 4. Main 调用 `planning.create_candidate_from_run`；MCP 直接读取不可变生产输出，并验证唯一 owner 和上游依赖。`planning.create_candidate` 仅保留为兼容入口。
-5. Main 创建独立 Review run，随后调用 `review.record_from_run`；MCP 直接读取符合专用 Schema 的 Reviewer 输出，并验证 subject Hash、Profile 和隔离 context。`review.record` 仅保留为兼容入口。
+5. Main 创建独立 Review run，随后调用 `review.record_from_run`；MCP 直接读取符合专用 Schema 的 Reviewer 输出，并验证 subject Hash、Profile、输入绑定和 run context 标识。`review.record` 仅保留为兼容入口；`context_id` 本身不证明真实模型上下文隔离。
 6. Main 调用 `planning.lock` 并提供当前 `trace_id`；MCP 重新验证 Review Profile、verdict、blocking finding、依赖版本和 Producer/Reviewer Trace 一致性，在同一事务写入 `authority_commits`。
 7. 新版本锁定时，旧版本变为 `superseded`，所有后代递归变为 `stale`。
 
 拒绝路径：未锁定上游、错误生产者、输出被 Main 改写、自审、旧 Hash、blocking finding 或越权 change proposal 均不得产生权威版本。
 
-Character 与 World 可以有同时运行的独立 run。Story Arc 前必须创建 `planning_cross_check`，由独立 Reviewer 对两个精确版本审查并批准；缺少、失效或错配时拒绝 Story Arc 候选。
+Character 与 World 可以有同时运行的独立 run。提供 `planning_cross_check` 时，必须由独立 Reviewer 对两个精确版本审查并批准；pending、失效或错配的 cross-check 在任何模式下都拒绝，并在 lock 时重新验证。默认 lenient 允许 Story Arc 候选缺少 cross-check，并在 lock 权威事务中记录 `status=completed`、`details.severity=warning`、`details.enforcement_mode=lenient` 的 Trace step 后放行；strict 模式在候选创建和 lock 阶段都阻断缺失 cross-check。
 
 ## 完整章节与连续性
 

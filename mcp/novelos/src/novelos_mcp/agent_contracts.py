@@ -11,6 +11,14 @@ from referencing import Registry, Resource
 from novelos_mcp.errors import NovelOSError
 
 
+_REVIEW_PROFILE_BINDING_KEYS = {
+    "chapter_acceptance",
+    "continuity_promotion",
+    "entity_authority",
+}
+_ENTITY_REVIEW_BINDING_KEYS = {"character", "world", "faction", "rule", "timeline"}
+
+
 def _default_contract_path() -> Path:
     candidates = (
         Path.cwd() / "config" / "agents.yaml",
@@ -38,11 +46,16 @@ class AgentContractStore:
         roles = payload.get("roles")
         if not isinstance(roles, dict) or not roles:
             raise NovelOSError("configuration_error", "Agent 契约缺少 roles")
+        runtime = payload.get("runtime")
+        if not isinstance(runtime, dict):
+            raise NovelOSError("configuration_error", "Agent 契约缺少 runtime 配置")
         self.config = payload
         self.roles: dict[str, dict[str, Any]] = roles
         self.routes: dict[str, list[str]] = payload.get("review_profile_routes", {})
+        self.enforcement = self._validate_enforcement(runtime.get("enforcement"))
         self._validate_roles()
         self._validate_routes()
+        self._asset_review_profile = self._derive_planning_review_profiles()
         root = self.path.parents[1]
         result_path = root / payload["runtime"]["result_schema"]
         proposal_path = root / payload["runtime"]["change_proposal_schema"]
@@ -75,6 +88,51 @@ class AgentContractStore:
         if not isinstance(packages, list) or not packages:
             raise NovelOSError("invalid_review_profile", "Review Profile 未关联有效 Catalog 包", {"profile": profile})
         return list(packages)
+
+    def review_profile_for_asset(self, asset_type: str) -> str:
+        try:
+            return self._asset_review_profile[asset_type]
+        except KeyError as exc:
+            raise NovelOSError(
+                "invalid_review_profile",
+                "未知或未绑定 Review Profile 的规划资产类型",
+                {"asset_type": asset_type},
+            ) from exc
+
+    def planning_review_profiles(self) -> dict[str, str]:
+        return dict(self._asset_review_profile)
+
+    def review_profile_for_binding(self, name: str) -> str:
+        bindings = self.config.get("review_profile_bindings")
+        value = bindings.get(name) if isinstance(bindings, dict) else None
+        if not isinstance(value, str) or not value.strip() or value not in self.routes:
+            raise NovelOSError("invalid_review_profile", "未知 Review Profile 业务绑定", {"binding": name})
+        return value
+
+    def review_profile_for_entity(self, entity_type: str) -> str:
+        bindings = self.config.get("review_profile_bindings")
+        entity_bindings = bindings.get("entity_authority") if isinstance(bindings, dict) else None
+        value = entity_bindings.get(entity_type) if isinstance(entity_bindings, dict) else None
+        if not isinstance(value, str) or value not in self.routes:
+            raise NovelOSError(
+                "invalid_review_profile",
+                "未知 Entity Review Profile 业务绑定",
+                {"entity_type": entity_type},
+            )
+        return value
+
+    def cross_consistency_profile(self) -> str:
+        gate = self.config.get("cross_consistency_gate")
+        value = gate.get("profile") if isinstance(gate, dict) else None
+        if not isinstance(value, str) or value not in self.routes:
+            raise NovelOSError("invalid_review_profile", "交叉一致性 Profile 配置非法")
+        return value
+
+    def is_strict(self, name: str) -> bool:
+        key = name if name.startswith("strict_") else f"strict_{name}"
+        if key not in self.enforcement:
+            raise NovelOSError("configuration_error", "未知 enforcement 开关", {"name": name})
+        return self.enforcement[key]
 
     def validate_inputs(self, role_id: str, bindings: dict[str, Any]) -> list[str]:
         role = self.get(role_id)
@@ -231,17 +289,8 @@ class AgentContractStore:
         routes = self.config.get("review_profile_routes")
         if not isinstance(routes, dict) or not routes:
             raise NovelOSError("configuration_error", "Agent 契约缺少 review_profile_routes")
-        expected_profiles = {
-            "planning-direction", "planning-architecture", "planning-strategy",
-            "planning-character-contract", "planning-world-contract", "planning-story-arc",
-            "planning-volume-outline", "planning-chapter-plan",
-            "planning-character-world-cross-consistency", "entity-character",
-            "entity-world", "entity-faction", "entity-rule", "entity-timeline",
-            "prose-v1", "continuity-v1",
-        }
-        if not expected_profiles.issubset(routes.keys()):
-            missing = sorted(expected_profiles - routes.keys())
-            raise NovelOSError("configuration_error", "review_profile_routes 缺失权威 Profile", {"missing": missing})
+        if any(not isinstance(profile, str) or not profile.strip() for profile in routes):
+            raise NovelOSError("configuration_error", "review_profile_routes Profile 名必须是非空字符串")
         for profile, packages in routes.items():
             if not isinstance(packages, list) or not packages:
                 raise NovelOSError("configuration_error", "review_profile_routes 列表不能为空", {"profile": profile})
@@ -249,3 +298,102 @@ class AgentContractStore:
                 raise NovelOSError("configuration_error", "review_profile_routes 必须是非空字符串列表", {"profile": profile})
             if len(packages) != len(set(packages)):
                 raise NovelOSError("configuration_error", "review_profile_routes 包含重复包名", {"profile": profile})
+        references: list[tuple[str, str]] = []
+        for role_id, role in self.roles.items():
+            value = role.get("review_profile")
+            if value is None:
+                continue
+            if not isinstance(value, str) or not value.strip():
+                raise NovelOSError(
+                    "configuration_error",
+                    "Agent role review_profile 必须是非空字符串或 null",
+                    {"role_id": role_id},
+                )
+            if value == "dynamic":
+                if role_id != "review_agent":
+                    raise NovelOSError(
+                        "configuration_error",
+                        "只有 review_agent 可以使用 dynamic Review Profile",
+                        {"role_id": role_id},
+                    )
+                continue
+            references.append((f"roles.{role_id}.review_profile", value))
+        gate = self.config.get("cross_consistency_gate")
+        if not isinstance(gate, dict) or not isinstance(gate.get("profile"), str) or not gate["profile"].strip():
+            raise NovelOSError("configuration_error", "cross_consistency_gate.profile 必须是非空字符串")
+        references.append(("cross_consistency_gate.profile", gate["profile"]))
+
+        bindings = self.config.get("review_profile_bindings")
+        if not isinstance(bindings, dict) or set(bindings) != _REVIEW_PROFILE_BINDING_KEYS:
+            raise NovelOSError(
+                "configuration_error",
+                "review_profile_bindings 字段不完整或包含未知字段",
+                {
+                    "expected": sorted(_REVIEW_PROFILE_BINDING_KEYS),
+                    "actual": sorted(bindings) if isinstance(bindings, dict) else None,
+                },
+            )
+        entity_bindings = bindings["entity_authority"]
+        if not isinstance(entity_bindings, dict) or set(entity_bindings) != _ENTITY_REVIEW_BINDING_KEYS:
+            raise NovelOSError(
+                "configuration_error",
+                "entity_authority Review Profile 绑定不完整或包含未知字段",
+                {
+                    "expected": sorted(_ENTITY_REVIEW_BINDING_KEYS),
+                    "actual": sorted(entity_bindings) if isinstance(entity_bindings, dict) else None,
+                },
+            )
+        for name in ("chapter_acceptance", "continuity_promotion"):
+            value = bindings[name]
+            if not isinstance(value, str) or not value.strip():
+                raise NovelOSError(
+                    "configuration_error",
+                    "Review Profile 业务绑定必须是非空字符串",
+                    {"path": f"review_profile_bindings.{name}"},
+                )
+            references.append((f"review_profile_bindings.{name}", value))
+        for entity_type, value in entity_bindings.items():
+            if not isinstance(value, str) or not value.strip():
+                raise NovelOSError(
+                    "configuration_error",
+                    "Entity Review Profile 绑定必须是非空字符串",
+                    {"path": f"review_profile_bindings.entity_authority.{entity_type}"},
+                )
+            references.append((f"review_profile_bindings.entity_authority.{entity_type}", value))
+        invalid = [ref for ref in references if ref[1] not in routes]
+        if invalid:
+            raise NovelOSError(
+                "configuration_error",
+                "配置引用了未注册的 Review Profile",
+                {"invalid": [{"path": path, "profile": profile} for path, profile in invalid]},
+            )
+
+    def _derive_planning_review_profiles(self) -> dict[str, str]:
+        result: dict[str, str] = {}
+        for role_id, role in self.roles.items():
+            if role.get("kind") != "planning_asset":
+                continue
+            asset_type = role.get("owned_asset_type")
+            profile = role.get("review_profile")
+            if not isinstance(asset_type, str) or not asset_type.strip() or not isinstance(profile, str) or not profile.strip():
+                raise NovelOSError("configuration_error", "规划 Agent 必须声明 asset_type 与 review_profile", {"role_id": role_id})
+            if profile not in self.routes:
+                raise NovelOSError("configuration_error", "规划 Agent 引用了未注册 Profile", {"role_id": role_id, "profile": profile})
+            if asset_type in result:
+                raise NovelOSError("configuration_error", "规划资产类型存在重复 Profile owner", {"asset_type": asset_type})
+            result[asset_type] = profile
+        return result
+
+    @staticmethod
+    def _validate_enforcement(value: Any) -> dict[str, bool]:
+        defaults = {"strict_isolation_evidence": False, "strict_cross_consistency": False}
+        if value is None:
+            return defaults
+        if not isinstance(value, dict) or set(value) - set(defaults):
+            raise NovelOSError("configuration_error", "runtime.enforcement 配置非法")
+        result = dict(defaults)
+        for key, flag in value.items():
+            if not isinstance(flag, bool):
+                raise NovelOSError("configuration_error", "enforcement 开关必须是 boolean", {"key": key})
+            result[key] = flag
+        return result

@@ -4,6 +4,10 @@ runtime:
   declaration_mode: repository_contract
   persistent_role: main_agent
   default_timeout_seconds: 900
+  enforcement:
+    # 单用户默认只记录声明性门禁告警；团队审计可显式切换为 strict。
+    strict_isolation_evidence: false
+    strict_cross_consistency: false
   result_schema: config/schemas/agent-result.schema.json
   change_proposal_schema: config/schemas/change-proposal.schema.json
   output_schemas:
@@ -76,6 +80,16 @@ review_profile_routes:
   entity-timeline: [entity-authority-review]
   prose-v1: [prose-quality-review]
   continuity-v1: [continuity-quality-review]
+
+review_profile_bindings:
+  chapter_acceptance: prose-v1
+  continuity_promotion: continuity-v1
+  entity_authority:
+    character: entity-character
+    world: entity-world
+    faction: entity-faction
+    rule: entity-rule
+    timeline: entity-timeline
 
 roles:
   main_agent:

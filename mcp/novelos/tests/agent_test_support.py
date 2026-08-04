@@ -16,7 +16,6 @@ def complete_agent_run(
     bindings = {name: f"test:{name}" for name in role["minimum_inputs"]}
     bindings.update(input_overrides or {})
     # 测试 harness 默认声明隔离凭据；真实运行由 主控智能体 传入 Codex Task 的 agentId。
-    # 显式传 isolation_evidence=None 可构造"缺凭据"场景，用于校验 lock 拒绝逻辑。
     evidence = isolation_evidence if isolation_evidence is not None else {"source": "test_harness"}
     run = service.start_agent_run(trace_id, role_id, bindings, isolation_evidence=evidence)
     return service.finish_agent_run(run["id"], "completed", output_type, output)

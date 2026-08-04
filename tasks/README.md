@@ -30,6 +30,8 @@
 | [Task 07](./07_prompt_catalog_expansion.md) | 完成 08 (F1-F6) 治理、三方 Hash 校验与 150 项全量自动化测试 |
 | [Task 08](./08_author_signature_and_book_soul.md) | 完成 Creator Profile 精确版本绑定、书级创作灵魂、投影和 Schema 11；受控语义质量实验保持 `BLOCKED` |
 | [Task 09](./09_narrative_archetype_derivation.md) | 完成 18 个系统叙事原型、仅派生向导、确定性 Top 3 推荐、Schema 12 数据生命周期和 190 项全量自动化测试 |
+| [Task 10](./10_service_module_split.md) | 完成 `service.py` 到 8 个领域 Mixin + 共享内部 Mixin 的无契约变化拆分，并通过 53 项根测试与 154 项 MCP 测试 |
+| [Task 11](./11_audit_architecture_pruning.md) | 完成 Review Profile 单一注册表、默认 lenient/可选 strict 门禁、启动期 fail-closed 校验及完整边界测试 |
 
 ## 目录边界
 
