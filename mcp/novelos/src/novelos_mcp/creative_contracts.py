@@ -107,7 +107,11 @@ class CreativeContractStore:
         try:
             validator.validate(value)
         except jsonschema.ValidationError as exc:
-            raise NovelOSError(code, f"{label}不符合 Schema", {"path": list(exc.path)}) from exc
+            raise NovelOSError(
+                code,
+                f"{label}不符合 Schema：{exc.message}",
+                {"path": list(exc.path), "schema_path": list(exc.schema_path)},
+            ) from exc
         return copy.deepcopy(value)
 
     @staticmethod

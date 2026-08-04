@@ -31,3 +31,48 @@ description: 识别小说规划层级并准备对应权威资产的最小输入�
 7. 正式资产 Agent 必须把 `planning_candidate` 作为非空文本返回；Main Agent 调用 `planning.create_candidate_from_run` 直接登记不可变输出，不读取后重传正文。延期的 Agent 质量实验可使用专用结构化规划输出，但该输出不能登记为权威候选。再使用 `$novel-review` 取得精确 Profile 的独立审查，最后由 Main Agent 调用 `planning.lock`。
 
 若下游 Agent 发现上游问题，只返回 change proposal；不要把上游修改混入本层候选。Character 与 World 可并行，但进入 Story Arc 前必须完成交叉一致性审查。
+
+## 操作前置检查
+
+以下规则来自实际规划资产生成中遇到的工具调用失败，在构造数据前必须确认。
+
+### Agent input_bindings 构造规则
+
+调用 `agent.start` 前，从 `config/agents.yaml` 读取目标角色的 `minimum_inputs`，确认：
+
+- `input_bindings` 的 key 集合必须**精确等于** `minimum_inputs`——不能多、不能少、不能改字段名。
+- 每个 value 必须是**非空字符串**或**非空字符串数组**；不能是嵌套 dict、`list[dict]` 或 number。
+- 复杂约束（项目 setup、catalog 选择、探索方向等）须序列化为单个字符串（如用 ` | ` 分隔的键值摘要）或字符串数组，不能直接传 JSON 对象。
+
+### Agent output 格式规则
+
+调用 `agent.finish` 时：
+
+- `output_type=planning_candidate` 的 `output` 直接传**正文 markdown 文本字符串**，不是 `resource_ref` 对象或 `{content_hash, resource_ref}` 结构。
+- `planning_candidate` schema 接受非空字符串（正式候选）或实验结构化对象（延期实验专用），不接受 resource ref 对象。
+- 系统在 finish 事务内自动把 output 字符串存为 resource，不需要先手动创建 resource 再传 ref。
+
+### book_soul 构造规则
+
+构造 Direction 候选的 `metadata.book_soul` 前，参考本文件末尾「book_soul 字段速查表」。常见错误：
+
+- `schema_version: 1` 是必填字段，遗漏会导致整条 book_soul 被拒。
+- `central_contradiction`、`narrative_mercy`、`narrative_cruelty` 是**字符串**（≤1000 字符），不是数组。
+- 其余 6 个字段是**字符串数组**（1-24 项，每项 ≤500 字符，uniqueItems）。
+
+## book_soul 字段速查表
+
+派生自 `config/schemas/book-soul.schema.json`：
+
+| 字段 | 类型 | 必填 | 约束 |
+|---|---|---|---|
+| `schema_version` | const | ✅ | 固定值 `1` |
+| `unresolved_claims` | string[] | ✅ | 1-24 项，每项 1-500 字符，uniqueItems |
+| `central_contradiction` | string | ✅ | 1-1000 字符 |
+| `costly_commitments` | string[] | ✅ | 1-24 项，每项 1-500 字符，uniqueItems |
+| `protected_dignity` | string[] | ✅ | 同上 |
+| `forbidden_resolutions` | string[] | ✅ | 同上 |
+| `recurring_tests` | string[] | ✅ | 同上 |
+| `narrative_mercy` | string | ✅ | 1-1000 字符 |
+| `narrative_cruelty` | string | ✅ | 1-1000 字符 |
+| `deliberate_silences` | string[] | ✅ | 同上 |
