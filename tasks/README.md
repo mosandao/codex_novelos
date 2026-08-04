@@ -33,6 +33,7 @@
 | [Task 12](./12_archetype_llm_merge_agent.md) | 新增临时 `onboarding_agent` 角色固化多原型 LLM 深度融合，`creator_derivation_candidate` schema + 确定性收口双路径，13 角色契约就绪 |
 | [Task 13](./13_planning_skill_schema_checklists.md) | 完成规划/审查 Skill 操作前置检查、book_soul 速查表与 `creative_contracts._validate` 错误信息改进，通过 53 项根测试与 158 项 MCP 测试 |
 | [Task 14](./14_planning_catalog_and_id_checklists.md) | 新增 Catalog 搜索参数值、snapshot hash 校验、项目 ID 前缀与 upstream_refs 格式操作前置检查 |
+| [Task 15](./15_volume_outline_pacing_density.md) | 新增 Volume Outline 节奏密度约束（战略骨架不可碎 + 并行冲突线/副高潮/POV 多样性 + 节奏阀门） |
 
 ## 目录边界
 
