@@ -443,5 +443,136 @@ class PlanningAssetTest(unittest.TestCase):
         self.assertEqual("candidate", service.get_planning_asset(candidate["id"])["status"])
 
 
+class DecisionPointAndRevisionTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temporary = tempfile.TemporaryDirectory()
+        self.service = NovelOSService(Path(self.temporary.name) / "novelos.db")
+        self.project = self.service.create_project("决策点测试")
+        self.scope = self.project["id"]
+        self.trace = self.service.start_trace("decision-test", self.project["id"])
+
+    def tearDown(self) -> None:
+        self.temporary.cleanup()
+
+    def _candidate(self, asset_type: str, content: str, metadata: dict[str, Any] | None = None) -> dict[str, Any]:
+        producers = {
+            "direction": "方向智能体",
+            "strategy": "策略智能体",
+            "character_contract": "人物智能体",
+        }
+        return self.service.create_planning_candidate(
+            self.project["id"],
+            asset_type,
+            self.scope,
+            content,
+            [],
+            producers[asset_type],
+            metadata=metadata,
+        )
+
+    def test_extract_decision_points_returns_metadata_field(self) -> None:
+        decision_points = [
+            {
+                "question": "主角觉醒节奏",
+                "options": [
+                    {"label": "A. 快爽", "detail": "第3章觉醒", "tradeoff": "中段需续"},
+                    {"label": "B. 成长", "detail": "缓慢觉醒", "tradeoff": "开局不抓人"},
+                ],
+                "source_excerpt": "觉醒阶段...",
+            }
+        ]
+        candidate = self._candidate("direction", "# 方向\n觉醒阶段...", metadata={"decision_points": decision_points})
+        result = self.service.extract_decision_points(candidate["id"])
+        self.assertEqual(candidate["id"], result["asset_id"])
+        self.assertEqual(decision_points, result["decision_points"])
+
+    def test_extract_decision_points_returns_empty_when_missing(self) -> None:
+        candidate = self._candidate("direction", "# 方向")
+        result = self.service.extract_decision_points(candidate["id"])
+        self.assertEqual([], result["decision_points"])
+
+    def test_extract_decision_points_rejects_non_candidate(self) -> None:
+        candidate = self._candidate("direction", "# 方向")
+        _, review = complete_review_run(
+            self.service,
+            self.trace["id"],
+            "planning_asset",
+            candidate["id"],
+            candidate["subject_hash"],
+            "planning-direction",
+        )
+        self.service.lock_planning_asset(candidate["id"], review["id"], candidate["version"], self.trace["id"])
+        with self.assertRaisesRegex(NovelOSError, "invalid_state"):
+            self.service.extract_decision_points(candidate["id"])
+
+    def test_extract_decision_points_rejects_non_list(self) -> None:
+        candidate = self._candidate("direction", "# 方向", metadata={"decision_points": "不是数组"})
+        with self.assertRaisesRegex(NovelOSError, "invalid_candidate"):
+            self.service.extract_decision_points(candidate["id"])
+
+    def test_create_revision_candidate_supersedes_old(self) -> None:
+        old = self._candidate("direction", "# 方向一", metadata={"decision_points": []})
+        revision = self.service.create_revision_candidate(
+            self.project["id"],
+            "direction",
+            self.scope,
+            "# 方向二（融合用户选择）",
+            [],
+            "方向智能体",
+            old["id"],
+        )
+        self.assertEqual("candidate", revision["status"])
+        self.assertEqual("superseded", self.service.get_planning_asset(old["id"])["status"])
+
+    def test_create_revision_candidate_rejects_locked_old(self) -> None:
+        old = self._candidate("direction", "# 方向一")
+        _, review = complete_review_run(
+            self.service,
+            self.trace["id"],
+            "planning_asset",
+            old["id"],
+            old["subject_hash"],
+            "planning-direction",
+        )
+        self.service.lock_planning_asset(old["id"], review["id"], old["version"], self.trace["id"])
+        with self.assertRaisesRegex(NovelOSError, "invalid_state"):
+            self.service.create_revision_candidate(
+                self.project["id"],
+                "direction",
+                self.scope,
+                "# 方向二",
+                [],
+                "方向智能体",
+                old["id"],
+            )
+
+    def test_create_revision_candidate_rejects_asset_type_mismatch(self) -> None:
+        old = self._candidate("direction", "# 方向一")
+        with self.assertRaisesRegex(NovelOSError, "invalid_argument"):
+            self.service.create_revision_candidate(
+                self.project["id"],
+                "strategy",
+                self.scope,
+                "# 战略（错误类型）",
+                [],
+                "策略智能体",
+                old["id"],
+            )
+
+    def test_create_revision_candidate_rejects_wrong_project(self) -> None:
+        old = self._candidate("direction", "# 方向一")
+        other = self.service.create_project("其他项目")
+        with self.assertRaisesRegex(NovelOSError, "invalid_argument"):
+            self.service.create_revision_candidate(
+                other["id"],
+                "direction",
+                self.scope,
+                "# 方向二",
+                [],
+                "方向智能体",
+                old["id"],
+            )
+
+
 if __name__ == "__main__":
     unittest.main()

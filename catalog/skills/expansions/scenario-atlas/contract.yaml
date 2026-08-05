@@ -1,0 +1,16 @@
+contract_version: 1
+inputs:
+  - contract: architecture
+    cardinality: one
+  - contract: strategy
+    cardinality: one
+outputs: []
+invariants:
+  - 桥段图集是 world Agent 的可选输入素材，不是强制拼装件
+  - 每个桥段必须含五字段：资源需求 / 爽点类型 / 消费时机 / 变体 / 消费绑定提示
+  - 每个题材簇必须含消费时序表，作为 world-contract 结构性消费约束的输入
+  - 每个题材簇必须含启发式推演提示（LLM 推演 hook），支持从已有母题衍生本书特有桥段
+  - 桥段源自训练数据有把握的主流网文 + WebSearch 套路段素材补充，不凭记忆编造冷门题材
+  - world_contract 的组织形态由 world Agent 按题材自选，桥段图集不强制结构
+forbidden_actions:
+  - commit_authority

@@ -264,6 +264,47 @@ class ProjectionEngine:
             }
         _write_markdown("创作约束/本书创作灵魂.md", "本书创作灵魂", soul_body, soul_source)
 
+        # A3. 创作种子（非权威入口层）。不进权威快照一致性视图，单独只读取 active 种子。
+        seed = None
+        get_seed = getattr(service, "get_creation_seed", None)
+        if callable(get_seed):
+            try:
+                seed = get_seed(project_id)
+            except Exception:
+                seed = None
+        if seed:
+            seed_lines = [
+                f"- **版本**：v{seed['version']}（历史版本共 {seed['version']} 个）",
+                "",
+                "## 主角雏形",
+                seed["protagonist_seed"] or "*（未填写）*",
+                "",
+                "## 世界感觉",
+                seed["world_seed"] or "*（未填写）*",
+                "",
+                "## 爽点偏好",
+                seed["hook_seed"] or "*（未填写）*",
+                "",
+                "## 其他备注",
+                seed["notes"] or "*（未填写）*",
+            ]
+            seed_body = "\n".join(seed_lines)
+            seed_source = {
+                "source_type": "creation_seed",
+                "source_id": seed["id"],
+                "source_ref": seed["id"],
+                "source_version": seed["version"],
+            }
+        else:
+            seed_body = "*当前项目尚未填写创作种子；Direction 将按约束直接生成。*"
+            seed_source = {
+                "source_type": "creation_seed_absent",
+                "source_id": project_id,
+                "source_ref": project_id,
+                "source_version": project_version,
+            }
+        _write_markdown("创作约束/创作种子.md", "创作种子", seed_body, seed_source)
+
         # B. 渲染 规划/ 目录 (01-故事方向 ~ 06-故事弧)
         planning_map = {
             "direction": "01-故事方向.md",

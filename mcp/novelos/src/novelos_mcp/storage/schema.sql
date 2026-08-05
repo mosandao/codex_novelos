@@ -309,3 +309,20 @@ CREATE INDEX IF NOT EXISTS idx_promises_project ON narrative_promises(project_id
 CREATE INDEX IF NOT EXISTS idx_expectations_project ON expectation_ledgers(project_id, status);
 CREATE INDEX IF NOT EXISTS idx_relationships_project ON relationship_states(project_id, subject_ref, object_ref);
 CREATE INDEX IF NOT EXISTS idx_arcs_project ON arc_states(project_id, arc_ref);
+
+CREATE TABLE IF NOT EXISTS creation_seeds (
+    id TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1 CHECK (version > 0),
+    protagonist_seed TEXT NOT NULL DEFAULT '',
+    world_seed TEXT NOT NULL DEFAULT '',
+    hook_seed TEXT NOT NULL DEFAULT '',
+    notes TEXT NOT NULL DEFAULT '',
+    is_active INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1)),
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (project_id, version),
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_creation_seeds_project_active ON creation_seeds(project_id, is_active);

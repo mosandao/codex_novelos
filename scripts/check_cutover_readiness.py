@@ -93,6 +93,7 @@ def build() -> dict[str, Any]:
         "variables.md",
         "tests.md",
         "automation.md",
+        "worldbuilding-redesign.md",
     }
     actual_docs = {path.name for path in (ROOT / "documentation").glob("*.md")}
     restore = _json(ROOT / "tasks" / "migration" / "schema12_restore_drill.json")

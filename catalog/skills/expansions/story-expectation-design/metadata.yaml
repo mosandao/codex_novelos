@@ -3,7 +3,7 @@ description: 读者期待管理与叙事承诺兑现设计方法
 stage: plan
 asset: architecture
 capability: generate
-lifecycle: experiment
+lifecycle: active
 version: 1.0.0
 genres: []
 risk: P1

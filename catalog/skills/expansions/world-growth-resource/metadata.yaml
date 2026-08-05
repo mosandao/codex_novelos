@@ -3,7 +3,7 @@ description: 能力进阶、资源循环与成长硬上限设计方法
 stage: plan
 asset: world_contract
 capability: generate
-lifecycle: experiment
+lifecycle: active
 version: 1.0.0
 genres: []
 risk: P1

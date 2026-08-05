@@ -25,7 +25,7 @@
     "stage": "write",
     "asset": "chapter",
     "capability": "revise",
-    "lifecycle": "experiment",
+    "lifecycle": "active",
     "expected_package": "prose-revision"
   },
   "shuangwen_rhythm_hook": {

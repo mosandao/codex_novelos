@@ -3,7 +3,7 @@ description: 单体系、双体系与多体系规则交互与冲突诊断方法
 stage: plan
 asset: world_contract
 capability: generate
-lifecycle: experiment
+lifecycle: active
 version: 1.0.0
 genres: []
 risk: P1

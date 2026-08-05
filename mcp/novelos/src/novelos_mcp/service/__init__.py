@@ -54,6 +54,7 @@ from .planning import PlanningMixin
 from .projects import ProjectsMixin
 from .projection import ProjectionMixin
 from .reviews import ReviewsMixin
+from .seeds import SeedsMixin
 
 
 class NovelOSService(
@@ -66,6 +67,7 @@ class NovelOSService(
     AgentsMixin,
     MemoryMixin,
     ProjectionMixin,
+    SeedsMixin,
 ):
     def __init__(
         self,

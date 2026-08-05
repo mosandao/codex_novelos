@@ -4,7 +4,26 @@
 
 ## 当前工作
 
-无。全部 Task 已完成。
+源自 `documentation/worldbuilding-redesign.md` 九条改造建议，已全部转化并处理完毕：
+
+### 已完成
+
+| Task | 状态 | 说明 |
+|---|---|---|
+| [Task 17](./17_world_contract_prompt_enhancement.md) | `DONE` | World Contract prompt 维度处理与消费约束增强（22.1/22.7/22.8） |
+| [Task 18](./18_world_contract_review_binding.md) | `DONE` | World Contract review rubric 消费绑定检查（22.3，依赖 Task 17） |
+| [Task 20](./20_scenario_atlas_genre_seeds.md) | `DONE` | 桥段图集 skill 新建（8 题材簇约 45 桥段，lifecycle=experiment 待生成验证转 active） |
+| [Task 21](./21_creation_seed_entry_layer.md) | `DONE` | 创作种子非权威入口层（migration 013 + SeedsMixin + 3 MCP 工具 + direction 反向工程 + 投影 + 7 测试） |
+| [Task 22](./22_checkpoint_option_presentation.md) | `DONE` | 检查点选项呈现原子能力（extract_decision_points + create_revision_candidate + prompt + 8 测试） |
+
+### 已评估取消
+
+| Task | 状态 | 结论 |
+|---|---|---|
+| [Task 19](./19_world_expansion_output_retargeting.md) | `CANCELLED` | 经训练数据多题材对照（修仙/无限流/序列流），"强制收编"方向不成立。世界契约组织形态是题材相关的，应由 world Agent 按题材自选，四个 expansion 维持独立输出。 |
+| [Task 23](./23_stale_propagation_scope.md) | `CANCELLED` | 经技术评估，asset 级依赖图无设定项粒度，scope 判定不可机械化；靠声明则判错会 silently 漏标 stale。全树 stale 保证一致性铁律，是合理代价。 |
+
+九条建议处理完毕：5 条落地（Task 17/18/20/21/22），2 条经评估取消（Task 19/23）。全部通过 AGENTS.md 验证套件（根测试 53 + MCP 测试 173 + 14 项检查脚本）。
 
 ## 延期工作
 

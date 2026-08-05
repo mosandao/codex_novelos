@@ -56,28 +56,31 @@ class ProductionCatalogTest(unittest.TestCase):
         prompt = self.store.get_resource("chapter-draft-generation", "prompt")
         self.assertIn("章节执行卡", prompt)
 
-    def test_wave_d_experiment_routes_and_active_isolation(self) -> None:
-        arch_exp = self.store.search(stage="plan", asset="architecture", capability="generate", lifecycle="experiment")
-        arch_names = {item["name"] for item in arch_exp["candidates"]}
-        self.assertIn("story-causal-structure", arch_names)
-        self.assertIn("story-expectation-design", arch_names)
-        self.assertIn("story-pov-tone-contract", arch_names)
-
-        world_exp = self.store.search(stage="plan", asset="world_contract", capability="generate", lifecycle="experiment")
-        world_names = {item["name"] for item in world_exp["candidates"]}
-        self.assertIn("world-rule-system", world_names)
-        self.assertIn("world-growth-resource", world_names)
-        self.assertIn("world-social-power", world_names)
-        self.assertIn("world-system-interaction", world_names)
-
-        revise_exp = self.store.search(stage="write", asset="chapter", capability="revise", lifecycle="experiment")
-        revise_names = {item["name"] for item in revise_exp["candidates"]}
-        self.assertIn("prose-revision", revise_names)
-
+    def test_wave_d_expansion_packages_are_active(self) -> None:
+        # expansion skill 已从 experiment 转 active，成为主干 skill 的可选方法素材。
+        # 见 world-contract / story-architecture / chapter-draft-generation prompt 的"可选方法素材"节。
+        expansion_names = {
+            "story-causal-structure",
+            "story-expectation-design",
+            "story-pov-tone-contract",
+            "world-rule-system",
+            "world-growth-resource",
+            "world-social-power",
+            "world-system-interaction",
+            "scenario-atlas",
+            "prose-revision",
+        }
         active_packages = self.store.search(lifecycle="active")
         active_names = {item["name"] for item in active_packages["candidates"]}
-        for name in (arch_names | world_names | revise_names):
-            self.assertNotIn(name, active_names)
+        for name in expansion_names:
+            self.assertIn(name, active_names, f"{name} 应已转 active")
+
+        # 主干 skill priority=10，expansion priority=20/30，主干应排在候选首位
+        arch_result = self.store.search(stage="plan", asset="architecture", capability="generate")
+        self.assertEqual("story-architecture", arch_result["candidates"][0]["name"])
+
+        world_result = self.store.search(stage="plan", asset="world_contract", capability="generate")
+        self.assertEqual("world-contract", world_result["candidates"][0]["name"])
 
     def test_typed_packages_declare_typed_result(self) -> None:
         for name in ("prose-quality-review", "continuity-candidate-extraction"):
@@ -142,7 +145,9 @@ class ProductionCatalogTest(unittest.TestCase):
     def test_each_planning_agent_asset_has_one_catalog_candidate(self) -> None:
         for asset, expected_name in PLANNING_PACKAGES.items():
             result = self.store.search(stage="plan", asset=asset, capability="generate")
-            self.assertEqual([expected_name], [item["name"] for item in result["candidates"]], asset)
+            # expansion skill 转 active 后同 asset 候选变多，但主干 priority=10 < expansion priority=20，
+            # 主干 skill 必须排在候选首位
+            self.assertEqual(expected_name, result["candidates"][0]["name"], asset)
 
     def test_all_authorized_prompt_sources_are_present_once(self) -> None:
         expected_hashes = {
@@ -154,6 +159,20 @@ class ProductionCatalogTest(unittest.TestCase):
             "sha256:3b2dfe3acda98db2b83242a936fe08ee0e4facc600cfb83c3d74147c698b8a95",
             "sha256:870c41d52d5d08cbeb91ca127ec0fd476d398366c604f3ee5830f47bc171a19e",
             "sha256:298432719e3d5ebc15e446425dd0e8285b8d7d398200dcccefc681507ed7ce21",
+            # expansion skill 转 active 后，其 origin=adapted 的 source_hash 也进入 search 结果
+            "sha256:af160fc1031809e0cedfd0429faaa0bfd69266d9bf9e8280ad0a4f1918b5fc5a",
+            "sha256:3189727364783a2650907d9fef6283aab75a4bf26b8d157be23076e344d1ee47",
+            "sha256:e98d50a736cba695eb892f4510f9794d4edbef4a3aaf239081ced794709847e2",
+            "sha256:a596f60f6a7cae0dfe476a961cc2413dbbe831c400d40ed14ba58b9f79ecf211",
+            "sha256:3fd7756cd485c2c39346000ce4508132b0d392e2cec27d2210e9cd5fcdb16ec0",
+            "sha256:edb10ed3e19e6a3a9eb4f0bb3a51ec37e33151b8cfe7fe6e51abb9a894188baa",
+            "sha256:22b694960d62ba970c01a3e474f971af595d647542c61ad19c113c75699093b9",
+            "sha256:b78f6d9d663f2dcb6c9785b03be06631c1a8dbae727dfb97cc203a3e8c2bc714",
+            "sha256:b09ee30290376501b46bfde6f16c06647f21e1421c9bc27ecdbb47f2e22706b0",
+            "sha256:af86502b190dc6de19f7dbe5ad5409c59a563a178aafa324de116ccf0652ce91",
+            "sha256:2388dec0bbc759c9905be8517e50ba7865717ae9ae4a671d3969db64355b7062",
+            "sha256:935d8bb236071af59bfe1ef276542821bd44787abc9ea9caaddf03cf946ed327",
+            "sha256:e13d21169fdc4eaf7acdbd2b0ab21a6696a02167a5fdec2e6af123938e4356be",
         }
         actual_hashes = set()
         for candidate in self.store.search()["candidates"]:

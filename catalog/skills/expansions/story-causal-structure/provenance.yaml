@@ -4,4 +4,4 @@ source_path: backend/plugins/worldbuilding/skills/architecture-causal-plot/promp
 source_commit: 902d7e62f55bc8bc2862e2b9574b5ee2f5f33403
 source_hash: sha256:e98d50a736cba695eb892f4510f9794d4edbef4a3aaf239081ced794709847e2
 license: user-authorized
-migration_note: 适配旧工程 architecture-causal-plot Prompt，限定为因果链与状态推演。
+migration_note: 适配旧工程 architecture-causal-plot Prompt，限定为因果链与状态推演。 lifecycle 于 2026-08-05 由 experiment 转 active（用户决定绕过生成验证门槛直接转），成为对应主干 skill 的可选方法素材，经 skill_catalog.search 默认 active 检索可见。

@@ -1,0 +1,51 @@
+name: scenario-atlas
+description: 跨题材桥段图集（26 题材簇 / 262 桥段），供 World Agent 在生成世界契约时按题材检索可复用桥段组合体；每簇含消费时序表与启发式推演提示，跨簇相似母题以跨簇说明明确分工
+stage: plan
+asset: world_contract
+capability: compose
+lifecycle: active
+version: 0.3.1
+genres:
+- 玄幻
+- 奇幻
+- 仙侠
+- 科幻
+- 都市
+- 悬疑
+- 无限
+- 历史
+- 架空
+- 游戏
+- 电竞
+- 诡异
+- 快穿
+- 武侠
+- 末世
+- 盗墓
+- 御兽
+- 星际
+- 赛博
+- 重生
+- 系统
+- 体育
+- 同人
+- 军事
+- 女频古言
+- 女频现言
+risk: P2
+output_contract: document
+priority: 30
+use_when:
+- World Agent 在生成 world_contract 时需要按题材查阅可复用桥段，作为钩子灵感源
+- 新题材项目缺少世界设定参照时
+- 需要从已有母题衍生本书特有桥段时（查阅对应簇的启发式推演提示）
+avoid_when:
+- 世界契约已有明确的 architecture/strategy 约束，无需外部桥段参照时
+- 桥段图集未覆盖的细分题材，避免误用不相关桥段（应改用对应簇的启发式推演提示自行推导）
+tags:
+- worldbuilding
+- scenario
+- atlas
+- hook
+- seed
+- heuristic

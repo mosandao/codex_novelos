@@ -15,4 +15,4 @@ additional_sources:
     source_commit: 902d7e62f55bc8bc2862e2b9574b5ee2f5f33403
     source_hash: sha256:e13d21169fdc4eaf7acdbd2b0ab21a6696a02167a5fdec2e6af123938e4356be
     license: user-authorized
-migration_note: 归并单体系、双体系与多体系规则交互 Prompt，统一为多体系碰撞与转化方法。
+migration_note: 归并单体系、双体系与多体系规则交互 Prompt，统一为多体系碰撞与转化方法。 lifecycle 于 2026-08-05 由 experiment 转 active（用户决定绕过生成验证门槛直接转），成为对应主干 skill 的可选方法素材，经 skill_catalog.search 默认 active 检索可见。

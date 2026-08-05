@@ -28,6 +28,33 @@ description: 识别小说规划层级并准备对应权威资产的最小输入�
 4. 用 `skill_catalog.validate` 校验选择属于同一候选快照；只对选中项调用 `skill_catalog.get` 读取 Prompt、Schema 或 examples。
 5. 探索性讨论直接返回方案，不创建 Agent、不持久化。
 6. 需要正式版本时，只创建目标资产对应的临时 Agent，提供精确上游 refs、选中 Catalog refs、用户约束和必要 Canon。Direction 必须额外接收项目当前的精确 `creator_signature_ref`，候选 metadata 必须包含同一 ref 和契约完整的 `book_soul`；不得根据人口属性推导思想或模仿具体作者。Chapter Plan 必须给出可追溯到锁定 Direction 的 `soul_pressure` 与 `moral_residue`，纯过渡场景允许明确降低思想前景强度。创建 Codex Task sub-agent 时，必须把其返回的 agentId 作为 `isolation_evidence`（形如 `{"source":"codex_task","agent_id":"..."}`）传入 `agent.start`；缺凭据的 run 无法通过 `planning.lock`。
+
+## Expansion Skill 可选素材注入
+
+主干 Catalog skill（如 `world-contract`、`story-architecture`）的 prompt 末尾有"可选方法素材"引导节，列出了对应的 expansion skill。为了让下游 Agent **确定性地拿到**这些素材（而不是依赖 Agent 运行时自行调用 `skill_catalog.get`），Main 在创建以下三个 Agent 前，应按题材与场景**主动预拉取**对应 expansion 的 prompt 内容，作为附加上下文注入 Agent 输入。
+
+### 触发矩阵
+
+| 目标 Agent | asset | 预拉取的 expansion | 拉取条件 |
+|---|---|---|---|
+| 架构智能体 | `architecture` | `story-causal-structure`、`story-expectation-design`、`story-pov-tone-contract` | 按 Direction 的核心引擎判断需要哪个（因果链/期待管理/视角基调），不是全拉 |
+| 世界观智能体 | `world_contract` | `scenario-atlas`（按题材查对应 `clusters/<题材>.md` 簇）+ `world-rule-system` / `world-growth-resource` / `world-social-power` / `world-system-interaction`（按本书是否有超自然法则/成长体系/势力博弈/多体系碰撞判断） | scenario-atlas 按一级题材定位簇文件；其余 4 个按 Architecture/Strategy 约束按需选取 |
+| 写作智能体 | `chapter` | `prose-revision` | 仅在审查反馈要求局部润色/去 AI 腔时拉取，全新起草不拉 |
+
+### 注入方式
+
+1. 用 `skill_catalog.get("<expansion-name>")` 读取 expansion 的 prompt（scenario-atlas 还需读对应 `clusters/<题材>.md` 簇文件）。
+2. 把 expansion 内容序列化为单个字符串（遵循上面「Agent input_bindings 构造规则」的非空字符串要求），作为 `input_bindings` 的一个附加 key（如 `optional_method_material`）传入 `agent.start`。
+3. 注入时标注"可选方法素材，不能替代主干产出，不能改变场景事实/突破视角/推翻已确定因果"，让 Agent 明确这是参考而非强制模板。
+
+### 不注入的情况
+
+- 探索性讨论（不创建 Agent）
+- expansion 的 `avoid_when` 条件命中（如纯现实无超自然法则 → 不拉 `world-rule-system`）
+- 目标 asset 不在触发矩阵（direction/strategy/character_contract/story_arc/volume_outline/chapter_plan 无对应 expansion）
+- 主干 Architecture/Strategy 已提供足够约束、Agent 无需外部方法灵感时
+
+注入是**增强**不是**强制**——如果 Main 判断本书约束已足够清晰，可以跳过注入，Agent 仍按主干 Catalog prompt 正常工作。
 7. 正式资产 Agent 必须把 `planning_candidate` 作为非空文本返回；Main Agent 调用 `planning.create_candidate_from_run` 直接登记不可变输出，不读取后重传正文。延期的 Agent 质量实验可使用专用结构化规划输出，但该输出不能登记为权威候选。再使用 `$novel-review` 取得精确 Profile 的独立审查，最后由 Main Agent 调用 `planning.lock`。
 
 若下游 Agent 发现上游问题，只返回 change proposal；不要把上游修改混入本层候选。Character 与 World 可并行，但进入 Story Arc 前必须完成交叉一致性审查。

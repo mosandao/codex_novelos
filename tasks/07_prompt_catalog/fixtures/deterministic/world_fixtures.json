@@ -7,7 +7,7 @@
       "stage": "plan",
       "asset": "world_contract",
       "capability": "generate",
-      "lifecycle": "experiment"
+      "lifecycle": "active"
     },
     "forbidden_packages": ["world-growth-resource", "world-system-interaction"]
   },

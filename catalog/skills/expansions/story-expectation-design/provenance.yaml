@@ -10,4 +10,4 @@ additional_sources:
     source_commit: 902d7e62f55bc8bc2862e2b9574b5ee2f5f33403
     source_hash: sha256:3fd7756cd485c2c39346000ce4508132b0d392e2cec27d2210e9cd5fcdb16ec0
     license: user-authorized
-migration_note: 归并期待管理与叙事承诺 Prompt，限定为全书期待与兑现节点设计。
+migration_note: 归并期待管理与叙事承诺 Prompt，限定为全书期待与兑现节点设计。 lifecycle 于 2026-08-05 由 experiment 转 active（用户决定绕过生成验证门槛直接转），成为对应主干 skill 的可选方法素材，经 skill_catalog.search 默认 active 检索可见。

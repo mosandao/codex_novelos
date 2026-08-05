@@ -10,4 +10,4 @@ additional_sources:
     source_commit: 902d7e62f55bc8bc2862e2b9574b5ee2f5f33403
     source_hash: sha256:22b694960d62ba970c01a3e474f971af595d647542c61ad19c113c75699093b9
     license: user-authorized
-migration_note: 归并 POV 知识边界与基调 Prompt，限定为视角感知约束与叙事氛围规范。
+migration_note: 归并 POV 知识边界与基调 Prompt，限定为视角感知约束与叙事氛围规范。 lifecycle 于 2026-08-05 由 experiment 转 active（用户决定绕过生成验证门槛直接转），成为对应主干 skill 的可选方法素材，经 skill_catalog.search 默认 active 检索可见。

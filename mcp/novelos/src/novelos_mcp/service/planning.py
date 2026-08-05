@@ -567,6 +567,103 @@ class PlanningMixin:
             )
             return self._planning_asset(connection, asset_id)
 
+    def extract_decision_points(self, asset_id: str) -> dict[str, Any]:
+        """机械读取 candidate 的 metadata.decision_points，供检查点选项呈现。
+
+        本方法不调用 LLM，只做结构化搬运：从 candidate 的 metadata_json 读取
+        ``decision_points`` 字段（由生成 Agent 在产出 candidate 时写入），原样返回。
+        决策点的内容设计是 strategy/character Agent 的 prompt 职责，不是本方法的职责。
+        """
+        with self.database.read() as connection:
+            asset = self._planning_asset(connection, asset_id)
+        if asset["status"] != "candidate":
+            raise NovelOSError(
+                "invalid_state",
+                "只有 candidate 规划资产可提取决策点",
+                {"status": asset["status"]},
+            )
+        metadata = asset.get("metadata") or {}
+        if not isinstance(metadata, dict):
+            metadata = {}
+        decision_points = metadata.get("decision_points")
+        if decision_points is None:
+            decision_points = []
+        if not isinstance(decision_points, list):
+            raise NovelOSError(
+                "invalid_candidate",
+                "decision_points 必须是数组",
+                {"actual_type": type(decision_points).__name__},
+            )
+        return {"asset_id": asset_id, "decision_points": decision_points}
+
+    def create_revision_candidate(
+        self,
+        project_id: str,
+        asset_type: str,
+        scope_ref: str,
+        content: str,
+        upstream_refs: list[dict[str, Any]],
+        producer_role: str | None,
+        supersedes_candidate_id: str,
+        producer_run_id: str | None = None,
+        metadata: dict[str, Any] | None = None,
+        trace_id: str | None = None,
+    ) -> dict[str, Any]:
+        """创建一个修订 candidate 并把指定的旧 candidate 标 superseded。
+
+        用于检查点选项呈现流程：用户在 candidate→lock 之间做完爽点选择题后，
+        主控把选择融合进新 candidate，由本方法顶替旧 candidate。
+        旧 candidate 必须仍是 candidate 状态（未被 lock/supersede）。
+        """
+        supersedes_id = _require_text(supersedes_candidate_id, "supersedes_candidate_id")
+        with self.database.transaction() as connection:
+            old = self._get(connection, "planning_assets", supersedes_id)
+            if str(old["project_id"]) != _require_text(project_id, "project_id"):
+                raise NovelOSError("invalid_argument", "旧 candidate 不属于当前项目")
+            if old["status"] != "candidate":
+                raise NovelOSError(
+                    "invalid_state",
+                    "被顶替的旧 candidate 必须仍是 candidate 状态",
+                    {"status": old["status"]},
+                )
+            if old["asset_type"] != _require_text(asset_type, "asset_type"):
+                raise NovelOSError(
+                    "invalid_argument",
+                    "修订 candidate 必须与旧 candidate 同 asset_type",
+                    {"expected": str(old["asset_type"]), "actual": asset_type},
+                )
+        revision = self.create_planning_candidate(
+            project_id,
+            asset_type,
+            scope_ref,
+            content,
+            upstream_refs,
+            producer_role,
+            metadata=metadata,
+            producer_run_id=producer_run_id,
+        )
+        with self.database.transaction() as connection:
+            connection.execute(
+                "UPDATE planning_assets SET status='superseded', version=version+1, updated_at=CURRENT_TIMESTAMP WHERE id=?",
+                (supersedes_id,),
+            )
+            if trace_id is not None:
+                self._record_trace_step_in_transaction(
+                    connection,
+                    trace_id,
+                    "planning.create_revision",
+                    "主控智能体",
+                    "completed",
+                    [revision["id"]],
+                    [supersedes_id],
+                    {
+                        "asset_type": asset_type,
+                        "revision_id": revision["id"],
+                        "superseded_id": supersedes_id,
+                    },
+                )
+            return self._planning_asset(connection, revision["id"])
+
     def upsert_character(
         self,
         project_id: str,

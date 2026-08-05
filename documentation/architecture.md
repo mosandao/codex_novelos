@@ -81,3 +81,4 @@ MCP 的稳定服务入口是 `novelos_mcp.service.NovelOSService`。实现由 `s
 - [变量与配置](./variables.md)
 - [测试覆盖](./tests.md)
 - [Agent 与自动化](./automation.md)
+- [世界观与规划层设计重构讨论稿](./worldbuilding-redesign.md)

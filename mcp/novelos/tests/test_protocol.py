@@ -263,7 +263,7 @@ class NovelOSProtocolTest(unittest.IsolatedAsyncioTestCase):
                     await session.initialize()
 
                     # 1. Catalog 搜索与选包验证 (全流程统一使用 story-causal-structure)
-                    search_res = await session.call_tool("skill_catalog.search", {"stage": "plan", "asset": "architecture", "capability": "generate", "lifecycle": "experiment"})
+                    search_res = await session.call_tool("skill_catalog.search", {"stage": "plan", "asset": "architecture", "capability": "generate", "lifecycle": "active"})
                     self.assertFalse(search_res.isError, str(search_res))
                     names = [c["name"] for c in search_res.structuredContent["candidates"]]
                     self.assertIn("story-causal-structure", names)

@@ -3,7 +3,7 @@ description: 因果链与不可跳过状态变化结构设计方法
 stage: plan
 asset: architecture
 capability: generate
-lifecycle: experiment
+lifecycle: active
 version: 1.0.0
 genres: []
 risk: P1

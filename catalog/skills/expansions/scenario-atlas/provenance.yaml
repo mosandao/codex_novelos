@@ -1,0 +1,39 @@
+origin: target-native
+source_repository: null
+source_path: null
+source_commit: null
+source_hash: null
+license: NovelOS-project
+migration_note: |
+  世界观设计重构讨论稿（worldbuilding-redesign.md）Task 20 新建。
+  桥段图集内容源自主控智能体训练数据对主流网文（约 25 本）的题材共性提炼
+  + WebSearch 对各题材套路段的素材补充（共 20+ 次查询，覆盖每簇至少 1 次主
+  查询 + 反套路批评查询），非具体作品复制。
+  lifecycle=experiment，待生成验证后转 active。
+
+  版本演进：
+  - v0.1.0：单文件 prompt.md，12 簇约 60 桥段，四字段（资源/爽点/时机/变体）。
+  - v0.2.0：单文件扩充至 20 簇约 129 桥段，新增 8 个题材簇（武侠/末世/盗墓/
+    御兽/星际/赛博/重生都市/系统流）。
+  - v0.3.0：拆分为索引 + clusters/ 目录（1 个 README 规范 + 21 个簇实体文件），
+    209 桥段。每桥段升级为五字段（新增"消费绑定提示"），每簇新增消费时序表、
+    3+ 个启发式母题（LLM 推演 hook）、反套路与烂大街风险（WebSearch 读者批评
+    素材）、未覆盖子流派推导路径。WebSearch 素材经主控智能体与 4 个并行 Agent
+    提炼，WebFetch 因 Wikipedia 超时/Baidu 403 未使用。v0.3.0 新增第 21 簇
+    alternate-history（架空历史），独立承载此前被拆散到 isekai-build/wuxia/
+    officialdom 三处的朝堂权谋/夺嫡/攀科技/历史名人互动桥段，WebSearch 素材
+    来自月关/孑与2 书单与中国作家网"穿越救亡流"评论。同批次修复跨簇重叠：
+    退婚流归位玄幻簇为权威定义（修仙簇删除重复桥段并改用灵根觉醒翻盘机制）；
+    isekai-build 的"攀科技树"加注"纯种田主线"并与 alternate-history 的
+    "攀科技树与产业奠基"（权谋镶嵌式）以跨簇说明明确分工；isekai-build 的
+    "制度改革与思想启蒙"重命名为"根据地启蒙与基层改制"，与 alternate-history
+    的同名桥段（朝堂博弈驱动）区分。
+  - v0.3.1：一次性补齐 5 大覆盖缺口，簇数 21→26，桥段数 208→262。新增女频古言
+    （female-ancient，补齐此前纯男频导向的最大缺口）、女频现言（female-modern，含
+    年代文/娱乐圈女频子流派）、军事/谍战（military）、体育竞技（sports）、同人/综漫
+    （fanfic）。每簇含五字段桥段 + 跨簇说明（与相邻男频簇/题材簇明确分野）+ 启发式
+    母题 + 反套路 + 未覆盖子流派。WebSearch 素材来自女频古言/现言/军事/体育/同人
+    共 6 次查询（含中国作家网"反言情"评论、2025 短剧审美疲劳报告、起点军事频道、
+    晋江体育书单、综漫同人 CP 文化调研）。lifecycle 于 2026-08-05 由 experiment 转
+    active（用户决定绕过生成验证门槛直接转），成为 world-contract 主干 skill 的可选
+    方法素材，经 skill_catalog.search 默认 active 检索可见。

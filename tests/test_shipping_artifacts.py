@@ -20,6 +20,7 @@ class ShippingArtifactsTest(unittest.TestCase):
             "variables.md",
             "tests.md",
             "automation.md",
+            "worldbuilding-redesign.md",
         }
         self.assertEqual(expected, {path.name for path in DOCUMENTATION.glob("*.md")})
         architecture = (DOCUMENTATION / "architecture.md").read_text(encoding="utf-8")
@@ -64,7 +65,7 @@ class ShippingArtifactsTest(unittest.TestCase):
         self.assertEqual("passed", manifest["restore_drill"])
         snapshot = manifest["logical_snapshot"]
         self.assertEqual("ok", snapshot["quick_check"])
-        self.assertEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], snapshot["schema_versions"])
+        self.assertEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13], snapshot["schema_versions"])
         self.assertRegex(snapshot["logical_hash"], r"^sha256:[0-9a-f]{64}$")
 
 
