@@ -2,12 +2,14 @@
 
 本目录下每个 `.md` 文件是一个题材簇的完整桥段清单。World Agent 通过父级 `prompt.md` 的索引定位到对应簇文件后，读本文件获取该题材的全部可复用桥段。
 
+> **与 universe-atlas 的分工**：本图集（scenario-atlas）管"剧情桥段怎么消费"（爽点/节奏/消费时机）；`universe-atlas` 管"世界怎么设定"（宇宙法则/力量体系骨架/势力格局/世界地图骨架）。两者互补，开书时两份并用，不重复。
+
 ## 文件命名
 
 `<题材英文短名>.md`，全小写，连字符分隔。当前 26 个簇：
 
 ```
-xiuxian.md            修仙
+xianxia.md            修仙
 xuanhuan.md           玄幻
 system.md             系统流
 rebirth-urban.md      重生都市
@@ -17,7 +19,7 @@ infinite.md           无限流
 cthulhu.md            克苏鲁 / 序列流
 western-lord.md       西幻 / 领主
 urban-qi.md           都市灵气
-downturn.md           末世 / 废土
+apocalypse.md           末世 / 废土
 isekai-build.md       基建 / 穿越
 beast-taming.md       御兽 / 召唤
 game-esports.md       游戏流 / 电竞

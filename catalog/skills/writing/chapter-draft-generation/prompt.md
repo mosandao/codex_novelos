@@ -9,3 +9,6 @@
 ## 可选方法素材
 
 - **prose-revision**：当需要对**已有章节草稿**做局部重写、润色或消除 AI 机械痕迹时，调用 `skill_catalog.get("prose-revision")` 拉取其方法。注意：它用于润色既有草稿（revise），**不能替代本主干起草全新章节正文**（generate）；严禁在润色中改变场景事实、突破人物视角受限或推翻已确定因果。其使用条件见 metadata 的 `use_when` / `avoid_when`。
+- **scene-dialogue**：当本章执行卡包含**以对话推进的关键场景**（谈判、试探、摊牌、关系转折）时，调用 `skill_catalog.get("scene-dialogue")` 拉取其对话设计方法（参与者目标/信息差/潜台词/角色声音）。注意：它用于强化对话场景的张力与信息差结构，**不能替代本主干起草全新章节正文**；严禁用其提前写出完整台词覆盖执行卡设定，严禁改变场景事实或突破人物视角受限。其使用条件见 metadata 的 `use_when` / `avoid_when`。
+- **scene-fight-craft**：当本章执行卡包含**对抗/冲突场景**（战斗、论辩、对峙）时，调用 `skill_catalog.get("scene-fight-craft")` 拉取其对抗设计方法（每轮改变距离/资源/伤势/信息/心理优势）。注意：它用于强化对抗场景的因果与代价，**不能替代本主干起草全新章节正文**；严禁用招式清单或强度形容词代替因果，严禁改变场景事实或推翻已确定因果。其使用条件见 metadata 的 `use_when` / `avoid_when`。
+- **compliance-place-guard**：当本书为**现实/架空/都市题材**且正文涉及真实国名/省名/城市名时，调用 `skill_catalog.get("compliance-place-guard")` 拉取真实地名表，对命中地名做虚构替换。注意：它是机械拦截工具（第一道提醒），**不替代语义层合规审查**；纯架空/异界无现实地名风险时不拉取。其使用条件见 metadata 的 `use_when` / `avoid_when`。

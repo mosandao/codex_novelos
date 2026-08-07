@@ -1,0 +1,24 @@
+name: compliance-place-guard
+description: 真实地名合规拦截表（51 国名 + 34 省级行政区 + 81 主要城市），供写作/审查 Agent 在现实题材、架空历史、都市题材中机械扫描命中，提示作者用虚构名替代真实地名；是第一道提醒而非"通过即安全"
+stage: write
+asset: style
+capability: format
+lifecycle: active
+version: 1.0.0
+genres: []
+risk: P1
+output_contract: document
+priority: 50
+use_when:
+- 现实题材、架空历史、都市题材涉及真实地名时
+- 章节/长场景草稿完成后做地名机械扫描
+- 与 universe-atlas 的 alternate-history / wuxia / supernatural 簇配合使用时
+avoid_when:
+- 纯架空/异界设定，完全不涉及现实世界地名时
+- 已确定全部使用自有虚构地名词典，无需外部拦截时
+tags:
+- compliance
+- place-name
+- safety
+- guard
+- filter

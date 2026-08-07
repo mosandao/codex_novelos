@@ -19,7 +19,7 @@ class MigrationSummaryTest(unittest.TestCase):
         summary = json.loads(expected)
         self.assertEqual("completed", summary["status"])
         self.assertEqual(1260, summary["source"]["file_count"])
-        self.assertEqual(38, summary["catalog"]["production_package_count"])
+        self.assertEqual(40, summary["catalog"]["production_package_count"])
         self.assertEqual(0, summary["catalog"]["experiment_package_count"])
         self.assertEqual("authorized", summary["seed"]["authorization"])
         self.assertTrue(summary["seed"]["migrated"])

@@ -19,7 +19,7 @@
 
 | 文件 | 题材簇 | 桥段数 | 主要世界观支柱 | 典型代表作 |
 |---|---|---|---|---|
-| [clusters/xiuxian.md](clusters/xiuxian.md) | 修仙 | 10 | 境界 / 宗门 / 天劫 / 法宝 | 《凡人修仙传》《完美世界》《仙逆》 |
+| [clusters/xianxia.md](clusters/xianxia.md) | 修仙 | 10 | 境界 / 宗门 / 天劫 / 法宝 | 《凡人修仙传》《完美世界》《仙逆》 |
 | [clusters/xuanhuan.md](clusters/xuanhuan.md) | 玄幻 | 9 | 血脉 / 学院 / 家族 / 异火 | 《斗破苍穹》《遮天》《武动乾坤》 |
 | [clusters/system.md](clusters/system.md) | 系统流 | 9 | 签到 / 任务 / 商城 / 兑换 | 签到 / 任务 / 抽奖类系统文 |
 | [clusters/rebirth-urban.md](clusters/rebirth-urban.md) | 重生都市 | 9 | 重生 / 创业 / 文抄 / 金融 | 都市重生经商 / 娱乐圈类 |
@@ -29,7 +29,7 @@
 | [clusters/cthulhu.md](clusters/cthulhu.md) | 克苏鲁 / 序列流 | 10 | 序列 / 魔药 / 污染 / 神位 | 《诡秘之主》 |
 | [clusters/western-lord.md](clusters/western-lord.md) | 西幻 / 领主 | 10 | 领地 / 封建 / 教会 / 联姻 | 《放开那个女巫》西幻领主经营 |
 | [clusters/urban-qi.md](clusters/urban-qi.md) | 都市灵气 | 11 | 觉醒 / 隐秘组织 / 隐世家族 | 都市灵气复苏类 |
-| [clusters/downturn.md](clusters/downturn.md) | 末世 / 废土 | 11 | 异变 / 基地 / 人性 / 进化 | 《末日乐园》《全球进化》 |
+| [clusters/apocalypse.md](clusters/apocalypse.md) | 末世 / 废土 | 11 | 异变 / 基地 / 人性 / 进化 | 《末日乐园》《全球进化》 |
 | [clusters/isekai-build.md](clusters/isekai-build.md) | 基建 / 穿越 | 9 | 科技树 / 种田 / 贸易 / 军事 | 《临高启明》 |
 | [clusters/beast-taming.md](clusters/beast-taming.md) | 御兽 / 召唤 | 10 | 契约 / 进化 / 对战 / 图鉴 | 《宠魅》《御兽修仙》 |
 | [clusters/game-esports.md](clusters/game-esports.md) | 游戏流 / 电竞 | 10 | 副本 / 公会 / 赛事 / 版本 | 网游 / 电竞类 |
@@ -46,16 +46,16 @@
 | [clusters/sports.md](clusters/sports.md) | 体育竞技 | 10 | 球队 / 联赛 / 训练 / 伤病 / 转会 / 战术 | 《篮坛传奇崛起》《冠军教父》《火爆巨星》《球王贝斯特》 |
 | [clusters/fanfic.md](clusters/fanfic.md) | 同人 / 综漫 | 11 | 原著借用 / 原著人物 / CP / 原著节点 / 综漫融合 | 综漫同人 / 影视同人 / 四合院系列 / 综英美 |
 
-**总计**：26 题材簇，262 桥段。每簇含"开篇—中段—后段"三段消费时机分布。
+**总计**：26 题材簇，260 桥段。每簇含"开篇—中段—后段"三段消费时机分布。
 
 ## 题材选择指引
 
 当项目题材跨多个簇时，按以下优先级检索：
 
-- **一级题材是修仙/仙侠**：主查 `xiuxian.md`，副查 `system.md`（系统流修仙常见）、`xuanhuan.md`（玄幻修仙混血）。
-- **一级题材是玄幻**：主查 `xuanhuan.md`，副查 `xiuxian.md`（境界体系混血）、`system.md`。
+- **一级题材是修仙/仙侠**：主查 `xianxia.md`，副查 `system.md`（系统流修仙常见）、`xuanhuan.md`（玄幻修仙混血）。
+- **一级题材是玄幻**：主查 `xuanhuan.md`，副查 `xianxia.md`（境界体系混血）、`system.md`。
 - **一级题材是都市**：根据二级方向选——`rebirth-urban.md`（重生经商/娱乐圈）、`urban-qi.md`（灵气复苏/隐世家族）、`officialdom.md`（官场）、`game-esports.md`（电竞）、`female-modern.md`（女频现言：甜宠/虐恋/霸总/追妻火葬场/年代文/娱乐圈女频）。
-- **一级题材是科幻**：根据二级方向选——`interstellar.md`（太空歌剧）、`cyberpunk.md`（赛博）、`downturn.md`（末世）、`infinite.md`（无限流常被归入科幻）。
+- **一级题材是科幻**：根据二级方向选——`interstellar.md`（太空歌剧）、`cyberpunk.md`（赛博）、`apocalypse.md`（末世）、`infinite.md`（无限流常被归入科幻）。
 - **一级题材是悬疑**：主查 `mystery.md`，副查 `horror-rules.md`（诡异流混血）。
 - **一级题材是历史/武侠**：根据二级方向选——`alternate-history.md`（架空历史/穿越改写，主查）、`wuxia.md`（江湖武侠）、`isekai-build.md`（基建种田向的穿越）、`officialdom.md`（古代朝堂/现代体制）、`female-ancient.md`（女频古言：宅斗/宫斗/种田/穿越古言/重生古言）。
 - **一级题材是游戏**：主查 `game-esports.md`，副查 `infinite.md`（无限流近似）。
@@ -67,6 +67,10 @@
 
 ## 覆盖说明
 
-本图集 v0.3.1 覆盖 26 个题材簇共 262 桥段。内容源自主控智能体训练数据对主流网文（约 25 本）的题材共性提炼 + WebSearch 对各题材套路段的素材补充（共 30+ 次查询，提炼读者批评用于反套路小节），非具体作品复制。每个桥段含五字段（资源需求 / 爽点类型 / 消费时机 / 变体 + 消费绑定提示），每个簇另含消费时序表、3+ 个启发式母题、反套路风险、未覆盖子流派推导路径。跨簇相似母题（如攀科技树、制度改革、退婚流、女频古言 vs 男频架空历史、女频年代文 vs 男频重生都市、传统体育 vs 电竞、重生竞技 vs 重生经商、同人穿入原著 vs 快穿位面、综漫同人 vs 无限流副本、现代军事 vs 古代平乱）通过"跨簇说明"字段明确分工，避免 World Agent 误用。v0.3.1 一次性补齐 5 大覆盖缺口：女频古言、女频现言（补齐此前纯男频导向的最大缺口）、军事/谍战、体育竞技、同人/综漫。
+> **与 universe-atlas 的分工**：本图集（scenario-atlas）管"剧情桥段怎么消费"（爽点 / 节奏 / 消费时机）；`universe-atlas` 管"世界怎么设定"（宇宙法则 / 力量体系骨架 / 势力格局 / 世界地图骨架）。两者互补，开书时两份并用，不重复。
+
+> **力量代价的元法则**：本图集的桥段在涉及"越级 / 反噬 / 法则代价"等约束时，只是题材层的口头建议。强制性的元法则约束（U-1 法则惰性、U-2 代价不可消除等）见 `universe-atlas/clusters/framework.md`。涉及力量体系越级或代价设计的题材簇（修仙/玄幻/克苏鲁等），应同时参照 framework 的 U-* 元法则，避免推导出无代价越级反杀桥段。
+
+本图集 v0.3.1 覆盖 26 个题材簇共 260 桥段。内容源自主控智能体训练数据对主流网文（约 25 本）的题材共性提炼 + WebSearch 对各题材套路段的素材补充（共 30+ 次查询，提炼读者批评用于反套路小节），非具体作品复制。每个桥段含五字段（资源需求 / 爽点类型 / 消费时机 / 变体 + 消费绑定提示），每个簇另含消费时序表、3+ 个启发式母题、反套路风险、未覆盖子流派推导路径。跨簇相似母题（如攀科技树、制度改革、退婚流、女频古言 vs 男频架空历史、女频年代文 vs 男频重生都市、传统体育 vs 电竞、重生竞技 vs 重生经商、同人穿入原著 vs 快穿位面、综漫同人 vs 无限流副本、现代军事 vs 古代平乱）通过"跨簇说明"字段明确分工，避免 World Agent 误用。v0.3.1 一次性补齐 5 大覆盖缺口：女频古言、女频现言（补齐此前纯男频导向的最大缺口）、军事/谍战、体育竞技、同人/综漫。
 
 World Agent 遇到仍未覆盖的细分题材时，应依靠 Architecture 与 Strategy 的约束直接推导世界契约，不强行套用不相关桥段。簇文件末尾的启发式推演提示就是为了支持这种"从已有母题衍生新桥段"的推导。

@@ -38,12 +38,12 @@ description: 识别小说规划层级并准备对应权威资产的最小输入�
 | 目标 Agent | asset | 预拉取的 expansion | 拉取条件 |
 |---|---|---|---|
 | 架构智能体 | `architecture` | `story-causal-structure`、`story-expectation-design`、`story-pov-tone-contract` | 按 Direction 的核心引擎判断需要哪个（因果链/期待管理/视角基调），不是全拉 |
-| 世界观智能体 | `world_contract` | `scenario-atlas`（按题材查对应 `clusters/<题材>.md` 簇）+ `world-rule-system` / `world-growth-resource` / `world-social-power` / `world-system-interaction`（按本书是否有超自然法则/成长体系/势力博弈/多体系碰撞判断） | scenario-atlas 按一级题材定位簇文件；其余 4 个按 Architecture/Strategy 约束按需选取 |
-| 写作智能体 | `chapter` | `prose-revision` | 仅在审查反馈要求局部润色/去 AI 腔时拉取，全新起草不拉 |
+| 世界观智能体 | `world_contract` | `scenario-atlas`（按题材查对应 `clusters/<题材>.md` 簇）+ `universe-atlas`（按本书宇宙类型查对应 `clusters/<宇宙>.md` 簇，含 `framework.md` 上位法）+ `world-rule-system` / `world-growth-resource` / `world-social-power` / `world-system-interaction`（按本书是否有超自然法则/成长体系/势力博弈/多体系碰撞判断） | scenario-atlas 按一级题材定位簇文件；universe-atlas 按本书宇宙类型定位（纯现实无超自然 → 只读 `framework.md` 的 U-1/U-2，不读宇宙簇）；其余 4 个按 Architecture/Strategy 约束按需选取 |
+| 写作智能体 | `chapter` | `prose-revision`（润色）、`scene-dialogue`（对话场景）、`scene-fight-craft`（对抗场景）、`compliance-place-guard`（现实题材地名合规） | 按本章执行卡的场景构成判断：审查反馈要求润色/去 AI 腔 → prose-revision；含关键对话场景 → scene-dialogue；含对抗/战斗场景 → scene-fight-craft；现实/架空/都市题材涉及真实地名 → compliance-place-guard。全新起草且无特殊场景/无地名风险时不拉 |
 
 ### 注入方式
 
-1. 用 `skill_catalog.get("<expansion-name>")` 读取 expansion 的 prompt（scenario-atlas 还需读对应 `clusters/<题材>.md` 簇文件）。
+1. 用 `skill_catalog.get("<expansion-name>")` 读取 expansion 的 prompt。含 `clusters/` 子目录的 atlas 包（scenario-atlas / universe-atlas），先用 `skill_catalog.list_cluster_files("<name>")` 查题材/宇宙簇清单，再用 `skill_catalog.get_cluster_file("<name>", "<题材>.md")` 读取对应簇文件的完整内容（universe-atlas 含 `framework.md` 上位法，按需一并读取）。
 2. 把 expansion 内容序列化为单个字符串（遵循上面「Agent input_bindings 构造规则」的非空字符串要求），作为 `input_bindings` 的一个附加 key（如 `optional_method_material`）传入 `agent.start`。
 3. 注入时标注"可选方法素材，不能替代主干产出，不能改变场景事实/突破视角/推翻已确定因果"，让 Agent 明确这是参考而非强制模板。
 

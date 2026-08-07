@@ -1,5 +1,5 @@
 name: scenario-atlas
-description: 跨题材桥段图集（26 题材簇 / 262 桥段），供 World Agent 在生成世界契约时按题材检索可复用桥段组合体；每簇含消费时序表与启发式推演提示，跨簇相似母题以跨簇说明明确分工
+description: 跨题材桥段图集（26 题材簇 / 260 桥段），供 World Agent 在生成世界契约时按题材检索可复用桥段组合体；每簇含消费时序表与启发式推演提示，跨簇相似母题以跨簇说明明确分工
 stage: plan
 asset: world_contract
 capability: compose

@@ -10,3 +10,9 @@ risk: P2
 output_contract: document
 priority: 30
 tags: [punctuation, dash, ellipsis]
+use_when:
+- 正文审查时发现破折号或省略号过密、语义错误或沦为装饰
+- 需要诊断标点是否真正承担强制中断/补充/转折/收声等语义
+avoid_when:
+- 标点使用稀疏且语义清晰，无需诊断
+- 全新起草阶段（标点诊断只用于 review 期）

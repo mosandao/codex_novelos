@@ -10,3 +10,9 @@ risk: P2
 output_contract: document
 priority: 20
 tags: [scene, pacing, revision]
+use_when:
+- 正文审查时出现节奏停滞、跳跃或无效重复嫌疑
+- 需要诊断哪些片段应压缩、展开、前移或后移
+avoid_when:
+- 全新起草阶段（节奏诊断只用于 review 期）
+- 正文已通过节奏审查且无修改需求

@@ -1,0 +1,19 @@
+origin: target-native
+source_repository: null
+source_path: null
+source_commit: null
+source_hash: null
+license: NovelOS-project
+migration_note: |
+  NovelOS 宇宙观统一化 Task 新建。真实地名拦截表源自主控智能体基于
+  公开行政区划数据整理（国名/中国省级行政区/主要城市），是封闭数据集，
+  可靠性较高，可用程序做正则校验。
+
+  本包从 cosmology/合规安全层 迁入 catalog。原 cosmology 目录下还有三份
+  草稿级敏感词表（暴力色情/政治敏感/宗教民族），因草稿级不可靠（平台词表
+  不公开且动态变化、众包版本过时残缺）已按用户决定删除，不迁入 catalog。
+  本包只保留机械拦截较可靠的真实地名表。
+
+  reliability_boundary: 真实地名拦截可靠（封闭数据集）；但本包不含语义层面的
+  违规识别（影射/谐音/上下文敏感），那是人工终审职责。本包是第一道提醒，
+  非"通过即安全"。

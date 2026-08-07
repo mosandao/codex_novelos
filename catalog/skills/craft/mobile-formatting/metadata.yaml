@@ -10,3 +10,9 @@ risk: P2
 output_contract: document
 priority: 30
 tags: [mobile, formatting, paragraph]
+use_when:
+- 正文需评估移动端阅读密度，调整段落边界
+- 角色切换、直接对话、关键反转需要另起段落以降低窄屏密度
+avoid_when:
+- 正文已按移动端密度组织且无需调整
+- 纯文学/纸质向作品不关心窄屏密度

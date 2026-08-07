@@ -10,3 +10,9 @@ risk: P2
 output_contract: free_text
 priority: 30
 tags: [scene, fight, confrontation]
+use_when:
+- 章节执行卡包含对抗/冲突场景（战斗/论辩/对峙）
+- 需要设计每轮改变距离/资源/伤势/信息/心理优势的因果链条
+avoid_when:
+- 场景以日常或情感为主、无对抗结构
+- 全新整章起草且无特殊对抗场景（主干 chapter-draft-generation 已覆盖）

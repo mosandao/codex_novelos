@@ -1,0 +1,16 @@
+contract_version: 1
+inputs:
+  - contract: architecture
+    cardinality: one
+  - contract: strategy
+    cardinality: one
+outputs: []
+invariants:
+  - 宇宙图集是 world Agent 的可选输入素材，不是强制拼装件
+  - 每个宇宙簇必须含宇宙法则、力量体系、势力格局、世界规则、世界地图、裁切指引、启发式推导七节
+  - framework.md 是所有宇宙簇的上位法，簇内规则与 framework 冲突时以 framework 为准
+  - 跨宇宙混搭须遵循 framework 的 P-1 主从/P-2 接口化/P-3 法则归一/P-4 单一基调四条仲裁原则
+  - 宇宙簇源自训练数据有把握的主流类型 + WebSearch 素材补充 + 环球档案神话文稿提炼，不凭记忆编造冷门题材
+  - world_contract 的具体形态由 world Agent 按本书 architecture/strategy 自选，宇宙图集不强制结构
+forbidden_actions:
+  - commit_authority

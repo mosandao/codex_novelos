@@ -41,7 +41,8 @@
 
 以下 expansion skill 提供题材或方法细化的可选参考，**均为可选输入，不能替代本主干产出**。主控智能体或 World Agent 可按需调用 `skill_catalog.get("<name>")` 拉取其完整 prompt 作为方法灵感：
 
-- **scenario-atlas**（题材桥段图集）：按当前项目一级题材定位 `clusters/<题材>.md`，查阅该题材的可复用桥段、消费时序表与启发式推演提示，作为世界契约"结构性消费约束"的钩子灵感源。**不是强制拼装件**——世界契约的组织形态仍由 World Agent 按本书 Architecture/Strategy 自选。
+- **scenario-atlas**（题材桥段图集）：按当前项目一级题材定位 `clusters/<题材>.md`，查阅该题材的可复用桥段、消费时序表与启发式推演提示，作为世界契约"结构性消费约束"的钩子灵感源。**不是强制拼装件**——世界契约的组织形态仍由 World Agent 按本书 Architecture/Strategy 自选。与 universe-atlas 互补：本图集管"剧情桥段怎么消费"，universe-atlas 管"世界怎么设定"。
+- **universe-atlas**（宇宙设定图集）：当世界需要完整的"宇宙法则 + 力量体系骨架 + 势力格局 + 世界地图骨架"模板时，用 `skill_catalog.list_cluster_files("universe-atlas")` 查宇宙簇清单，再 `skill_catalog.get_cluster_file("universe-atlas", "<宇宙>.md")` 读取对应宇宙簇（含 `framework.md` 上位法：U-1~U-7 元法则、LI 强度光谱、混搭仲裁）。与 scenario-atlas 互补——开书时两份并用。**不是强制拼装件**。
 - **world-rule-system**：当世界需要"不可打破的超自然/物理铁律"时，参考其规则边界定义方法。
 - **world-growth-resource**：当世界需要"能力进阶阶梯 + 资源消耗闭环"时（修仙境界、序列魔药、异能进化等），参考其成长曲线与资源枯竭设计。
 - **world-social-power**：当世界需要"势力利益博弈 + 阶层垄断"设计时，参考其势力分配与制度冲突方法。

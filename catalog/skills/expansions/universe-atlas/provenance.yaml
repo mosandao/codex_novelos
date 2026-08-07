@@ -1,0 +1,25 @@
+origin: target-native
+source_repository: null
+source_path: null
+source_commit: null
+source_hash: null
+license: NovelOS-project
+migration_note: |
+  NovelOS 宇宙观统一化 Task 新建。内容来源三方合成：
+  1) 神话宇宙簇源自主控智能体对 galaxy-downloader/transcripts/馆长刘下饭（环球档案）
+     下 92 篇神话文稿（北欧/希腊/苏美尔/巴比伦/凯尔特/苗族/彝族/苯教/印第安/非洲/澳洲）
+     的结构化提炼，提炼可用设定骨架而非剧情罗列。
+  2) 其余 12 个派生宇宙簇（科幻/星际/玄幻/修真/克苏鲁/都市灵异/赛博/末世/无限流/西幻/武侠/
+     架空历史）+ 宇宙法则框架，源自主控智能体训练数据对主流网文与类型文学的共性提炼，
+     各簇均经 3-5 次 WebSearch 补充力量体系/反套路/读者批评素材。
+  3) 宇宙法则框架（U-1~U-7 元法则、LI 强度光谱、混搭仲裁）吸收 Sanderson 三律与
+     worldbuilding bible 方法论。
+
+  所有簇均为"可裁切拼合的设定骨架"，非定稿 IP。开书时必须由世界观智能体按本书
+  architecture/strategy 约束裁切改写后锁定为该项目的 world_contract，不可照搬。
+  各簇的"启发式推导"小节专门用于支持本书差异下的自行推导，避免硬套。
+
+  lifecycle=active，作为 world-contract 主干 skill 的可选方法素材，经
+  skill_catalog.search 默认 active 检索可见。与 scenario-atlas（桥段图集视角）
+  互补：本图集管"世界怎么设定（法则/势力/地图骨架）"，scenario-atlas 管
+  "剧情桥段怎么消费（爽点/节奏）"，开书时两份并用。

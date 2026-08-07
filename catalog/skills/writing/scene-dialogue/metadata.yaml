@@ -10,3 +10,9 @@ risk: P2
 output_contract: free_text
 priority: 20
 tags: [scene, dialogue, character-voice]
+use_when:
+- 章节执行卡包含以对话推进的关键场景（谈判/试探/摊牌/关系转折）
+- 需要设计参与者目标差、信息差、潜台词与角色声音区分
+avoid_when:
+- 场景以动作或心理为主、对话不是推进主体
+- 全新整章起草且无特殊对话场景（主干 chapter-draft-generation 已覆盖）

@@ -10,3 +10,9 @@ risk: P2
 output_contract: document
 priority: 30
 tags: [reader-experience, payoff, serial-fiction]
+use_when:
+- 商业连载/爽文题材需要设计反馈频率与爽点兑现节奏
+- 需要为铺垫→受压→反制→兑现→新代价的循环设计消费节点
+avoid_when:
+- 纯文学/慢节奏作品不追求高频爽点反馈
+- 全书承诺结构尚未确定（先用 story-expectation-design 定架构层承诺）
