@@ -187,7 +187,7 @@ Direction 精确 ref，不能自行发明或改写作者思想。
 V1 只注册一个名为 `novelos` 的 stdio MCP Server。Memory、Planning、Catalog、Review 和 Trace 是同一 Server 内的工具命名空间，不拆成多个 MCP 进程。
 
 `NovelOSService` 的稳定导入入口仍是 `novelos_mcp.service`，实现位于
-`mcp/novelos/src/novelos_mcp/service/`：`service/__init__.py` 聚合 8 个领域 Mixin，
+`mcp/novelos/src/novelos_mcp/service/`：`service/__init__.py` 聚合 9 个领域 Mixin，
 `_ServiceInternals` 保存共享事务与校验 helper。不得恢复同名 `service.py`，也不得绕过聚合服务
 另建可独立写权威数据的子服务。包级兼容常量可以保留，但运行时 Review Profile 必须从当前
 `AgentContractStore` 查询，不能把兼容快照当作第二权威源。
