@@ -64,6 +64,66 @@ migration_note: 测试夹具
         self.assertEqual("保持人物声音一致。", self.store.get_resource("scene-dialogue", "prompt"))
         self.assertEqual("target-native", package["provenance"]["origin"])
 
+    def _make_atlas(self) -> Path:
+        """搭一个带 clusters/ 目录的临时 atlas 包，供 cluster 读取测试复用。"""
+        package = self.root / "expansions" / "scenario-atlas"
+        package.mkdir(parents=True)
+        (package / "metadata.yaml").write_text(
+            """name: scenario-atlas
+description: 桥段图集
+stage: plan
+asset: world_contract
+capability: compose
+lifecycle: active
+version: 0.3.1
+output_contract: document
+genres: []
+priority: 30
+""",
+            encoding="utf-8",
+        )
+        (package / "prompt.md").write_text("索引文件。", encoding="utf-8")
+        (package / "provenance.yaml").write_text(
+            """origin: target-native
+source_repository: null
+source_path: null
+source_commit: null
+source_hash: null
+license: test
+migration_note: 测试夹具
+""",
+            encoding="utf-8",
+        )
+        clusters = package / "clusters"
+        clusters.mkdir()
+        (clusters / "xiuxian.md").write_text("# 修仙桥段\n灵根觉醒。", encoding="utf-8")
+        (clusters / "system.md").write_text("# 系统流桥段\n面板激活。", encoding="utf-8")
+        return package
+
+    def test_cluster_files_are_listed_in_resources(self) -> None:
+        self._make_atlas()
+        info = self.store.get("scenario-atlas")
+        self.assertEqual(["system.md", "xiuxian.md"], info["resources"]["clusters"])
+        listing = self.store.list_cluster_files("scenario-atlas")
+        self.assertEqual(["system.md", "xiuxian.md"], listing["clusters"])
+
+    def test_get_cluster_file_returns_content(self) -> None:
+        self._make_atlas()
+        content = self.store.get_cluster_file("scenario-atlas", "xiuxian.md")
+        self.assertIn("灵根觉醒", content)
+
+    def test_get_cluster_file_rejects_path_traversal(self) -> None:
+        self._make_atlas()
+        for malicious in ("../etc/passwd.md", "a/b.md", ".env.md", "xiuxian.txt", "", "xiuxian.md/"):
+            with self.subTest(filename=malicious):
+                with self.assertRaisesRegex(NovelOSError, "invalid_argument"):
+                    self.store.get_cluster_file("scenario-atlas", malicious)
+
+    def test_get_cluster_file_missing_file_raises(self) -> None:
+        self._make_atlas()
+        with self.assertRaisesRegex(NovelOSError, "not_found"):
+            self.store.get_cluster_file("scenario-atlas", "wuxia.md")
+
     def test_unknown_metadata_field_is_rejected(self) -> None:
         metadata = self.root / "writing" / "scene-dialogue" / "metadata.yaml"
         metadata.write_text(metadata.read_text(encoding="utf-8") + "semantic_router: true\n", encoding="utf-8")

@@ -158,6 +158,8 @@ def create_server(
         "skill_catalog.validate_output": service.validate_skill_output,
         "skill_catalog.validate_contract_inputs": service.validate_contract_inputs,
         "skill_catalog.review_route": service.get_review_catalog_route,
+        "skill_catalog.list_cluster_files": service.list_cluster_files,
+        "skill_catalog.get_cluster_file": service.get_cluster_file,
         "trace.start": service.start_trace,
         "trace.record_step": service.record_trace_step,
         "trace.finish": service.finish_trace,
@@ -179,11 +181,15 @@ def create_server(
         selected_archetypes: list[dict[str, Any]],
         project_setup: dict[str, Any],
         display_name: str,
+        fused_parent_version_id: str | None = None,
+        fused_signature: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         return service.reconcile_project_wizard_archetypes(
             selected_archetypes,
             project_setup,
             display_name,
+            fused_parent_version_id,
+            fused_signature,
         )
     for name, handler in tools.items():
         server.tool(name=name)(handler)
@@ -212,6 +218,9 @@ def create_server(
         description=(
             "把项目向导产出的多原型 selected_archetypes 与项目 setup 确定性融合为"
             "合规的单 parent derive 结构，供 project.wizard.submit 直接使用。"
+            "多原型(≥2)路径下，把 onboarding_agent 判定的 parent 与深度融合完整签名"
+            "作为 fused_parent_version_id / fused_signature 传入，本工具跳过打分、"
+            "直接用指定 parent 并把完整签名折算成 overrides diff。"
         ),
         annotations=ToolAnnotations(
             readOnlyHint=True,

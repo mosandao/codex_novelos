@@ -57,6 +57,12 @@ class ReviewsMixin:
     def get_skill_catalog(self, name: str) -> dict[str, Any]:
         return self.catalog.get(name)
 
+    def list_cluster_files(self, name: str) -> dict[str, Any]:
+        return self.catalog.list_cluster_files(name)
+
+    def get_cluster_file(self, name: str, filename: str) -> str:
+        return self.catalog.get_cluster_file(name, filename)
+
     def validate_skill_selection(
         self,
         selected_names: list[str],

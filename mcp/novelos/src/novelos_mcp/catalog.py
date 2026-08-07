@@ -133,6 +133,9 @@ class CatalogStore:
         examples = package.root / "examples"
         if examples.is_dir():
             resources["examples"] = sorted(path.name for path in examples.iterdir() if path.is_file())
+        clusters = package.root / "clusters"
+        if clusters.is_dir():
+            resources["clusters"] = sorted(path.name for path in clusters.iterdir() if path.is_file())
         return {
             "metadata": package.metadata,
             "provenance": package.provenance,
@@ -193,6 +196,22 @@ class CatalogStore:
         path = package.root / filenames[artifact]
         if not path.is_file():
             raise NovelOSError("not_found", "Catalog Resource 不存在", {"name": name, "artifact": artifact})
+        return path.read_text(encoding="utf-8")
+
+    def list_cluster_files(self, name: str) -> dict[str, Any]:
+        package = self._get_package(name)
+        clusters_dir = package.root / "clusters"
+        files = sorted(path.name for path in clusters_dir.iterdir() if path.is_file()) if clusters_dir.is_dir() else []
+        return {"name": name, "clusters": files}
+
+    def get_cluster_file(self, name: str, filename: str) -> str:
+        # 受控目录读取：filename 只允许单层 .md 文件名，禁止任何路径穿越
+        if not isinstance(filename, str) or not re.fullmatch(r"[A-Za-z0-9_][A-Za-z0-9._-]*\.md", filename):
+            raise NovelOSError("invalid_argument", "cluster 文件名必须是单层 .md 文件名（不含路径分隔符、不以点开头）", {"filename": filename})
+        package = self._get_package(name)
+        path = package.root / "clusters" / filename
+        if not path.is_file():
+            raise NovelOSError("not_found", "Catalog cluster 文件不存在", {"name": name, "filename": filename})
         return path.read_text(encoding="utf-8")
 
     def _get_package(self, name: str) -> CatalogPackage:
