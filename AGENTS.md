@@ -117,14 +117,35 @@ Character 与 World 可以并行生成，但进入 Story Arc 前必须完成交�
    - **单原型**：直接调用 `project.wizard.reconcile_archetypes`，把选择确定性融合为单一 parent
      的 derive 结构（取打分最高的原型作 parent，生成基础 overrides，并把其余原型的读者承诺
      作为辅风格追加到 `recurring_attention`），再以 `derive` 模式调用 `project.wizard.submit`。
+     返回值的 `parent_source` 为 `"scored"`。
    - **多原型（≥2）**：`reconcile_archetypes` 的确定性融合只把辅原型压缩成 `recurring_attention`
      脚注，会丢弃大量跨原型约束。因此必须先在 Trace 内创建临时 `onboarding_agent` run，把
      `selected_archetypes`、`project_setup` 和各原型完整签名交给它，由 LLM 判定 parent 并对
      跨原型约束做深度融合，产出 `creator_derivation_candidate`（含完整 `signature` 与
-     `merge_rationale`）。随后用 Agent 判定的 parent 调用 `project.wizard.reconcile_archetypes`
-     做确定性合规收口（校验 parent/Hash 与配置一致、签名过 schema 校验），再以 `derive` 模式调用
-     `project.wizard.submit`。无论哪条路径，落库前签名都必须通过确定性 schema 校验；LLM 只在
-     `onboarding_agent` run 内推理，MCP 不调 LLM。详见 Task 12。
+     `merge_rationale`）。随后把 Agent 判定的 parent 与完整融合签名作为
+     `fused_parent_version_id` / `fused_signature` 传给 `project.wizard.reconcile_archetypes`
+     做确定性合规收口：该工具跳过打分、直接用指定 parent，并把完整签名自动折算成相对 parent 的
+     overrides diff（剔除 `schema_version` 与等于父原值的字段），返回值 `parent_source` 为
+     `"fused"`。再以 `derive` 模式调用 `project.wizard.submit`。
+
+   **parent 裁决规则**：多原型路径下确定性打分（`"scored"`）与 Agent 判定（`"fused"`）可能
+   分歧——这是预期行为，不是错误。≥2 路径以 Agent 判定的 parent 为准，主控不得采用打分 parent。
+   主控无需手工把 Agent 的完整签名折算成 overrides；该转换由 `reconcile_archetypes` 的
+   `fused_signature` 入参在 MCP 内确定性完成。多原型路径的 `creator` payload 形状（供
+   `project.wizard.submit` 消费）：
+
+   ```json
+   {
+     "mode": "derive",
+     "parent_version_id": "creator-profile-version:<Agent 判定的原型>:1",
+     "parent_subject_hash": "sha256:<同上原型的 subject_hash>",
+     "display_name": "<Agent 融合后的展示名>",
+     "overrides": { "<7 个签名字段，由 reconcile fused 折算>" }
+   }
+   ```
+
+   无论哪条路径，落库前签名都必须通过确定性 schema 校验；LLM 只在 `onboarding_agent` run 内
+   推理，MCP 不调 LLM。详见 Task 12 与 Task 24。
 
    新向导不得提交 `reuse` 或 `create`；历史绑定仍保持可读。
 3. MCP 在同一事务中确认或创建不可变 Creator Profile 版本、创建项目并绑定精确 revision/Hash；

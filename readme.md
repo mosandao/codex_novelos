@@ -65,7 +65,7 @@ PYTHONWARNINGS='error::ResourceWarning' PYTHONPATH=mcp/novelos/src .venv/bin/pyt
 
 ## 项目创建向导
 
-默认入口是可直接打开的本地页面 `mcp/novelos/src/novelos_mcp/ui/project-wizard.html`，`project.wizard.render` 的 MCP Apps Resource 仅作兼容入口。本地页面不直接写数据库，只生成 `novelos.project.create.v1` JSON；用户将 JSON 发回后，主控智能体按 `selected_archetypes` 数量选择签名融合路径：单原型直接调用 `project.wizard.reconcile_archetypes` 确定性融合；多原型（≥2）先在 Trace 内创建临时 `onboarding_agent` 做 LLM 深度融合，产出 `creator_derivation_candidate`，再经 reconcile 确定性收口。两条路径最终都以单一 parent 的 `derive` 结构调用 `project.wizard.submit`。MCP 在同一事务中确认或创建 Creator Profile 版本、创建项目并绑定精确 revision/Hash，成功后刷新默认 `novels/<项目目录>/` 投影。
+默认入口是可直接打开的本地页面 `mcp/novelos/src/novelos_mcp/ui/project-wizard.html`，`project.wizard.render` 的 MCP Apps Resource 仅作兼容入口。本地页面不直接写数据库，只生成 `novelos.project.create.v1` JSON；用户将 JSON 发回后，主控智能体按 `selected_archetypes` 数量选择签名融合路径：单原型直接调用 `project.wizard.reconcile_archetypes` 确定性融合（`parent_source:"scored"`）；多原型（≥2）先在 Trace 内创建临时 `onboarding_agent` 做 LLM 深度融合，产出 `creator_derivation_candidate`，再把 Agent 判定的 parent 与完整融合签名作为 `fused_parent_version_id` / `fused_signature` 传给 reconcile 收口（`parent_source:"fused"`，由 MCP 自动折算 overrides diff）。两条路径最终都以单一 parent 的 `derive` 结构调用 `project.wizard.submit`。MCP 在同一事务中确认或创建 Creator Profile 版本、创建项目并绑定精确 revision/Hash，成功后刷新默认 `novels/<项目目录>/` 投影。
 
 V3 新向导只允许 `derive`，不得提交 `reuse` 或 `create`；历史绑定仍可读取。页面使用固定频道（男频、女频、全向、出版、剧本）、目标平台（起点、番茄、晋江、七猫）、四档作品规模和 14 个一级题材。二级方向随一级题材切换，每个题材提供 18 个静态、LLM 预生成候选；落库事务本身不调用 LLM，LLM 只在多原型融合时由 `onboarding_agent` 在 Codex run 内运行；也不提供自定义选项、知乎盐选或自定义字数。主情绪基调可以多选，美学风格最多两项，用户创作资料为最多 10,000 字的可选多行文本。页面按约束确定性推荐三个系统叙事原型，用户确认继承项并编辑本书最小差异。
 

@@ -15,6 +15,7 @@
 | [Task 20](./20_scenario_atlas_genre_seeds.md) | `DONE` | 桥段图集 skill 新建（8 题材簇约 45 桥段，lifecycle=experiment 待生成验证转 active） |
 | [Task 21](./21_creation_seed_entry_layer.md) | `DONE` | 创作种子非权威入口层（migration 013 + SeedsMixin + 3 MCP 工具 + direction 反向工程 + 投影 + 7 测试） |
 | [Task 22](./22_checkpoint_option_presentation.md) | `DONE` | 检查点选项呈现原子能力（extract_decision_points + create_revision_candidate + prompt + 8 测试） |
+| [Task 24](./24_reconcile_fused_parent_handoff.md) | `DONE` | reconcile 接收 fused parent + 融合签名确定性收口（A–D 契约缺口修复：扩展 reconcile fused 入参、handoff 文档化、双 parent 裁决规则、agent.start 契约；推翻 Task 12「不改 reconcile」旧约束） |
 
 ### 已评估取消
 

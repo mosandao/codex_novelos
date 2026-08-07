@@ -13,9 +13,10 @@
 4. 页面生成 `novelos.project.create.v1` JSON，显示在页面底部并尝试自动复制；复制失败时提供
    手动复制按钮。用户把原始 JSON 发送给 Main。页面产出的 `creator.selected_archetypes` 是
    多原型数组，Main 按 `selected_archetypes` 数量选择签名融合路径：单原型直接调用
-   `project.wizard.reconcile_archetypes` 确定性融合为单一 parent 的 derive 结构；多原型（≥2）
-   先在 Trace 内创建临时 `onboarding_agent` run，由 LLM 判定 parent 并深度融合跨原型约束，产出
-   `creator_derivation_candidate`，再经 `project.wizard.reconcile_archetypes` 确定性合规收口。
+   `project.wizard.reconcile_archetypes` 确定性融合为单一 parent 的 derive 结构（`parent_source:"scored"`）；
+   多原型（≥2）先在 Trace 内创建临时 `onboarding_agent` run，由 LLM 判定 parent 并深度融合跨原型约束，产出
+   `creator_derivation_candidate`，再把 Agent 判定的 parent 与完整融合签名作为 `fused_parent_version_id` /
+   `fused_signature` 传给 `project.wizard.reconcile_archetypes` 做确定性合规收口（`parent_source:"fused"`）。
    两条路径最终都以该 derive 结构调用 `project.wizard.submit`。
 5. MCP 只接受固定频道、平台、规模、一级题材和该题材对应的二级方向，拒绝已移除的自定义项、
    知乎盐选、无效字段或跨题材二级方向；随后在同一事务中确认或创建不可变 Creator Profile 版本、创建项目、写入

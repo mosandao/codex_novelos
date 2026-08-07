@@ -5,8 +5,10 @@ __pycache__/
 *.egg-info/
 data/*.db
 data/*.db-*
+data/*.db.bak.*
 data/**/*.db
 data/**/*.db-*
+data/**/*.db.bak.*
 data/exports/
 novels/
 tasks/experiments/agent_quality/results/work/

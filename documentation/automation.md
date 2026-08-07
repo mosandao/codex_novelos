@@ -6,9 +6,11 @@ Codex 主控智能体 是唯一自动化编排者。NovelOS 不运行后台 work
 
 项目创建向导由 Main 编排：Main 提供本地 HTML 路径，页面生成结构化
 `novelos.project.create.v1` JSON；用户将其发回后，Main 按 `selected_archetypes` 数量选择签名融合
-路径。单原型直接调用 `project.wizard.reconcile_archetypes` 确定性融合；多原型（≥2）先在 Trace 内
+路径。单原型直接调用 `project.wizard.reconcile_archetypes` 确定性融合（`parent_source:"scored"`）；多原型（≥2）先在 Trace 内
 创建临时 `onboarding_agent` run，由 LLM 判定 parent 并深度融合跨原型约束，产出
-`creator_derivation_candidate`，再经 `project.wizard.reconcile_archetypes` 确定性合规收口。两条路径
+`creator_derivation_candidate`，再把 Agent 判定的 parent 与完整融合签名作为 `fused_parent_version_id` /
+`fused_signature` 传给 `project.wizard.reconcile_archetypes` 做确定性合规收口（`parent_source:"fused"`，
+由 MCP 自动折算 overrides diff）。两条路径
 最终都调用 `project.wizard.submit` 原子创建或确认 Creator Profile 版本、创建项目、建立精确绑定并
 刷新投影。新向导不得提交 `reuse` 或 `create`。落库事务本身不调用 LLM，LLM 只在 `onboarding_agent`
 的 Codex run 内运行；该步骤不产生规划资产；Main 必须随后读取 `metadata.project_setup` 与

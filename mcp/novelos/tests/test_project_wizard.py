@@ -206,6 +206,125 @@ class ProjectWizardTest(unittest.TestCase):
                 profile_version["derivation"],
             )
 
+    def _fused_signature_for(self, service: NovelOSService, config_id: str) -> dict[str, object]:
+        """构造一份相对 parent 各字段都不同的深度融合签名（含 schema_version）。"""
+        # archetype 本身不参与校验，仅用来确保 config_id 存在。
+        next(a for a in service.system_archetypes if a["id"] == config_id)
+        # 7 个签名字段全部写成与任何 parent base 不同的内容，schema_version 保持 1。
+        return {
+            "schema_version": 1,
+            "sympathies": [f"同理融合后的 {config_id} 主角"],
+            "distrusts": [f"警惕融合后 {config_id} 的反模式"],
+            "recurring_attention": [
+                f"持续关注 {config_id} 融合后的体系与代价",
+                "持续关注其余原型的辅风格约束",
+            ],
+            "narrative_principles": [f"融合叙事原则：{config_id} 为骨架"],
+            "forbidden_conveniences": ["禁止融合路径下任何无代价便利"],
+            "expression_preferences": ["融合笔法：冷峻且富结构感"],
+            "negative_constraints": ["不得放弃融合后骨架的严密性"],
+        }
+
+    def test_reconcile_uses_fused_parent_when_provided(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            service = NovelOSService(Path(directory) / "wizard.db")
+            selected = [
+                self._archetype_entry(service, "system-shadowed-choice"),
+                self._archetype_entry(service, "system-disaster-survivor"),
+                self._archetype_entry(service, "system-epic-framework"),
+            ]
+            fused_archetype_id = "system-epic-framework"
+            fused_parent_entry = next(
+                e for e in selected
+                if e["profile_version_id"].endswith(f"{fused_archetype_id}:1")
+            )
+            fused_signature = self._fused_signature_for(service, fused_archetype_id)
+            result = service.reconcile_project_wizard_archetypes(
+                selected,
+                self._project_setup_for_reconcile(),
+                "融合作者",
+                fused_parent_version_id=fused_parent_entry["profile_version_id"],
+                fused_signature=fused_signature,
+            )
+            creator = result["creator"]
+            # parent 必须是 Agent 判定的 fused parent，而非打分最高者
+            self.assertEqual(
+                fused_parent_entry["profile_version_id"],
+                creator["parent_version_id"],
+            )
+            self.assertEqual("fused", result["parent_source"])
+            # overrides 应等于自动折算的 diff：全部 7 字段均与 parent 不同
+            self.assertEqual(
+                {k: fused_signature[k] for k in (
+                    "sympathies", "distrusts", "recurring_attention",
+                    "narrative_principles", "forbidden_conveniences",
+                    "expression_preferences", "negative_constraints",
+                )},
+                creator["overrides"],
+            )
+            # schema_version 不应进入 overrides
+            self.assertNotIn("schema_version", creator["overrides"])
+
+    def test_reconcile_fused_rejects_partial_args(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            service = NovelOSService(Path(directory) / "wizard.db")
+            selected = [self._archetype_entry(service, "system-epic-framework")]
+            fused_signature = self._fused_signature_for(service, "system-epic-framework")
+            # 只给 fused_parent_version_id，缺 fused_signature
+            with self.assertRaisesRegex(NovelOSError, "必须同时提供或同时缺省"):
+                service.reconcile_project_wizard_archetypes(
+                    selected,
+                    self._project_setup_for_reconcile(),
+                    "融合作者",
+                    fused_parent_version_id=selected[0]["profile_version_id"],
+                    fused_signature=None,
+                )
+            # 只给 fused_signature，缺 fused_parent_version_id
+            with self.assertRaisesRegex(NovelOSError, "必须同时提供或同时缺省"):
+                service.reconcile_project_wizard_archetypes(
+                    selected,
+                    self._project_setup_for_reconcile(),
+                    "融合作者",
+                    fused_parent_version_id=None,
+                    fused_signature=fused_signature,
+                )
+
+    def test_reconcile_fused_output_passes_wizard_submit(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            service = NovelOSService(Path(directory) / "wizard.db")
+            selected = [
+                self._archetype_entry(service, "system-shadowed-choice"),
+                self._archetype_entry(service, "system-epic-framework"),
+            ]
+            fused_archetype_id = "system-epic-framework"
+            fused_parent_entry = next(
+                e for e in selected
+                if e["profile_version_id"].endswith(f"{fused_archetype_id}:1")
+            )
+            fused_signature = self._fused_signature_for(service, fused_archetype_id)
+            result = service.reconcile_project_wizard_archetypes(
+                selected,
+                self._project_setup_for_reconcile(),
+                "端到端融合作者",
+                fused_parent_version_id=fused_parent_entry["profile_version_id"],
+                fused_signature=fused_signature,
+            )
+            # fused 路径产出的 creator 必须能直接驱动 normalize + create
+            setup = self._setup(service) | {"creator": result["creator"]}
+            name, description, metadata, creator = normalize_project_setup(setup)
+            created = service.create_project_with_creator(name, description, metadata, creator)
+            binding = created["creator_binding"]
+            profile_version = binding["profile_version"]
+            self.assertEqual("derive", binding["binding_mode"])
+            self.assertEqual(
+                result["creator"]["parent_version_id"],
+                profile_version["parent_version_id"],
+            )
+            self.assertEqual(
+                result["creator"]["overrides"],
+                profile_version["derivation"],
+            )
+
 
     def test_rejects_removed_options_and_invalid_choices(self) -> None:
         with self.assertRaisesRegex(NovelOSError, "最多选择两项"):
