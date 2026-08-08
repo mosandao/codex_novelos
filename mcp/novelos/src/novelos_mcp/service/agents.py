@@ -116,7 +116,13 @@ class AgentsMixin:
         run_id: str,
         status: str,
         output_type: str | None = None,
-        output: Any | None = None,
+        # NOTE: 显式联合而非 Any | None。Any | None 经 FastMCP/Pydantic 暴露为
+        # anyOf:[{}, null]，空 schema {} 本应通配任意类型，但多数 MCP host（含本
+        # 仓库所用 Codex harness）会把 {} 当作 object-only，于是传 string 类型
+        # output（规划候选正文、章节草稿）时整包 payload 被判非法而丢弃，表现为
+        # "required run_id/status missing"。显式联合生成含 type:string 分支的 anyOf，
+        # 与服务端 isinstance(output, str|dict|list) 的运行时接受范围一致。
+        output: str | dict[str, Any] | list[Any] | None = None,
         change_proposals: list[dict[str, Any]] | None = None,
         error: str | None = None,
     ) -> dict[str, Any]:
