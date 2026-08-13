@@ -140,6 +140,5 @@ print(f"resource:{uuid.uuid4()}")     # resource:3bb695f0-...
 |---|---|
 | `scripts/novelos_hash.py` | 计算 content_hash |
 | `scripts/novelos_validate_book_soul.py` | 校验 book_soul JSON |
-| `scripts/novelos_reconcile.py` | 多原型确定性融合 |
 | `scripts/novelos_render_projection.py` | 渲染项目文件目录 |
 | `scripts/novelos_propagate_stale.py` | 上游变更后标记下游 stale |

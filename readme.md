@@ -1,10 +1,10 @@
 # NovelOS
 
-NovelOS 是面向长篇小说创作的纯 Codex 系统。Codex 作为唯一长期存在的 主控智能体；项目 Skill 提供业务方法，临时 sub agent 负责隔离推理，SQLite MCP（`execute_sql`）是数据库唯一入口，确定性算法由 `lib/novelos/` 与 `scripts/novelos_*.py` 承担。
+NovelOS 是面向长篇小说创作的纯 Codex 系统。Codex 作为唯一长期存在的 主控智能体；项目 Skill 提供业务方法，临时 sub agent 负责隔离推理，SQLite MCP（`execute_sql`）是数据库唯一入口，确定性算法由 `scripts/novelos_*.py` 承担，项目创建的原型融合由引导融合智能体（onboarding_agent）承接。
 
 ## 当前状态
 
-NovelOS MCP（89 工具 + 门禁基础设施）已彻底删除。数据库操作通过 SQLite MCP 的 `execute_sql` 工具完成，确定性算法由 `lib/novelos/` 与 `scripts/novelos_*.py` 承担。续写流程：`$novel-memory` 取上下文 → `$novel-writing` 起草 → `$novel-review` 审查 → SQL 接受 → `$novel-continuity` 提取连续性。
+NovelOS MCP（89 工具 + 门禁基础设施）已彻底删除。数据库操作通过 SQLite MCP 的 `execute_sql` 工具完成，确定性算法由 `scripts/novelos_*.py` 承担，项目创建的原型融合由引导融合智能体（onboarding_agent）承接。续写流程：`$novel-memory` 取上下文 → `$novel-writing` 起草 → `$novel-review` 审查 → SQL 接受 → `$novel-continuity` 提取连续性。
 
 权威进度见 [tasks/README.md](./tasks/README.md)，不得以本 README 代替任务状态。
 
@@ -55,7 +55,7 @@ scripts/run_novelos_mcp.sh
 
 ## 项目创建向导
 
-默认入口是可直接打开的本地页面 `ui/project-wizard.html`。本地页面不直接写数据库，只生成 `novelos.project.create.v1` JSON；用户将 JSON 发回后，主控智能体按 `selected_archetypes` 数量选择签名融合路径：单原型直接调用 `scripts/novelos_reconcile.py` 确定性融合（`parent_source:"scored"`）；多原型（≥2）先创建临时 `onboarding_agent` sub agent 做 LLM 深度融合，再把 Agent 判定的 parent 与完整融合签名传给 `novelos_reconcile.py`（`--fused-parent-version-id` + `--fused-signature`，`parent_source:"fused"`）。两条路径最后都由主控智能体用 SQL INSERT 创建 projects + creator_profiles + project_creator_bindings。
+默认入口是可直接打开的本地页面 `ui/project-wizard.html`。本地页面不直接写数据库，只生成 `novelos.project.create.v1` JSON；用户将 JSON 发回后，主控创建临时 **引导融合智能体（onboarding_agent）** sub agent，注入 `selected_archetypes` + `project_setup` + `config/system_archetypes.json`，由 agent 做原型打分融合（单/多统一），产出 `creator_derivation_candidate`。主控用 jsonschema（`creator-signature.schema.json`）校验签名合规 + `novelos_hash.py` 算 hash 后，用 SQL INSERT 创建 projects + creator_profiles + creator_profile_versions + project_creator_bindings。
 
 V3 新向导只允许 `derive`，不得提交 `reuse` 或 `create`；历史绑定仍可读取。页面使用固定频道（男频、女频、全向、出版、剧本）、目标平台（起点、番茄、晋江、七猫）、四档作品规模和 14 个一级题材。二级方向随一级题材切换，每个题材提供 18 个静态、LLM 预生成候选；落库事务本身不调用 LLM，LLM 只在多原型融合时由 `onboarding_agent` 在 Codex run 内运行；也不提供自定义选项、知乎盐选或自定义字数。主情绪基调可以多选，美学风格最多两项，用户创作资料为最多 10,000 字的可选多行文本。页面按约束确定性推荐三个系统叙事原型，用户确认继承项并编辑本书最小差异。
 

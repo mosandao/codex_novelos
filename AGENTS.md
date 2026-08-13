@@ -16,7 +16,6 @@
 |---|---|
 | `scripts/novelos_hash.py` | 计算 content_hash（sha256:前缀） |
 | `scripts/novelos_validate_book_soul.py` | 校验 book_soul JSON |
-| `scripts/novelos_reconcile.py` | 多原型确定性融合（项目创建） |
 | `scripts/novelos_render_projection.py` | 渲染项目文件目录 |
 | `scripts/novelos_propagate_stale.py` | 上游变更后标记下游 stale |
 
@@ -73,6 +72,7 @@ Character 与 World 可以并行生成。每个规划资产存入 `planning_asse
 
 | Agent | 负责的资产 | asset_type | catalog 目录 | 主要上游 |
 |---|---|---|---|---|
+| 引导融合智能体（onboarding） | 作者签名融合（derive 结构） | — | — | 用户选的原型 + project_setup |
 | 方向智能体 | 故事方向 | `direction` | `story-direction` | Project Profile、用户约束 |
 | 架构智能体 | 叙事机制 | `architecture` | `story-architecture` | Direction |
 | 策略智能体 | 全书战略 | `strategy` | `story-strategy` | Direction、Architecture |
@@ -108,14 +108,15 @@ Character 与 World 可以并行生成。每个规划资产存入 `planning_asse
 
 ## 项目创建向导
 
-项目创建的默认入口是本地 HTML 向导 `ui/project-wizard.html`。同目录 `project-wizard-data.js` 提供 18 个原型（由 `scripts/build_project_wizard_data.py` 生成）。
+项目创建的默认入口是本地 HTML 向导 `ui/project-wizard.html`。同目录 `project-wizard-data.js` 提供 18 个原型与推荐规则（静态文件，浏览器用其在页面内算分推荐）。
 
-1. 用户在 HTML 中填写项目名、频道、平台、规模、题材、情绪基调、美学风格和可选创作资料。页面按约束确定性推荐三个原型。
-2. 用户选择原型后，页面生成 `novelos.project.create.v1` JSON。
-3. **单原型**：直接调 `scripts/novelos_reconcile.py` 确定性收口（打分选 parent），再 SQL INSERT projects + creator_profiles + project_creator_bindings。
-4. **多原型（≥2）**：先创建临时 onboarding sub agent 做跨原型深度融合，判定 parent + 产出完整签名。再把 Agent 判定的 parent 和融合签名传给 `novelos_reconcile.py`（`--fused-parent-version-id` + `--fused-signature`）。≥2 路径以 Agent 判定的 parent 为准。
+1. 用户在 HTML 中填写项目名、频道、平台、规模、题材、情绪基调、美学风格和可选创作资料。页面用 `recommendation_rules` 在浏览器内算分推荐三个原型。
+2. 用户选择原型后，页面生成 `novelos.project.create.v1` JSON（含 `selected_archetypes` + `project_setup`）。
+3. **原型融合（单/多统一）**：主控创建临时 **引导融合智能体（onboarding_agent）** sub agent，注入 `selected_archetypes` + `project_setup` + `config/system_archetypes.json` 全文。agent 反查选中原型、校验 subject_hash、判定 parent（单原型直接取唯一项，多原型综合判定）、生成项目化 overrides，产出 `creator_derivation_candidate`（`parent_version_id` + `parent_subject_hash` + `display_name` + `overrides`）。
+4. **落库校验门**（主控，agent 产出后）：用 jsonschema（`config/schemas/creator-signature.schema.json`）校验 parent signature 与融合签名合规；校验 overrides 字段在 7 个签名字段内且不重复父值；用 `scripts/novelos_hash.py` 算融合签名 hash。校验失败拒绝落库。
+5. **SQL 落库**：INSERT resources（签名 JSON）→ creator_profiles → creator_profile_versions（parent 指向 system archetype）→ projects → project_creator_bindings（binding_mode='derive'）。模板见 sql-reference.md。
 
-无论哪条路径，落库前签名都必须通过 schema 校验。`novelos_reconcile.py` 不调 LLM。
+不再有确定性 reconcile 脚本——原型打分与融合由 onboarding_agent（LLM）承接，落库前 jsonschema 校验门保证签名合规。
 
 ## 用户投影
 
@@ -133,11 +134,11 @@ Character 与 World 可以并行生成。每个规划资产存入 `planning_asse
 
 ### config/agents.yaml（历史留档）
 
-`config/agents.yaml` 是 NovelOS MCP 时代的 Agent 角色定义，现在仅作历史留档。确定性脚本已不依赖它——reconcile 等纯逻辑已提取到 `lib/novelos/`（零数据库依赖），不再 import `novelos_mcp`。Agent 角色职责见本文档「Agent 角色」段的方法论描述。
+`config/agents.yaml` 是 NovelOS MCP 时代的 Agent 角色定义，现在仅作历史留档。确定性脚本已不依赖它。Agent 角色职责见本文档「Agent 角色」段的方法论描述；项目创建的原型融合改由引导融合智能体（onboarding_agent）承接。
 
 ### NovelOS MCP 已彻底删除
 
-`mcp/novelos/` 整个目录已删除。确定性算法提取到 `lib/novelos/`（零数据库纯逻辑），数据库 schema/migration 留档到 `db/migrations/`，项目向导移到 `ui/`。`.codex/config.toml` 只注册 SQLite MCP。**不要尝试恢复 NovelOS MCP**——migration 016 已删除 traces/agent_runs/authority_commits 等门禁表，源码也已不在仓库。
+`mcp/novelos/` 与 `lib/novelos/` 均已删除。原型融合改由 onboarding_agent（LLM）承接，落库前用 jsonschema 校验门保证签名合规。数据库 schema/migration 留档到 `db/migrations/`，项目向导在 `ui/`。`.codex/config.toml` 只注册 SQLite MCP。**不要尝试恢复 NovelOS MCP**——migration 016 已删除 traces/agent_runs/authority_commits 等门禁表，源码也已不在仓库。
 
 ### 数据库备份
 
@@ -149,7 +150,7 @@ Character 与 World 可以并行生成。每个规划资产存入 `planning_asse
 
 ```bash
 .venv/bin/python -m unittest discover -s tests -v
-.venv/bin/python -m compileall -q lib scripts tests catalog config
+.venv/bin/python -m compileall -q scripts tests catalog config
 .venv/bin/python scripts/check_repository_hygiene.py --check
 .venv/bin/python scripts/build_catalog_manifest.py --check
 ```

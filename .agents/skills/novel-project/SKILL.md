@@ -10,7 +10,7 @@ description: 管理 NovelOS 小说项目、书、卷和章节容器。创建或�
 ## 工作流
 
 1. **查询项目层级**：`SELECT * FROM projects` → `SELECT * FROM books WHERE project_id=?` → `SELECT * FROM volumes WHERE book_id=?` → `SELECT * FROM chapters WHERE volume_id=?`。
-2. **创建项目**：向导 HTML（`ui/project-wizard.html`）产出 JSON →（可选）sub agent 多原型融合 → `scripts/novelos_reconcile.py` 确定性收口 → SQL INSERT projects + creator_profiles + project_creator_bindings。
+2. **创建项目**：向导 HTML（`ui/project-wizard.html`）产出 JSON → 引导融合智能体（onboarding_agent）做原型融合 → 主控 jsonschema 校验签名 + hash → SQL INSERT projects + creator_profiles + creator_profile_versions + project_creator_bindings。
 3. **创建章节容器**：INSERT resources（存内容）→ INSERT chapters。
 4. **判断操作类型**：容器管理（项目/书/卷/章节的 CRUD）用 SQL 直接操作；小说语义规划（方向/架构/策略/人物/世界/卷纲/章纲）加载 `$novel-planning`。
 
