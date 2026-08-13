@@ -44,28 +44,18 @@ scripts/run_novelos_mcp.sh
 
 ```bash
 .venv/bin/python -m unittest discover -s tests -v
-PYTHONWARNINGS='error::ResourceWarning' PYTHONPATH=mcp/novelos/src .venv/bin/python -m unittest discover -s mcp/novelos/tests -v
-.venv/bin/python scripts/build_migration_manifest.py --output-dir tasks/migration --check
-.venv/bin/python scripts/build_catalog_manifest.py --check
-.venv/bin/python scripts/build_agent_quality_dataset.py --check
-.venv/bin/python scripts/build_seed_inventory.py --check
-.venv/bin/python scripts/build_seed_inventory.py --production --check
-.venv/bin/python scripts/backup_novelos_database.py --check
-.venv/bin/python scripts/export_novelos_data.py --check
-.venv/bin/python scripts/build_migration_summary.py --check
+.venv/bin/python -m compileall -q lib scripts tests catalog config
 .venv/bin/python scripts/check_repository_hygiene.py --check
-.venv/bin/python scripts/check_cutover_readiness.py --check
-.venv/bin/python scripts/check_cutover_plan.py --check
-.venv/bin/python -m compileall -q tests mcp/novelos/src mcp/novelos/tests scripts catalog config
+.venv/bin/python scripts/build_catalog_manifest.py --check
 ```
 
 ## 用户展示
 
-用户展示采用按小说项目生成的 Markdown 文件夹，SQLite 仍是唯一权威数据源。`规划/` 与 `正文/` 展示当前权威版本；`创作约束/` 展示项目绑定的精确作者签名和 locked Direction 的本书创作灵魂；`候选/` 提供候选诊断视图；`产出/` 保留候选、草稿、失效/替代版本和已完成 Agent 原始产出；`档案/` 展示已锁定规划的生产、独立审查和锁定凭据。投影目录可以删除和重建，直接修改其中的文件不会回写数据库。该能力的实施与验收记录在 [Task 06](./tasks/06_user_project_projection.md) 和 [Task 08](./tasks/08_author_signature_and_book_soul.md)，不提供独立 HTTP Web 应用。
+用户展示采用按小说项目生成的 Markdown 文件夹，SQLite 仍是唯一权威数据源。`规划/` 与 `正文/` 展示当前权威版本；`创作约束/` 展示项目绑定的精确作者签名和 locked Direction 的本书创作灵魂；`大纲/` 展示卷纲与章纲；`连续性/` 展示事实、承诺、关系等账本。投影由 `scripts/novelos_render_projection.py`（裸 sqlite3）渲染，可删除和重建，直接修改其中的文件不会回写数据库。不提供独立 HTTP Web 应用。
 
 ## 项目创建向导
 
-默认入口是可直接打开的本地页面 `mcp/novelos/src/novelos_mcp/ui/project-wizard.html`，`project.wizard.render` 的 MCP Apps Resource 仅作兼容入口。本地页面不直接写数据库，只生成 `novelos.project.create.v1` JSON；用户将 JSON 发回后，主控智能体按 `selected_archetypes` 数量选择签名融合路径：单原型直接调用 `project.wizard.reconcile_archetypes` 确定性融合（`parent_source:"scored"`）；多原型（≥2）先在 Trace 内创建临时 `onboarding_agent` 做 LLM 深度融合，产出 `creator_derivation_candidate`，再把 Agent 判定的 parent 与完整融合签名作为 `fused_parent_version_id` / `fused_signature` 传给 reconcile 收口（`parent_source:"fused"`，由 MCP 自动折算 overrides diff）。两条路径最终都以单一 parent 的 `derive` 结构调用 `project.wizard.submit`。MCP 在同一事务中确认或创建 Creator Profile 版本、创建项目并绑定精确 revision/Hash，成功后刷新默认 `novels/<项目目录>/` 投影。
+默认入口是可直接打开的本地页面 `ui/project-wizard.html`。本地页面不直接写数据库，只生成 `novelos.project.create.v1` JSON；用户将 JSON 发回后，主控智能体按 `selected_archetypes` 数量选择签名融合路径：单原型直接调用 `scripts/novelos_reconcile.py` 确定性融合（`parent_source:"scored"`）；多原型（≥2）先创建临时 `onboarding_agent` sub agent 做 LLM 深度融合，再把 Agent 判定的 parent 与完整融合签名传给 `novelos_reconcile.py`（`--fused-parent-version-id` + `--fused-signature`，`parent_source:"fused"`）。两条路径最后都由主控智能体用 SQL INSERT 创建 projects + creator_profiles + project_creator_bindings。
 
 V3 新向导只允许 `derive`，不得提交 `reuse` 或 `create`；历史绑定仍可读取。页面使用固定频道（男频、女频、全向、出版、剧本）、目标平台（起点、番茄、晋江、七猫）、四档作品规模和 14 个一级题材。二级方向随一级题材切换，每个题材提供 18 个静态、LLM 预生成候选；落库事务本身不调用 LLM，LLM 只在多原型融合时由 `onboarding_agent` 在 Codex run 内运行；也不提供自定义选项、知乎盐选或自定义字数。主情绪基调可以多选，美学风格最多两项，用户创作资料为最多 10,000 字的可选多行文本。页面按约束确定性推荐三个系统叙事原型，用户确认继承项并编辑本书最小差异。
 

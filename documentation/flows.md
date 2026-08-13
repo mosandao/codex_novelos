@@ -4,7 +4,7 @@
 
 参与者：用户、主控智能体、本地项目向导、NovelOS MCP。
 
-1. 用户要求创建项目时，Main 提供 `mcp/novelos/src/novelos_mcp/ui/project-wizard.html` 的绝对本地路径。
+1. 用户要求创建项目时，Main 提供 `ui/project-wizard.html` 的绝对本地路径。
    页面和同目录的 `project-wizard-data.js` 可通过 `file://` 打开，不依赖 MCP Apps proxy。
 2. 用户填写项目名、频道、平台、规模和一级题材；页面依据一级题材显示静态的二级方向候选。
    二级方向可多选，主情绪基调可多选，美学风格最多两项，创作资料可留空且最多 10,000 字。

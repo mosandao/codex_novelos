@@ -108,7 +108,7 @@ Character 与 World 可以并行生成。每个规划资产存入 `planning_asse
 
 ## 项目创建向导
 
-项目创建的默认入口是本地 HTML 向导 `mcp/novelos/src/novelos_mcp/ui/project-wizard.html`。同目录 `project-wizard-data.js` 提供 18 个原型。
+项目创建的默认入口是本地 HTML 向导 `ui/project-wizard.html`。同目录 `project-wizard-data.js` 提供 18 个原型（由 `scripts/build_project_wizard_data.py` 生成）。
 
 1. 用户在 HTML 中填写项目名、频道、平台、规模、题材、情绪基调、美学风格和可选创作资料。页面按约束确定性推荐三个原型。
 2. 用户选择原型后，页面生成 `novelos.project.create.v1` JSON。
@@ -131,17 +131,17 @@ Character 与 World 可以并行生成。每个规划资产存入 `planning_asse
 
 ## 重要约束
 
-### config/agents.yaml
+### config/agents.yaml（历史留档）
 
-`config/agents.yaml`（370 行）是确定性脚本的依赖——`novelos_reconcile.py`、`novelos_render_projection.py` 等脚本 import `novelos_mcp` 时会读取它。**不要删除或大幅简化**，否则脚本无法运行。它定义的 Agent 角色、review_profile_routes 和 catalog_package 映射虽然不再被 MCP 工具直接使用，但作为脚本 import 链的一部分保留。
+`config/agents.yaml` 是 NovelOS MCP 时代的 Agent 角色定义，现在仅作历史留档。确定性脚本已不依赖它——reconcile 等纯逻辑已提取到 `lib/novelos/`（零数据库依赖），不再 import `novelos_mcp`。Agent 角色职责见本文档「Agent 角色」段的方法论描述。
 
-### NovelOS MCP 不要重新启用
+### NovelOS MCP 已彻底删除
 
-`.codex/config.toml` 中 NovelOS MCP 已注释停用。**不要取消注释**——migration 016 已删除 traces/agent_runs/authority_commits 等门禁表，NovelOS MCP 启动后会因找不到这些表而崩溃。`mcp/novelos/src` 代码保留作为脚本 import 来源，不作为 MCP server 运行。
+`mcp/novelos/` 整个目录已删除。确定性算法提取到 `lib/novelos/`（零数据库纯逻辑），数据库 schema/migration 留档到 `db/migrations/`，项目向导移到 `ui/`。`.codex/config.toml` 只注册 SQLite MCP。**不要尝试恢复 NovelOS MCP**——migration 016 已删除 traces/agent_runs/authority_commits 等门禁表，源码也已不在仓库。
 
 ### 数据库备份
 
-执行任何 schema 变更前必须备份数据库：`cp data/novelos-v2.db data/novelos-v2.db.bak`。当前备份在 `data/novelos-v2.db.bak-task26`。
+执行任何 schema 变更前必须备份数据库：`cp data/novelos-v2.db data/novelos-v2.db.bak`。
 
 ## 验证
 
@@ -149,16 +149,10 @@ Character 与 World 可以并行生成。每个规划资产存入 `planning_asse
 
 ```bash
 .venv/bin/python -m unittest discover -s tests -v
-PYTHONWARNINGS='error::ResourceWarning' PYTHONPATH=mcp/novelos/src .venv/bin/python -m unittest discover -s mcp/novelos/tests -v
-.venv/bin/python -m compileall -q tests mcp/novelos/src mcp/novelos/tests scripts catalog config
+.venv/bin/python -m compileall -q lib scripts tests catalog config
 .venv/bin/python scripts/check_repository_hygiene.py --check
 .venv/bin/python scripts/build_catalog_manifest.py --check
 ```
-
-已知 pre-existing 失败（与当前改动无关）：
-- `test_migration_summary`：migration_summary.json 需重建
-- `test_agent_quality_recorder`：延期的质量实验
-- `test_projection`（MCP 测试）：3 个 projection 渲染测试
 
 ## 任务连续性
 

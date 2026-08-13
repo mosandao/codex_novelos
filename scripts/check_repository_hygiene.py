@@ -49,7 +49,7 @@ IGNORE_REPRESENTATIVES = (
 SENSITIVE_SUFFIXES = {".pem", ".key", ".p12", ".pfx"}
 GENERATED_SUFFIXES = {".pyc", ".pyo", ".db", ".db-wal", ".db-shm", ".log", ".p12", ".pfx", ".pem", ".key"}
 GENERATED_PARTS = {"__pycache__", ".venv", ".pytest_cache"}
-ALLOWED_TRACKED_BINARIES = {"mcp/novelos/resources/seed.db"}
+ALLOWED_TRACKED_BINARIES = set()
 
 
 class HygieneError(ValueError):

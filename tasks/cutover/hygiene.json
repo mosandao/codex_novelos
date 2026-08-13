@@ -1,7 +1,5 @@
 {
-  "allowed_tracked_binaries": [
-    "mcp/novelos/resources/seed.db"
-  ],
+  "allowed_tracked_binaries": [],
   "git_baseline_available": true,
   "prohibited_file_count": 0,
   "required_ignore_rules": [
