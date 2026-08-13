@@ -1,10 +1,10 @@
 # NovelOS
 
-NovelOS 是面向长篇小说创作的纯 Codex 系统。Codex 作为唯一长期存在的 主控智能体；项目 Skill 提供业务方法，临时 Agent 负责隔离推理，统一 `novelos` MCP 负责全部权威读写、Hash、版本、Review、事务和 Trace。
+NovelOS 是面向长篇小说创作的纯 Codex 系统。Codex 作为唯一长期存在的 主控智能体；项目 Skill 提供业务方法，临时 sub agent 负责隔离推理，SQLite MCP（`execute_sql`）是数据库唯一入口，确定性算法由 `lib/novelos/` 与 `scripts/novelos_*.py` 承担。
 
 ## 当前状态
 
-默认 `.codex/config.toml` 已切换到统一 `novelos` MCP，旧 Python Agent Runtime 已删除。完整 70-case Agent 质量实验按用户决定延期；在实验完成前，Writer 仅用于完整章节或长场景，上下文构建智能体 仅用于跨卷、多线、事实冲突或上下文溢出，不宣称两者已取得质量优势。
+NovelOS MCP（89 工具 + 门禁基础设施）已彻底删除。数据库操作通过 SQLite MCP 的 `execute_sql` 工具完成，确定性算法由 `lib/novelos/` 与 `scripts/novelos_*.py` 承担。续写流程：`$novel-memory` 取上下文 → `$novel-writing` 起草 → `$novel-review` 审查 → SQL 接受 → `$novel-continuity` 提取连续性。
 
 权威进度见 [tasks/README.md](./tasks/README.md)，不得以本 README 代替任务状态。
 
