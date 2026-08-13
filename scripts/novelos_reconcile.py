@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """多原型确定性融合的 CLI 包装。
 
-复用 NovelOS MCP 的 reconcile_project_wizard_archetypes。
+复用 lib/novelos 的 reconcile_project_wizard_archetypes（纯逻辑，零数据库依赖）。
 不调 LLM（单原型路径）/ 传入预融合结果（多原型路径）。
 
 用法::
@@ -28,9 +28,13 @@ import json
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "mcp" / "novelos" / "src"))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "lib"))
 
-from novelos_mcp.service import NovelOSService  # noqa: E402
+from novelos import (  # noqa: E402
+    CreativeContractStore,
+    load_system_archetypes_config,
+    reconcile_project_wizard_archetypes,
+)
 
 
 def main() -> None:
@@ -40,29 +44,30 @@ def main() -> None:
     parser.add_argument("--display-name", required=True, help="融合后的展示名")
     parser.add_argument("--fused-parent-version-id", help="多原型路径：Agent 判定的 parent version ID")
     parser.add_argument("--fused-signature", help="多原型路径：完整融合签名 JSON 文件")
-    parser.add_argument("--db", default="data/novelos-v2.db", help="数据库路径")
+    parser.add_argument(
+        "--archetypes-config",
+        default="config/system_archetypes.json",
+        help="系统原型配置路径（默认 config/system_archetypes.json）",
+    )
     args = parser.parse_args()
 
-    archetypes = json.loads(Path(args.archetypes).read_text())
-    setup = json.loads(Path(args.setup).read_text())
+    archetypes = json.loads(Path(args.archetypes).read_text(encoding="utf-8"))
+    setup = json.loads(Path(args.setup).read_text(encoding="utf-8"))
 
     fused_parent = args.fused_parent_version_id
     fused_sig = None
     if args.fused_signature:
-        fused_sig = json.loads(Path(args.fused_signature).read_text())
+        fused_sig = json.loads(Path(args.fused_signature).read_text(encoding="utf-8"))
 
-    # NovelOSService 需要 catalog_path 和 seed_db；用默认值
-    catalog_path = Path(__file__).resolve().parent.parent / "catalog"
-    service = NovelOSService(
-        database_path=args.db,
-        catalog_path=str(catalog_path),
-        agent_contract_path=str(Path(__file__).resolve().parent.parent / "config" / "agents.yaml"),
-    )
+    archetypes_config = load_system_archetypes_config(args.archetypes_config)
+    creative_contracts = CreativeContractStore()
 
-    result = service.reconcile_project_wizard_archetypes(
+    result = reconcile_project_wizard_archetypes(
         selected_archetypes=archetypes,
         project_setup=setup,
         display_name=args.display_name,
+        archetypes_config=archetypes_config,
+        creative_contracts=creative_contracts,
         fused_parent_version_id=fused_parent,
         fused_signature=fused_sig,
     )

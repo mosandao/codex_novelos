@@ -1,14 +1,17 @@
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 
-from novelos_mcp.archetype_recommendation import GENRE_TEMPERAMENT_MAP, TONE_TEMPERAMENT_MAP
-from novelos_mcp.system_archetypes import load_system_archetypes_config
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "lib"))
+
+from novelos.archetype_recommendation import GENRE_TEMPERAMENT_MAP, TONE_TEMPERAMENT_MAP  # noqa: E402
+from novelos.system_archetypes import load_system_archetypes_config  # noqa: E402
 
 
 ROOT = Path(__file__).resolve().parents[1]
-OUTPUT = ROOT / "mcp" / "novelos" / "src" / "novelos_mcp" / "ui" / "project-wizard-data.js"
+OUTPUT = ROOT / "ui" / "project-wizard-data.js"
 
 
 def build() -> str:
@@ -38,6 +41,7 @@ def build() -> str:
 
 
 def main() -> None:
+    OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT.write_text(build(), encoding="utf-8")
 
 

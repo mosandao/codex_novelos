@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 from typing import Any
 
-from novelos_mcp.creative_contracts import CreativeContractStore
-from novelos_mcp.hashing import content_hash
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "lib"))
+
+from novelos import CreativeContractStore, content_hash  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT_PATH = ROOT / "config" / "system_archetypes.json"
