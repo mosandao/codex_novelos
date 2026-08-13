@@ -1,21 +1,9 @@
 sandbox_mode = "danger-full-access"
 
-# NovelOS MCP 已停用（Task 26 完全替代）。
-# 数据库操作改用 SQLite MCP（execute_sql 工具）。
-# mcp/novelos/src 代码保留，确定性脚本（reconcile/hash/book_soul/projection/stale）通过 import 调用。
-# 如需回退：取消下方注释 + 恢复 data/novelos-v2.db.bak-task26。
-#
-# [mcp_servers.novelos]
-# command = "bash"
-# args = ["scripts/run_novelos_mcp.sh"]
-# startup_timeout_sec = 10
-# tool_timeout_sec = 30
-#
-# [mcp_servers.novelos.tools."project.wizard.render"]
-# approval_mode = "approve"
-#
-# [mcp_servers.novelos.tools."project.wizard.submit"]
-# approval_mode = "approve"
+# NovelOS MCP 已彻底退役删除（代码移出 mcp/，门禁表已 DROP）。
+# 数据库操作唯一入口：SQLite MCP（execute_sql 工具）。
+# 不要重新启用 NovelOS MCP——migration 016 删除了 traces/agent_runs/authority_commits
+# 等门禁表，重启会因为找不到表而崩溃。
 
 [mcp_servers.sqlite]
 command = "bash"
