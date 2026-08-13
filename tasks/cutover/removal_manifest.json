@@ -72,8 +72,7 @@
       ],
       "path": "AGENTS.md",
       "required_after_cutover": [
-        "纯 Codex",
-        "authority_commits"
+        "SQLite MCP"
       ]
     },
     {
@@ -82,8 +81,7 @@
       ],
       "path": "agents.md",
       "required_after_cutover": [
-        "纯 Codex",
-        "authority_commits"
+        "SQLite MCP"
       ]
     },
     {
@@ -117,28 +115,7 @@
       "forbidden_after_cutover": [],
       "path": "tasks/README.md",
       "required_after_cutover": [
-        "Task 05"
-      ]
-    },
-    {
-      "forbidden_after_cutover": [],
-      "path": "tasks/02_mcp_storage_migration.md",
-      "required_after_cutover": [
-        "状态：`DONE`"
-      ]
-    },
-    {
-      "forbidden_after_cutover": [],
-      "path": "tasks/04_agent_workflows_quality.md",
-      "required_after_cutover": [
-        "状态：`DONE`"
-      ]
-    },
-    {
-      "forbidden_after_cutover": [],
-      "path": "tasks/05_cutover_cleanup.md",
-      "required_after_cutover": [
-        "状态：`DONE`"
+        "Task 26"
       ]
     }
   ],

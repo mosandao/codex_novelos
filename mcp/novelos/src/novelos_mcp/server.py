@@ -117,6 +117,7 @@ def create_server(
         "chapter.list": service.list_chapters,
         "chapter.accept": service.accept_chapter,
         "chapter.supersede": service.supersede_chapter,
+        "chapter.revise": service.revise_chapter,
         "planning.create_candidate": create_planning_candidate,
         "planning.create_candidate_from_run": service.create_planning_candidate_from_run,
         "planning.create_revision_candidate": service.create_revision_candidate,

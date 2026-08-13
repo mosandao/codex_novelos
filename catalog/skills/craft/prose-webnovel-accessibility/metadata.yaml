@@ -1,0 +1,17 @@
+name: prose-webnovel-accessibility
+description: 商业网文通俗度、开头吸引力与钩子强度的检查规则
+stage: craft
+asset: chapter
+capability: diagnose
+lifecycle: active
+version: 1.0.0
+output_contract: document
+priority: 20
+use_when:
+  - 起草或审查正文通俗度、抽象修辞密度、开头切入方式和章末钩子强度时
+avoid_when:
+  - 规划期设计爽点结构时（那是 shuangwen-techniques 的职责）
+tags:
+  - writing
+  - accessibility
+  - webnovel

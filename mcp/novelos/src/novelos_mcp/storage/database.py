@@ -8,11 +8,16 @@ from typing import Iterator
 
 
 def _apply_migration(connection: sqlite3.Connection, version: int, script: str) -> None:
+    # 迁移在 foreign_keys=OFF 下执行（SQLite 官方推荐的表重建流程），
+    # 临时关闭 FK 让重建类迁移可以 DROP/RENAME 被子表引用的表。
+    # 迁移是受信 schema 变更，保持 id 不变（INSERT SELECT *）确保引用不断。
     transaction = (
+        "PRAGMA foreign_keys = OFF;\n"
         "BEGIN IMMEDIATE;\n"
         f"{script.rstrip()}\n"
         f"INSERT INTO schema_migrations(version) VALUES ({version});\n"
-        "COMMIT;"
+        "COMMIT;\n"
+        "PRAGMA foreign_keys = ON;\n"
     )
     try:
         connection.executescript(transaction)

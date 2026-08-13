@@ -254,3 +254,54 @@ class ChaptersMixin:
                 raise NovelOSError("invalid_state", "只有 accepted 可以 supersede", {"status": chapter["status"]})
             connection.execute("UPDATE chapters SET status='superseded', version=version+1, updated_at=CURRENT_TIMESTAMP WHERE id=?", (chapter_id,))
             return self._row(self._get(connection, "chapters", chapter_id))
+
+    def revise_chapter(
+        self,
+        chapter_id: str,
+        expected_version: int,
+        trace_id: str,
+        reason: str = "",
+    ) -> dict[str, Any]:
+        """把 accepted 章节重开为 draft，支持局部修改后重新审查接受。
+
+        保留章节 id 和 version 历史；清空 producer_run_id，使重新接受时不
+        校验旧生产 run（旧 run 属于已结束 Trace，无法通过 authority 校验）。
+        重开后用 ``update_chapter_draft`` 写入修改后正文（subject_hash 随之
+        变化，旧 Review 自动失效），再走完整 review → ``accept_chapter`` 流程。
+        """
+        with self.database.transaction() as connection:
+            chapter = self._get(connection, "chapters", chapter_id)
+            self._check_version(chapter, expected_version)
+            if chapter["status"] != "accepted":
+                raise NovelOSError("invalid_state", "只有 accepted 可以 revise", {"status": chapter["status"]})
+            project_id = str(
+                connection.execute(
+                    "SELECT books.project_id FROM volumes JOIN books ON books.id=volumes.book_id WHERE volumes.id=?",
+                    (chapter["volume_id"],),
+                ).fetchone()["project_id"]
+            )
+            trace = self._get(connection, "traces", _require_text(trace_id, "trace_id"))
+            if trace["status"] != "running":
+                raise NovelOSError("invalid_state", "revise 必须绑定运行中的 Trace")
+            if trace["project_id"] != project_id:
+                raise NovelOSError(
+                    "trace_project_mismatch",
+                    "revise Trace 与目标项目不一致",
+                    {"trace_project_id": trace["project_id"], "project_id": project_id},
+                )
+            connection.execute(
+                "UPDATE chapters SET status='draft', producer_run_id=NULL, version=version+1, updated_at=CURRENT_TIMESTAMP WHERE id=?",
+                (chapter_id,),
+            )
+            self._record_trace_step_in_transaction(
+                connection,
+                trace_id,
+                "chapter.revise",
+                "主控智能体",
+                "completed",
+                [chapter_id],
+                [chapter_id],
+                {"chapter_id": chapter_id, "reason": _require_text(reason, "reason") if reason else ""},
+            )
+            return self._row(self._get(connection, "chapters", chapter_id))
+

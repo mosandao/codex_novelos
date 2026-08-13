@@ -1,0 +1,11 @@
+origin: target-native
+source_repository: null
+source_path: null
+source_commit: null
+source_hash: null
+license: NovelOS-project
+migration_note: >
+  根据纯 Codex 写作/审查智能体契约独立编写。
+  吸收 novel-writer 体系的 humanizer（24项表层规则+5项深层重构+6项真人感量化门槛）、
+  auditor 模块C叙事姿态（C01-C02）、F01词汇质感检查的 AI 标记词密度控制规则，
+  精炼为 NovelOS catalog craft skill。未复制 legacy Prompt 原文，按 NovelOS 架构重新组织。

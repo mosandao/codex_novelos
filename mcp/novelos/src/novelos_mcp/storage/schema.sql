@@ -70,7 +70,6 @@ CREATE TABLE IF NOT EXISTS chapters (
     version INTEGER NOT NULL DEFAULT 1 CHECK (version > 0),
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE (volume_id, number),
     FOREIGN KEY (volume_id) REFERENCES volumes(id) ON DELETE CASCADE,
     FOREIGN KEY (content_resource_id) REFERENCES resources(id) ON DELETE RESTRICT,
     CHECK (
@@ -297,6 +296,9 @@ CREATE TABLE IF NOT EXISTS arc_states (
 CREATE INDEX IF NOT EXISTS idx_books_project ON books(project_id);
 CREATE INDEX IF NOT EXISTS idx_volumes_book ON volumes(book_id, number);
 CREATE INDEX IF NOT EXISTS idx_chapters_volume ON chapters(volume_id, number);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_chapters_active
+ON chapters(volume_id, number)
+WHERE status IN ('draft', 'accepted');
 CREATE INDEX IF NOT EXISTS idx_characters_project ON characters(project_id, name);
 CREATE INDEX IF NOT EXISTS idx_worlds_project ON worlds(project_id, name);
 CREATE INDEX IF NOT EXISTS idx_factions_project ON factions(project_id, name);

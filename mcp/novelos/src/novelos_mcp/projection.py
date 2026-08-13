@@ -17,6 +17,32 @@ GENERATOR_VERSION = "1.1.0"
 # 不允许出现在文件名中的控制字符与保留字符
 ILLEGAL_CHAR_PATTERN = re.compile(r'[\x00-\x1f\x7f\\/:*?"<>|]')
 
+_CN_DIGITS = "零一二三四五六七八九"
+
+
+def cn_num(n: int) -> str:
+    """将正整数转为中文数字（如 1->一, 10->十, 21->二十一, 100->一百）。"""
+    if n < 0:
+        return str(n)
+    if n == 0:
+        return "零"
+    if n < 10:
+        return _CN_DIGITS[n]
+    if n < 20:
+        return "十" if n == 10 else "十" + _CN_DIGITS[n - 10]
+    if n < 100:
+        tens, ones = divmod(n, 10)
+        return _CN_DIGITS[tens] + "十" + (_CN_DIGITS[ones] if ones else "")
+    if n < 1000:
+        hundreds, rest = divmod(n, 100)
+        result = _CN_DIGITS[hundreds] + "百"
+        if rest == 0:
+            return result
+        if rest < 10:
+            return result + "零" + _CN_DIGITS[rest]
+        return result + cn_num(rest)
+    return str(n)
+
 
 def sanitize_filename(name: str, default: str = "untitled") -> str:
     """清理并校验目录/文件名，防止路径逃逸、控制字符与空文件名。"""
@@ -329,13 +355,22 @@ class ProjectionEngine:
                     },
                 )
 
-        # C. 渲染 大纲/ 目录 (卷纲 / 章纲)
+        # C. 渲染 大纲/ 目录 (按卷分层: 第一卷/卷纲.md + 第一卷/第001章-章纲.md)
+        # 构建 volume scope_ref -> 卷号 映射
+        volume_scope_to_num: dict[str, int] = {}
+        for vol in snapshot.get("volume_outlines", []):
+            vol_scope = vol.get("scope_ref", "")
+            vol_num = vol.get("volume_number") or vol.get("number", 1)
+            volume_scope_to_num[vol_scope] = int(vol_num) if vol_num else 1
+
         for vol in snapshot.get("volume_outlines", []):
             v_num = vol.get("volume_number") or vol.get("number", 1)
-            v_title = vol.get("title", f"第{v_num:02d}卷")
+            v_num = int(v_num) if v_num else 1
+            v_cn = cn_num(v_num)
+            v_title = vol.get("title", f"第{v_cn}卷")
             _write_markdown(
-                f"大纲/第{v_num:02d}卷-卷纲.md",
-                f"第 {v_num} 卷卷纲：{v_title}",
+                f"大纲/第{v_cn}卷/卷纲.md",
+                f"第 {v_cn} 卷卷纲：{v_title}",
                 vol.get("content", ""),
                 {
                     "source_type": "volume_outline",
@@ -346,11 +381,24 @@ class ProjectionEngine:
             )
 
         for plan in snapshot.get("chapter_plans", []):
-            c_num = plan.get("chapter_number") or plan.get("number", 1)
+            scope_ref = plan.get("scope_ref", "")
+            # 从 scope_ref 解析章节号（格式 volume:{id}:chapter_{N}）
+            chap_match = re.search(r":chapter_(\d+)$", scope_ref)
+            if not chap_match:
+                # 非按章拆分的 chapter_plan（如已废弃的合并 scope_ref）跳过渲染
+                continue
+            c_num = int(chap_match.group(1))
             c_title = plan.get("title", f"第{c_num:03d}章")
+            # 从 scope_ref 解析 volume_id 定位卷号
+            vol_match = re.match(r"^(volume:[^:]+):", scope_ref)
+            v_num = 1
+            if vol_match:
+                vol_scope_prefix = vol_match.group(1)
+                v_num = volume_scope_to_num.get(vol_scope_prefix, 1)
+            v_cn = cn_num(v_num)
             _write_markdown(
-                f"大纲/第01卷-章纲.md",
-                f"章节执行卡：{c_title}",
+                f"大纲/第{v_cn}卷/第{c_num:03d}章-章纲.md",
+                f"第 {v_cn} 卷第 {c_num} 章执行卡：{c_title}",
                 plan.get("content", ""),
                 {
                     "source_type": "chapter_plan",
@@ -360,13 +408,14 @@ class ProjectionEngine:
                 },
             )
 
-        # D. 渲染 正文/ 目录 (按卷分层: 第01卷/第001章-章节标题.md)
+        # D. 渲染 正文/ 目录 (按卷分层: 第一卷/第001章-章节标题.md)
         for ch in snapshot.get("chapters", []):
             v_num = ch.get("volume_number") or ch.get("number", 1)
+            v_cn = cn_num(int(v_num) if v_num else 1)
             c_num = ch.get("chapter_number") or ch.get("number", 1)
             c_title = sanitize_filename(ch.get("title", "未命名章节"))
             _write_markdown(
-                f"正文/第{v_num:02d}卷/第{c_num:03d}章-{c_title}.md",
+                f"正文/第{v_cn}卷/第{c_num:03d}章-{c_title}.md",
                 ch.get("title", f"第 {c_num} 章"),
                 ch.get("content", ""),
                 {
@@ -478,8 +527,9 @@ class ProjectionEngine:
                 chapter_number = chapter.get("number") or 1
                 title = sanitize_filename(chapter.get("title", "未命名章节"))
                 identifier = sanitize_filename(chapter.get("id", "chapter").split(":")[-1][:8])
+                v_cn = cn_num(int(volume_number) if volume_number else 1)
                 _write_markdown(
-                    f"产出/正文/{status}/第{volume_number:02d}卷-第{chapter_number:03d}章-{title}-{identifier}.md",
+                    f"产出/正文/{status}/第{v_cn}卷-第{chapter_number:03d}章-{title}-{identifier}.md",
                     f"{chapter.get('title', '未命名章节')}（{status}）",
                     chapter.get("content", ""),
                     {

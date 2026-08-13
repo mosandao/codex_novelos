@@ -1,0 +1,10 @@
+origin: target-native
+source_repository: null
+source_path: null
+source_commit: null
+source_hash: null
+license: NovelOS-project
+migration_note: >-
+  针对外部商业网文评估报告（2026-08-10）暴露的通俗度/开头/钩子强度审查盲区新建。
+  writer（chapter-draft-generation）和 reviewer（prose-quality-review）端均引用本 skill。
+  章纲端（chapter-plan-execution-card）钩子段同步加强度分级。

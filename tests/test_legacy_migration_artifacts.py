@@ -49,8 +49,14 @@ class LegacyMigrationArtifactsTest(unittest.TestCase):
             for table, expected in EXPECTED_COUNTS.items():
                 count = connection.execute(f'SELECT COUNT(*) FROM "{table}"').fetchone()[0]
                 self.assertGreaterEqual(count, expected, table)
-            import_row = connection.execute("SELECT source_hash FROM legacy_imports").fetchone()
-            self.assertEqual(report["source_hash"], import_row[0])
+            # legacy_imports 表在 migration 016（NovelOS 轻量化）中被删除。
+            # 迁移已完成且 legacy_imports 只用于迁移期跟踪，不再需要。
+            has_legacy_imports = connection.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='legacy_imports'"
+            ).fetchone()
+            if has_legacy_imports:
+                import_row = connection.execute("SELECT source_hash FROM legacy_imports").fetchone()
+                self.assertEqual(report["source_hash"], import_row[0])
 
 
 if __name__ == "__main__":

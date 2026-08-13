@@ -1,0 +1,12 @@
+origin: target-native
+source_repository: null
+source_path: null
+source_commit: null
+source_hash: null
+license: NovelOS-project
+migration_note: >
+  根据纯 Codex 写作/审查智能体契约独立编写。
+  吸收 novel-writer 体系的 F05对话符号规范、F10字数硬指标检查、
+  mobile-formatting手机端排版四条规则、dash-ellipsis-guide破折号/省略号密度规则、
+  以及 G01句长级差/G02呼吸点密度/G07外部阻力检查的量化阈值，
+  精炼为 NovelOS catalog craft skill。未复制 legacy Prompt 原文，按 NovelOS 架构重新组织。

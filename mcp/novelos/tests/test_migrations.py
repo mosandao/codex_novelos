@@ -16,14 +16,14 @@ class MigrationTest(unittest.TestCase):
             database = Path(directory) / "novelos.db"
             service = NovelOSService(database)
             with closing(sqlite3.connect(database)) as connection:
-                self.assertEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13], [row[0] for row in connection.execute("SELECT version FROM schema_migrations ORDER BY version")])
+                self.assertEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], [row[0] for row in connection.execute("SELECT version FROM schema_migrations ORDER BY version")])
                 connection.execute("DROP TABLE trace_steps")
                 connection.execute("DROP TABLE traces")
                 connection.execute("DELETE FROM schema_migrations WHERE version=2")
                 connection.commit()
             NovelOSService(database)
             with closing(sqlite3.connect(database)) as connection:
-                self.assertEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13], [row[0] for row in connection.execute("SELECT version FROM schema_migrations ORDER BY version")])
+                self.assertEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], [row[0] for row in connection.execute("SELECT version FROM schema_migrations ORDER BY version")])
 
                 self.assertIsNotNone(connection.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='traces'").fetchone())
 

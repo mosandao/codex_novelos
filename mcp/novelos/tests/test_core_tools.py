@@ -77,6 +77,127 @@ class CoreToolsTest(unittest.TestCase):
         superseded = self.service.supersede_chapter(accepted["id"], accepted["version"])
         self.assertEqual("superseded", superseded["status"])
 
+    def test_superseded_chapter_number_can_be_reused(self) -> None:
+        # supersede 释放 (volume_id, number) 槽位，支持重写已接受章节。
+        first = self.service.create_chapter_draft(self.volume["id"], 1, "第一章", "旧版正文")
+        _, review = complete_review_run(
+            self.service,
+            self.trace["id"],
+            "chapter",
+            first["id"],
+            first["subject_hash"],
+            "prose-v1",
+            evidence_refs=[first["resource_ref"]],
+        )
+        accepted = self.service.accept_chapter(first["id"], review["id"], first["version"], self.trace["id"])
+        self.service.supersede_chapter(accepted["id"], accepted["version"])
+
+        # 同号重建 draft 应成功（不再 conflict）
+        rewritten = self.service.create_chapter_draft(self.volume["id"], 1, "第一章", "重写正文")
+        self.assertEqual("draft", rewritten["status"])
+        self.assertNotEqual(accepted["subject_hash"], rewritten["subject_hash"])
+
+        # list_chapters 返回两条（1 superseded + 1 draft）
+        chapters = self.service.list_chapters(self.volume["id"])
+        self.assertEqual(2, len(chapters))
+        statuses = {ch["status"] for ch in chapters}
+        self.assertEqual({"superseded", "draft"}, statuses)
+
+        # 两个 draft 同号仍应冲突（部分唯一索引保证 draft/accepted 互斥）
+        with self.assertRaisesRegex(NovelOSError, "conflict"):
+            self.service.create_chapter_draft(self.volume["id"], 1, "再次重复", "第三版正文")
+
+    def test_accepted_chapter_can_be_revised_and_reaccepted(self) -> None:
+        # 完整循环：draft → accept → revise → update → review → accept
+        draft = self.service.create_chapter_draft(self.volume["id"], 1, "第一章", "原始正文")
+        _, review = complete_review_run(
+            self.service,
+            self.trace["id"],
+            "chapter",
+            draft["id"],
+            draft["subject_hash"],
+            "prose-v1",
+            evidence_refs=[draft["resource_ref"]],
+        )
+        accepted = self.service.accept_chapter(draft["id"], review["id"], draft["version"], self.trace["id"])
+        self.assertEqual("accepted", accepted["status"])
+        self.assertEqual(2, accepted["version"])
+
+        # revise：accepted → draft，保留 chapter_id
+        revised = self.service.revise_chapter(accepted["id"], accepted["version"], self.trace["id"], reason="局部措辞调整")
+        self.assertEqual("draft", revised["status"])
+        self.assertEqual(3, revised["version"])
+        self.assertEqual(accepted["id"], revised["id"])
+
+        # 局部修改内容（subject_hash 随之变化）
+        updated = self.service.update_chapter_draft(revised["id"], revised["version"], "修订后正文")
+        self.assertEqual(4, updated["version"])
+        self.assertNotEqual(accepted["subject_hash"], updated["subject_hash"])
+
+        # 旧 review 因 hash 不匹配失效；新 review 绑定新 hash
+        _, review2 = complete_review_run(
+            self.service,
+            self.trace["id"],
+            "chapter",
+            updated["id"],
+            updated["subject_hash"],
+            "prose-v1",
+            evidence_refs=[updated["resource_ref"]],
+        )
+        reaccepted = self.service.accept_chapter(updated["id"], review2["id"], updated["version"], self.trace["id"])
+        self.assertEqual("accepted", reaccepted["status"])
+        self.assertEqual(5, reaccepted["version"])
+        self.assertEqual(accepted["id"], reaccepted["id"])
+
+    def test_only_accepted_chapter_can_be_revised(self) -> None:
+        # draft 状态不可 revise
+        draft = self.service.create_chapter_draft(self.volume["id"], 1, "第一章", "正文")
+        with self.assertRaisesRegex(NovelOSError, "invalid_state"):
+            self.service.revise_chapter(draft["id"], draft["version"], self.trace["id"])
+
+        # accept → supersede 后也不可 revise
+        _, review = complete_review_run(
+            self.service,
+            self.trace["id"],
+            "chapter",
+            draft["id"],
+            draft["subject_hash"],
+            "prose-v1",
+            evidence_refs=[draft["resource_ref"]],
+        )
+        accepted = self.service.accept_chapter(draft["id"], review["id"], draft["version"], self.trace["id"])
+        superseded = self.service.supersede_chapter(accepted["id"], accepted["version"])
+        with self.assertRaisesRegex(NovelOSError, "invalid_state"):
+            self.service.revise_chapter(superseded["id"], superseded["version"], self.trace["id"])
+
+    def test_revise_requires_running_trace_in_same_project(self) -> None:
+        draft = self.service.create_chapter_draft(self.volume["id"], 1, "第一章", "正文")
+        _, review = complete_review_run(
+            self.service,
+            self.trace["id"],
+            "chapter",
+            draft["id"],
+            draft["subject_hash"],
+            "prose-v1",
+            evidence_refs=[draft["resource_ref"]],
+        )
+        accepted = self.service.accept_chapter(draft["id"], review["id"], draft["version"], self.trace["id"])
+
+        # 另一个项目的 trace
+        other_project = self.service.create_project("其他项目")
+        other_trace = self.service.start_trace("other", other_project["id"])
+        with self.assertRaisesRegex(NovelOSError, "trace_project_mismatch"):
+            self.service.revise_chapter(accepted["id"], accepted["version"], other_trace["id"])
+        self.service.finish_trace(other_trace["id"], "completed")
+
+        # 已结束的 trace
+        self.service.finish_trace(self.trace["id"], "completed")
+        new_trace = self.service.start_trace("revise-after-finish", self.project["id"])
+        accepted_v2 = self.service.get_chapter(accepted["id"])
+        self.service.finish_trace(new_trace["id"], "completed")
+        with self.assertRaisesRegex(NovelOSError, "invalid_state"):
+            self.service.revise_chapter(accepted_v2["id"], accepted_v2["version"], new_trace["id"])
+
     def test_delete_project_requires_no_active_trace_and_removes_projection(self) -> None:
         with self.assertRaisesRegex(NovelOSError, "运行中的 Trace"):
             self.service.delete_project(self.project["id"], self.project["version"], output_root=str(Path(self.temporary.name) / "projections"))
