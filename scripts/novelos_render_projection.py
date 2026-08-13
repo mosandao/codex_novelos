@@ -21,6 +21,7 @@ import json
 import re
 import shutil
 import sqlite3
+import sys
 import uuid
 from pathlib import Path
 from typing import Any
@@ -265,10 +266,54 @@ _PLANNING_MAP = {
     "direction": "01-故事方向.md",
     "architecture": "02-故事架构.md",
     "strategy": "03-全书战略.md",
-    "character_contract": "04-人物契约.md",
     "world_contract": "05-世界契约.md",
     "story_arc": "06-故事弧.md",
 }
+# character_contract 不走 _PLANNING_MAP 单文件，改由 _split_character_contract
+# 拆成「人物契约/」目录（00-总览 + 每人物一份），见 render() E2 段。
+
+# 人物档案二级标题：## 人物档案：{角色}｜{名字}（兼容中英冒号与中英竖线）。
+_CHARACTER_HEADING = re.compile(r"^##\s+人物档案[:：]\s*(.+?)\s*[|｜]\s*(.+?)\s*$")
+_H2_HEADING = re.compile(r"^##\s")
+
+
+def _split_character_contract(content: str) -> dict[str, Any] | None:
+    """按「## 人物档案：角色｜名字」把人物契约拆成总览 + 各人物。
+
+    返回 ``{"overview": str, "characters": [{"role","name","body"}]}``，
+    ``body`` 含该人物的标题行及其下全部内容（到下一个二级标题前）。
+    非人物档案的二级标题段与文档顶部内容归入 ``overview``。
+    主角（角色含「主角」）排第一，其余按出现顺序。
+
+    识别不到任何人物档案标题时返回 ``None``，调用方据此走单文件兜底。
+    """
+    # 按 H2 把文档切成段：首段标题为 None（文档顶部），其余为该 H2 标题行。
+    segments: list[tuple[list[str], list[str]]] = [([], [])]
+    for line in content.splitlines():
+        if _H2_HEADING.match(line):
+            segments.append(([line], []))
+        else:
+            segments[-1][1].append(line)
+
+    overview_parts: list[str] = []
+    characters: list[dict[str, str]] = []
+    for title_lines, body_lines in segments:
+        title_line = title_lines[0] if title_lines else None
+        body = "\n".join([*title_lines, *body_lines]).strip()
+        match = _CHARACTER_HEADING.match(title_line) if title_line else None
+        if match:
+            characters.append(
+                {"role": match.group(1).strip(), "name": match.group(2).strip(), "body": body}
+            )
+        elif body:
+            overview_parts.append(body)
+
+    if not characters:
+        return None
+
+    protagonists = [c for c in characters if "主角" in c["role"]]
+    others = [c for c in characters if "主角" not in c["role"]]
+    return {"overview": "\n\n".join(overview_parts).strip(), "characters": protagonists + others}
 
 
 def render(snapshot: dict[str, Any], project_id: str, output_root: str) -> dict[str, Any]:
@@ -401,7 +446,7 @@ def render(snapshot: dict[str, Any], project_id: str, output_root: str) -> dict[
         src = {"source_type": "creation_seed_absent", "source_id": project_id}
     write_markdown("创作约束/创作种子.md", "创作种子", body, src)
 
-    # E. 规划/（01-06 locked 资产）
+    # E. 规划/（locked 资产，character_contract 除外——见 E2）
     planning = snapshot["planning"]
     for asset_type, filename in _PLANNING_MAP.items():
         asset = planning.get(asset_type)
@@ -411,6 +456,32 @@ def render(snapshot: dict[str, Any], project_id: str, output_root: str) -> dict[
                 {"source_type": "planning_asset", "source_id": asset["id"],
                  "source_version": asset["version"], "source_hash": asset.get("subject_hash", "")},
             )
+
+    # E2. 人物契约特殊渲染：按「## 人物档案：角色｜名字」拆成 规划/人物契约/ 目录。
+    # 识别不到该结构（如尚未按新约定整理的残缺契约）时退化为单文件并警告。
+    cc = planning.get("character_contract")
+    if cc:
+        cc_source = {"source_type": "planning_asset", "source_id": cc["id"],
+                     "source_version": cc["version"], "source_hash": cc.get("subject_hash", "")}
+        split = _split_character_contract(cc["content"])
+        if split is None:
+            print(
+                "警告: character_contract 未按「## 人物档案：角色｜名字」结构组织，"
+                "退化为单文件 规划/04-人物契约.md",
+                file=sys.stderr,
+            )
+            write_markdown("规划/04-人物契约.md", "规划：character_contract", cc["content"], cc_source)
+        else:
+            write_markdown(
+                "规划/人物契约/00-总览.md", "人物契约·总览", split["overview"], cc_source
+            )
+            for idx, ch in enumerate(split["characters"]):
+                nn = f"{idx + 1:02d}"
+                fname = (
+                    f"规划/人物契约/{nn}-{sanitize_filename(ch['role'])}"
+                    f"-{sanitize_filename(ch['name'])}.md"
+                )
+                write_markdown(fname, f"{ch['role']}｜{ch['name']}", ch["body"], cc_source)
 
     # F. 大纲/（卷纲 + 章纲）
     volumes_by_id = snapshot["volumes_by_id"]
