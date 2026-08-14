@@ -110,15 +110,15 @@ Character 与 World 可以并行生成。每个规划资产存入 `planning_asse
 
 ## 项目创建向导
 
-项目创建的默认入口是本地 HTML 向导 `ui/project-wizard.html`。同目录 `project-wizard-data.js` 提供 18 个原型与推荐规则（静态文件，浏览器用其在页面内算分推荐）。
+项目创建的默认入口是本地 HTML 向导 `ui/project-wizard.html`。同目录 `project-wizard-data.js` 是静态权威数据（频道×平台/题材词表/表里基调池/美学推荐/题材信息包/推荐规则 + 18 个原型镜像含 channel_affinity；原型本体在 `config/system_archetypes.json`，改原型后同步镜像）。
 
-> **强制首步**：收到「创建 / 开始 / 新建小说项目」类请求时，主控的**第一个动作**必须是 `open ui/project-wizard.html` 打开向导。**禁止**用 `AskUserQuestion`、结构化问卷或自由文本在 CLI 内收集创建字段来替代——原型打分推荐、原型勾选、`user_signature_inputs` 编辑都依赖页面交互，CLI 复刻会导致签名缺失或字段不全，落库校验门会失败。仅在用户明确表示无法使用浏览器时，才考虑 fallback，且必须在回复中说明原因。
+> **强制首步**：收到「创建 / 开始 / 新建小说项目」类请求时，主控的**第一个动作**必须是 `open ui/project-wizard.html` 打开向导。**禁止**用 `AskUserQuestion`、结构化问卷或自由文本在 CLI 内收集创建字段来替代——频道级联（平台/题材/基调词表联动）、原型打分推荐、原型勾选、人格素材编辑都依赖页面交互，CLI 复刻会导致签名缺失或字段不全，落库校验门会失败。仅在用户明确表示无法使用浏览器时，才考虑 fallback，且必须在回复中说明原因。
 
-1. 用户在 HTML 中填写项目名、频道、平台、规模、题材、情绪基调、美学风格和可选创作资料。页面用 `recommendation_rules` 在浏览器内算分推荐三个原型。
-2. 用户选择原型后，页面生成 `novelos.project.create.v1` JSON（含 `selected_archetypes` + `project_setup`）。
-3. **原型融合（先立人，再落规）**：主控 Read `catalog/skills/onboarding/creator-signature-fusion/prompt.md` 注入临时 **引导融合智能体（onboarding_agent）** sub agent，输入 = `selected_archetypes` + `user_signature_inputs` + `project_setup` + `config/system_archetypes.json` 全文。agent 按「先立人，再落规」两步法执行：判定 parent（单原型直接取唯一项，多原型按推荐位次 + 基调契合度，输出 `parent_rationale`）→ 反推式五维生平（世代年龄/教育视野/阶层圈子库存/职业履历/人生轨迹，双向拟合：气质溯因 × 题材资格）→ 化合出 persona（narrative + anchors，含盲区清单 refuses/cannot_write）→ 从 persona 长出带体温的 7 字段，产出 `creator_derivation_candidate`（`parent_version_id` + `parent_subject_hash` + `display_name` + `parent_rationale` + signature v2 含 persona）。
+1. 用户在 HTML 中填写项目名、频道（男频/女频/全向，决定平台/题材/基调词表）、平台（附平台画像）、规模、一级题材（附题材信息包提示）、二级方向、表里基调（表层外显 1-2 项 + 内核底色 1 项）、美学风格和可选创作资料。页面用 `recommendation_rules` + 原型 `channel_affinity` 在浏览器内算分推荐三个原型。
+2. 用户选择原型、可选填写人格素材后，页面生成 `novelos.project.create.v2` JSON（含 `selected_archetypes` + `user_persona_hints` + setup v2：channel/platform/platform_traits/scale/题材/表里基调/美学/genre_profile/reference_material）。
+3. **原型融合（先立人，再落规）**：主控 Read `catalog/skills/onboarding/creator-signature-fusion/prompt.md` 注入临时 **引导融合智能体（onboarding_agent）** sub agent，输入 = `selected_archetypes` + `user_persona_hints` + `project_setup`（v2）+ `config/system_archetypes.json` 全文。agent 按「先立人，再落规」两步法执行：判定 parent（单原型直接取唯一项，多原型按推荐位次 + 基调契合度，输出 `parent_rationale`）→ 反推式五维生平（世代年龄/教育视野/阶层圈子库存/职业履历/人生轨迹，双向拟合：气质溯因 × 题材资格；人格素材按 prompt 的素材用法织入）→ 化合出 persona（narrative + anchors，含盲区清单 refuses/cannot_write）→ 从 persona 长出带体温的 7 字段，产出 `creator_derivation_candidate`（`parent_version_id` + `parent_subject_hash` + `display_name` + `parent_rationale` + signature v2 含 persona）。
 4. **落库校验门**（主控，agent 产出后）：用 jsonschema（`config/schemas/creator-signature.schema.json`）校验 parent signature（v1）与融合签名（v2，persona 必填且 `blindspots.cannot_write` 非空）；校验 overrides 字段在 7 个签名字段内且无逐字复制父值（语义继承允许，但须从 persona 重新长出）；用 `scripts/novelos_hash.py` 算融合签名 hash。校验失败拒绝落库。
-5. **SQL 落库**：按 sql-reference.md「作者签名链」模板——INSERT resources（签名 JSON）→ resources（派生记录：parent 指向 + rationale）→ creator_profiles → creator_profile_versions（content + derivation 双资源链）→ projects → project_creator_bindings（binding_mode='derive'）。
+5. **SQL 落库**：按 sql-reference.md「作者签名链」模板——INSERT resources（签名 JSON）→ resources（派生记录：parent 指向 + rationale）→ creator_profiles → creator_profile_versions（content + derivation 双资源链）→ projects（**metadata_json 写入 setup v2 快照**——频道/平台/规模/题材/表里基调/美学/题材信息包/创作资料的权威存储，后续阶段经 `json_extract(metadata_json,'$.setup')` 读取，不靠会话记忆）→ project_creator_bindings（binding_mode='derive'）。
 
 不再有确定性 reconcile 脚本——原型打分与融合由 onboarding_agent（LLM）承接，落库前 jsonschema 校验门保证签名合规。
 

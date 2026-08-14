@@ -20,6 +20,19 @@
 
 补丁：防指纹补丁（响应外部同质化审查——世代/创伤源多样化、道具指纹禁令、inner_tension 形态菜单、不体面缺点、条目数自然浮动、示例意象中性化）已并入 prompt，验证四命令绿；对照重测按用户决定取消（2026-08-14）。
 
+## 阶段 0.5：向导联动重设计 + 产出契约（setup v2 落库通路）—— ✅ 已完成
+
+**问题**：①六字段联动只有「一级→二级」一条且清单被主题噪声污染（文明复兴/理想主义跨题材复读）；词表实质是男频一套，女频/全向选了等于没选；②channel/platform 完全不参与原型推荐，18 原型全男频气质，女频作者全程被当男频对待；③最重——向导八个定位字段（频道/平台/规模/题材/基调/美学/资料）**无落库通路**，落库模板 metadata_json='{}'，后续阶段只能靠会话记忆，换 session 即失明；④「叙事原型与本书差异」是旧流程残留（用户手写差异覆盖），v1 抽象签名字段输入与 v2 先立人再落规相抵触。
+
+**改动**：
+- `ui/project-wizard.html` 重写：频道（男频/女频/全向，移除出版/剧本）→ 级联平台过滤（附平台画像行）→ 一级题材库按频道切换 → 二级方向按频道×题材联动（清洗噪声，条目 5-12 自然浮动）→ **表里基调**（表层外显 ≤2 + 内核底色 1，同层 light/dark 互斥警告，跨层反差不警告，附表里声明输入）→ 美学按题材「荐」排序不硬过滤 → 规模分档修正（短篇<30万/中篇30-100万/长篇100-300万/超长300万+）→「作者人格底色」区段（推荐计入 channel_affinity，人格素材 4 问替换 v1 签名字段，删「本书差异」概念与 main_agent_processing 旧旗标）
+- `ui/project-wizard-data.js` 重生成为静态权威数据：channels/platform_traits（起点付费养书/番茄七猫免费算法/晋江社区付费/纵横）/genres/secondary（男频 14 类清洗 + 女频 8 类真实子类 + 全向通用）/tone_pools（男频 12 + 女频 12 带 light/dark 极性）/style_recommendations/**genre_profiles 题材信息包 6 个**（男频玄幻仙侠都市 + 女频古言现言幻想言情：力量货币候选/典型两难/读者期待/雷点）/推荐规则扩展（女频基调与题材 temperament 映射）
+- `config/system_archetypes.json`：18 原型加 `channel_affinity` 元数据（男频×7/通吃×10/女频×1，signature 外字段不动 subject_hash）；女频人格原型补充归「原型库 v2」专项
+- **产出契约**：JSON v2（`novelos.project.create.v2`，user_persona_hints 替换 user_signature_inputs，emotional_surface/core/tonal_contrast，platform_traits 与 genre_profile 随行快照）；落库约定 `projects.metadata_json.setup`（sql-reference 写入+查询模板）；消费入口 novel-planning（direction 输入改 SQL 查 setup 不靠会话记忆）+ novel-memory（最小上下文加 setup 快照）；融合 prompt 接口同步（人格素材用法/表里兼容检验/genre_profile 背景知识）
+- 三层分类（后续 review 端检测语义）：channel/platform/scale=硬约束违背即 fail；题材包/美学/基调=软素材可超越；reference_material/persona hints=用户意图冲突须上报
+
+**下游联动待办**：阶段 1 消费表里基调（core→book_soul 情感承诺、surface→承诺语言基调）+ genre_profile 力量货币候选 + platform_traits 耐心结构；阶段 3 适配 scale 新分档（中短篇的阶段数×字数指引）；其余 genre_profiles 随阶段 1 补齐。
+
 ## 阶段 1：方向智能体（direction）—— ✅ 主体已完成 `57f1e38`，**补丁待执行**
 
 主体：从 persona 长出 book_soul（v2 十二字段 + organizing_principle + promise_cadence）；清退创作种子（migration 017）；候选比较表；九项自检。

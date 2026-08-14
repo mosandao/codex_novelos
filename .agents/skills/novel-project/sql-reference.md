@@ -20,11 +20,19 @@ SELECT content FROM resources WHERE id = 'resource:xxx';
 ## 项目 / 书 / 卷 / 章节（CRUD）
 
 ```sql
--- 项目
+-- 项目（新建项目必须把向导 setup v2 快照写进 metadata_json.setup——它是频道/平台/规模/
+-- 题材/表里基调/美学/题材信息包/创作资料的权威存储，后续所有阶段经 SQL 读取，不靠会话记忆）
 INSERT INTO projects (id, name, description, version, metadata_json)
-VALUES ('project:xxx', '书名', '描述', 1, '{}');
+VALUES ('project:xxx', '书名', '一句话定位', 1,
+    json('{"setup": {"channel": "女频", "platform": "晋江", "platform_traits": {...},
+        "scale": "...", "primary_genre": "...", "secondary_directions": [...],
+        "emotional_surface": [...], "emotional_core": "...", "tonal_contrast": null,
+        "aesthetic_styles": [...], "genre_profile": {...}, "reference_material": "..."}}'));
 SELECT * FROM projects;
 UPDATE projects SET description = ? WHERE id = 'project:xxx';
+
+-- 读项目 setup 快照（方向/策略/世界观/写作等阶段的标准输入）
+SELECT json_extract(metadata_json, '$.setup') AS setup FROM projects WHERE id = 'project:xxx';
 
 -- 书
 INSERT INTO books (id, project_id, title, version, metadata_json)

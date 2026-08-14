@@ -57,7 +57,7 @@ scripts/run_sqlite_mcp.sh   # 执行 .venv/bin/python mcp/sqlite-mcp/server.py -
 
 ## 项目创建向导
 
-默认入口是可直接打开的本地页面 `ui/project-wizard.html`。本地页面不直接写数据库，只生成 `novelos.project.create.v1` JSON；用户将 JSON 发回后，主控创建临时 **引导融合智能体（onboarding_agent）** sub agent，注入 `selected_archetypes` + `project_setup` + `config/system_archetypes.json`，由 agent 做原型打分融合（单/多统一），产出 `creator_derivation_candidate`。主控用 jsonschema（`config/schemas/creator-signature.schema.json`）校验签名合规 + `scripts/novelos_hash.py` 算 hash 后，用 SQL INSERT 创建 projects + creator_profiles + creator_profile_versions + project_creator_bindings。
+默认入口是可直接打开的本地页面 `ui/project-wizard.html`。本地页面不直接写数据库，只生成 `novelos.project.create.v2` JSON（频道级联定位 + 表里基调 + platform_traits/genre_profile 快照）；用户将 JSON 发回后，主控创建临时 **引导融合智能体（onboarding_agent）** sub agent，注入 `selected_archetypes` + `user_persona_hints` + `project_setup`（v2）+ `config/system_archetypes.json`，由 agent 按先立人再落规做融合，产出 `creator_derivation_candidate`。主控用 jsonschema（`config/schemas/creator-signature.schema.json`）校验签名合规 + `scripts/novelos_hash.py` 算 hash 后，用 SQL INSERT 创建 projects（metadata_json 写入 setup v2 快照）+ creator_profiles + creator_profile_versions + project_creator_bindings。
 
 V3 新向导只允许 `derive`，不得提交 `reuse` 或 `create`；历史绑定仍可读取。页面使用固定频道（男频、女频、全向、出版、剧本）、目标平台（起点、番茄、晋江、七猫）、四档作品规模和一级题材。二级方向随一级题材切换，每个题材提供静态预生成候选；落库事务本身不调用 LLM，LLM 只在多原型融合时由 `onboarding_agent` 在 Codex run 内运行；也不提供自定义选项、知乎盐选或自定义字数。主情绪基调可以多选，美学风格最多两项，用户创作资料为最多 10,000 字的可选多行文本。页面按约束确定性推荐三个系统叙事原型，用户确认继承项并编辑本书最小差异。
 

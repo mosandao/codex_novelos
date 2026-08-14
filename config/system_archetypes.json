@@ -15,6 +15,7 @@
       "克制",
       "结构化"
     ],
+    "channel_affinity": "男频",
     "revision": 1,
     "subject_hash": "sha256:2dbe1642ae2893516f1479f2a6840a53dbb62f8edf0fdbb3e56be8d5f8128d5f",
     "signature": {
@@ -59,6 +60,7 @@
       "热血",
       "递进"
     ],
+    "channel_affinity": "男频",
     "revision": 1,
     "subject_hash": "sha256:d159c29411854a5e91b881ef6384cbf9addb70f437482ef37687ff31601ba6e5",
     "signature": {
@@ -102,6 +104,7 @@
       "悲壮",
       "正直"
     ],
+    "channel_affinity": "男频",
     "revision": 1,
     "subject_hash": "sha256:56b27afbd822ca48a0110b59394d4de3e7264831b7a09a2e0919f6b6d141b432",
     "signature": {
@@ -146,6 +149,7 @@
       "务实",
       "群像"
     ],
+    "channel_affinity": "通吃",
     "revision": 1,
     "subject_hash": "sha256:776fda0b605b1391746141dc5786b19a294bcaa9f12d10ca1e5e6419a8494ec5",
     "signature": {
@@ -189,6 +193,7 @@
       "严谨",
       "逻辑"
     ],
+    "channel_affinity": "通吃",
     "revision": 1,
     "subject_hash": "sha256:ffb1b18a13b124eb53dfe80668d9ce1d59e3d3ca61eef31d39b0b9c0ec5c73b1",
     "signature": {
@@ -232,6 +237,7 @@
       "坚忍",
       "危机"
     ],
+    "channel_affinity": "通吃",
     "revision": 1,
     "subject_hash": "sha256:646fb63abcc9a1000c6e1fab4da39ee7872bea6fa91379115528e54d2600ed18",
     "signature": {
@@ -275,6 +281,7 @@
       "精确",
       "悬念"
     ],
+    "channel_affinity": "通吃",
     "revision": 1,
     "subject_hash": "sha256:9bbcc6e2dd0a914f8e1fdb6c9972e09c1aba0f1a7e973939be09b63349826fc5",
     "signature": {
@@ -318,6 +325,7 @@
       "诡谲",
       "悲悯"
     ],
+    "channel_affinity": "通吃",
     "revision": 1,
     "subject_hash": "sha256:a32508aeb21011a581c0be7eba436de5c1f0ec11521f8d92676dc145d9fdadc4",
     "signature": {
@@ -361,6 +369,7 @@
       "清醒",
       "多视角"
     ],
+    "channel_affinity": "通吃",
     "revision": 1,
     "subject_hash": "sha256:cd58553f354c67e06e4790d037f455b7956873b52b366c6fd50fb95333cf3ff2",
     "signature": {
@@ -403,6 +412,7 @@
       "细腻",
       "生活流"
     ],
+    "channel_affinity": "通吃",
     "revision": 1,
     "subject_hash": "sha256:1be638ad224eecffecf40c4b65e6a8f55dbc665adbb1acacc4f940ad0a2889ee",
     "signature": {
@@ -446,6 +456,7 @@
       "真诚",
       "宿命"
     ],
+    "channel_affinity": "女频",
     "revision": 1,
     "subject_hash": "sha256:2de96156a4a393d4fe0fb38c9f2737c5a8d97b1d32b1ed56416312714b2e2095",
     "signature": {
@@ -489,6 +500,7 @@
       "解构",
       "对话驱动"
     ],
+    "channel_affinity": "通吃",
     "revision": 1,
     "subject_hash": "sha256:f4650e926b321291aa6093b83adc546e6ef7512e712cb5f0eb07e045b10458ee",
     "signature": {
@@ -533,6 +545,7 @@
       "复杂",
       "反英雄/恶人"
     ],
+    "channel_affinity": "通吃",
     "revision": 1,
     "subject_hash": "sha256:ab8c8faf8bdb09071e425060eed4920733be1c04e6b4d40e282ece676a647855",
     "signature": {
@@ -576,6 +589,7 @@
       "建设",
       "成就"
     ],
+    "channel_affinity": "通吃",
     "revision": 1,
     "subject_hash": "sha256:9bee2dd5953a403d12e944d47ea430bfbb3c20c4c1845d9caa484628e5bf2214",
     "signature": {
@@ -619,6 +633,7 @@
       "专业",
       "团队"
     ],
+    "channel_affinity": "男频",
     "revision": 1,
     "subject_hash": "sha256:3ed5e47396c0cf450b5f78db08817076b66c66aa3f86e58a71939f5a8c885015",
     "signature": {
@@ -661,6 +676,7 @@
       "壮阔",
       "探索"
     ],
+    "channel_affinity": "男频",
     "revision": 1,
     "subject_hash": "sha256:d0d40597bb5d271e7e58bc1f4727ca27398b3eb813bd5ec7befccf75da868c6a",
     "signature": {
@@ -705,6 +721,7 @@
       "智斗",
       "细密"
     ],
+    "channel_affinity": "通吃",
     "revision": 1,
     "subject_hash": "sha256:c01bff9a51e7d275db88af1e84b14b685495e03e0a60afca9b6828460e610b06",
     "signature": {
@@ -748,6 +765,7 @@
       "沉潜",
       "执着"
     ],
+    "channel_affinity": "男频",
     "revision": 1,
     "subject_hash": "sha256:f6b1963e0f5eef8c57a311b9eb5a486252bd084acbf0fc6d6a3975563cfe302e",
     "signature": {

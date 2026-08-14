@@ -30,7 +30,7 @@ NovelOS 是面向本地单用户长篇小说创作的纯 Codex 系统。Codex �
 | 数据库入口 | `mcp/sqlite-mcp/server.py`、FastMCP | 仅暴露 `execute_sql`，直接对 SQLite 执行 SQL |
 | 确定性算法 | `scripts/novelos_*.py` | hash、book_soul 校验、投影渲染、stale 传播、项目删除；不调 LLM |
 | Storage | SQLite | 权威业务数据（26 表，migration 016 后） |
-| 项目创建向导 | `ui/project-wizard.html` | 收集项目约束并生成 `novelos.project.create.v1` JSON，不写数据库 |
+| 项目创建向导 | `ui/project-wizard.html` | 收集项目约束（频道级联/表里基调）并生成 `novelos.project.create.v2` JSON，不写数据库 |
 | 用户投影 | `novels/<项目目录>`、Markdown | 从权威快照生成的可读规划、正文和连续性视图 |
 
 SQLite MCP 不依赖模型 Provider，不保存 Prompt，不作语义选择。主控与 sub agent 用 SQL 直接读写核心业务表；长文本存为 `resources`（BLOB），工具控制信封只携带 ID、版本、Hash 和状态。
@@ -44,7 +44,7 @@ SQLite MCP 不依赖模型 Provider，不保存 Prompt，不作语义选择。�
 - 用户到 Codex：用户决定创作意图和最终接受范围。
 - 主控智能体 到临时 sub agent：主控只提供最小输入与必要只读上下文；临时 sub agent 没有数据库写入权限，只返回候选，由主控落库。
 - 主控智能体 到 SQLite：所有持久化由主控经 `execute_sql` 完成；落库前用 jsonschema 校验签名、用确定性脚本算 Hash，SQL 状态机约束状态流转。
-- 本地向导到主控：独立 HTML 只输出 `novelos.project.create.v1` JSON；主控解析后创建 onboarding_agent 做原型融合，再用 SQL 原子落库。
+- 本地向导到主控：独立 HTML 只输出 `novelos.project.create.v2` JSON；主控解析后创建 onboarding_agent 做原型融合，再用 SQL 原子落库（projects.metadata_json 写入 setup 快照供后续阶段读取）。
 - 主控 到 用户投影：投影由 `novelos_render_projection.py` 确定性渲染、写 `manifest.json` 逐文件 Hash，原子替换；其他层不构造权威投影。
 - 来源仓库到当前仓库：`/Users/yiyi/github/novelos` 只读；迁移必须绑定固定 commit、Hash 和授权状态。
 

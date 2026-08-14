@@ -5,13 +5,13 @@
 参与者：用户、主控智能体、本地项目向导、引导融合智能体（onboarding_agent）。
 
 1. 用户要求创建项目时，主控提供 `ui/project-wizard.html` 的绝对本地路径。页面和同目录的 `project-wizard-data.js` 可通过 `file://` 打开，不依赖 MCP Apps proxy。
-2. 用户填写项目名、频道、平台、规模和一级题材；页面依据一级题材显示静态的二级方向候选。二级方向可多选，主情绪基调可多选，美学风格最多两项，创作资料可留空且最多 10,000 字。
-3. 页面按项目定位确定性推荐三个系统叙事原型并显示匹配分；用户仍可浏览全部 18 个原型，查看只读继承项，并编辑或清空本书差异。提交只使用 `derive`，不允许 `create` 或 `reuse`。
-4. 页面生成 `novelos.project.create.v1` JSON，显示在页面底部并尝试自动复制；复制失败时提供手动复制按钮。用户把原始 JSON 发送给主控。
-5. 主控 Read `catalog/skills/onboarding/creator-signature-fusion/prompt.md`（「先立人，再落规」方法论），连同 `selected_archetypes` + `user_signature_inputs` + `project_setup` + `config/system_archetypes.json` 注入临时 onboarding_agent sub agent。agent 判定 parent（多原型按推荐位次 + 基调契合度，输出 `parent_rationale`）→ 反推式五维生平化合出 persona（narrative + anchors，含盲区 refuses/cannot_write）→ 从 persona 长出带体温的 7 字段，产出 `creator_derivation_candidate`（含 `parent_version_id`/`parent_subject_hash`/`display_name`/`parent_rationale`/signature v2 含 persona）。
+2. 用户填写项目名、频道（男频/女频/全向）、平台、规模和一级题材；平台列表、一级题材库、二级方向候选、基调池均随频道级联切换（女频=晋江/番茄/七猫 + 女频题材库与基调池），平台选定后显示平台画像。二级方向可多选，表里基调分表层（外显，最多 2 项）与内核（底色，恰 1 项，可留空），美学风格最多两项（按题材标「荐」，可混搭），创作资料可留空且最多 10,000 字。
+3. 页面按项目定位与原型 channel_affinity 确定性推荐三个系统叙事原型并显示匹配分；用户仍可浏览全部 18 个原型、查看只读的读者承诺参考，并可选填写人格素材（口味锚点/最想写的人与圈子/绝不触碰/执念话题）。提交只使用 `derive`，不允许 `create` 或 `reuse`。
+4. 页面生成 `novelos.project.create.v2` JSON，显示在页面底部并尝试自动复制；复制失败时提供手动复制按钮。用户把原始 JSON 发送给主控。
+5. 主控 Read `catalog/skills/onboarding/creator-signature-fusion/prompt.md`（「先立人，再落规」方法论），连同 `selected_archetypes` + `user_persona_hints` + `project_setup`（v2，含 platform_traits/表里基调/genre_profile）+ `config/system_archetypes.json` 注入临时 onboarding_agent sub agent。agent 判定 parent（多原型按推荐位次 + 基调契合度，输出 `parent_rationale`）→ 反推式五维生平化合出 persona（narrative + anchors，含盲区 refuses/cannot_write）→ 从 persona 长出带体温的 7 字段，产出 `creator_derivation_candidate`（含 `parent_version_id`/`parent_subject_hash`/`display_name`/`parent_rationale`/signature v2 含 persona）。
 6. 主控执行落库校验门：用 jsonschema（`config/schemas/creator-signature.schema.json`）校验 parent signature（v1）与融合签名（v2，persona 必填且 `cannot_write` 非空），校验 overrides 字段在 7 个签名字段内且无逐字复制父值（语义继承须从 persona 重新长出），用 `scripts/novelos_hash.py` 算融合签名 hash。
-7. 校验通过后主控按 sql-reference.md「作者签名链」模板用 SQL 原子落库：`INSERT resources`（签名 JSON）→ `resources`（派生记录：parent + rationale）→ `creator_profiles` → `creator_profile_versions`（content + derivation 双资源链，parent 指向 system archetype）→ `projects` → `project_creator_bindings`（`binding_mode='derive'`）。校验失败拒绝落库。
-8. 主控读取项目约束与绑定签名中的 persona，启动方向智能体生成该项目的 `book_soul`（book_soul 从创作者人格长出来）。向导本身不会生成、锁定或提交 Direction。
+7. 校验通过后主控按 sql-reference.md「作者签名链」模板用 SQL 原子落库：`INSERT resources`（签名 JSON）→ `resources`（派生记录：parent + rationale）→ `creator_profiles` → `creator_profile_versions`（content + derivation 双资源链，parent 指向 system archetype）→ `projects`（metadata_json 写入 setup v2 快照——后续阶段经 `json_extract(metadata_json,'$.setup')` 读取）→ `project_creator_bindings`（`binding_mode='derive'`）。校验失败拒绝落库。
+8. 主控从 `projects.metadata_json` 读取 setup 快照，连同绑定签名中的 persona，启动方向智能体生成该项目的 `book_soul`（book_soul 从创作者人格与项目约束长出来）。向导本身不会生成、锁定或提交 Direction。
 
 拒绝路径：本地页面只生成 JSON，不声称项目已创建；参数不符合表单契约时主控拒绝落库；前端选择不替代规划或审查；jsonschema 校验失败时拒绝写入。
 

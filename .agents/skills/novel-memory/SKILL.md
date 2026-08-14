@@ -27,6 +27,9 @@ SELECT * FROM chapter_facts WHERE fact_json LIKE '%关键词%';
 SELECT id, asset_type, scope_ref, revision, metadata_json FROM planning_assets
 WHERE project_id = ? AND status = 'locked' ORDER BY asset_type;
 
+-- 项目约束快照（频道/平台耐心/表里基调/美学——写作与审查的硬约束来源）
+SELECT json_extract(metadata_json, '$.setup') AS setup FROM projects WHERE id = ?;
+
 -- 叙事承诺
 SELECT * FROM narrative_promises WHERE project_id = ? AND status = 'open';
 
@@ -36,4 +39,4 @@ SELECT * FROM relationship_states WHERE project_id = ?;
 
 3. 只在任务确实需要时读 `resources.content`（正文全文）；不要预载全部正文。
 4. 以较新的 Canon 和已接受章节为准。发现矛盾时列出双方来源，不要静默裁决。
-5. 返回紧凑上下文包：任务目标、近期事件、活跃实体状态、世界约束、未解决线索、连续性风险。
+5. 返回紧凑上下文包：任务目标、项目约束（setup 快照：频道/平台耐心/表里基调/美学）、近期事件、活跃实体状态、世界约束、未解决线索、连续性风险。

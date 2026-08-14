@@ -49,7 +49,7 @@
     .form-zone { overflow: hidden; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); box-shadow: 0 12px 28px rgba(30, 50, 39, .06); }
     .form-intro { display: flex; align-items: start; justify-content: space-between; gap: 24px; padding: 25px 28px 23px; border-bottom: 1px solid var(--line); background: #f8faf5; }
     .form-intro h2 { margin: 4px 0 0; color: var(--ink); font-size: 18px; line-height: 1.35; letter-spacing: 0; }
-    .form-intro p { max-width: 410px; margin: 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
+    .form-intro p { max-width: 430px; margin: 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
 
     fieldset { min-width: 0; margin: 0; padding: 25px 28px; border: 0; }
     fieldset + fieldset { border-top: 1px solid var(--line); }
@@ -58,6 +58,7 @@
     .section-head h3 { margin: 0; color: var(--ink); font-size: 15px; line-height: 1.4; letter-spacing: 0; }
     .section-index { color: var(--coral); font-size: 11px; }
     .hint { margin: -3px 0 15px; color: var(--muted); font-size: 13px; line-height: 1.55; }
+    .hint + .hint { margin-top: -10px; }
     .required { color: var(--coral); }
 
     .field-label { display: block; margin-bottom: 8px; color: var(--ink); font-size: 13px; font-weight: 750; }
@@ -74,22 +75,21 @@
     .choice:hover { border-color: #789685; color: var(--forest-dark); }
     .choice:has(input:focus-visible) { outline: 3px solid rgba(228, 154, 65, .45); outline-offset: 2px; }
     .choice:has(input:checked) { border-color: var(--forest); background: #e6f1e9; color: var(--forest-dark); font-weight: 750; }
+    .choice.recommended { border-color: #9ab8a7; }
+    .choice.recommended::after { margin-left: 3px; padding: 1px 5px; border-radius: 3px; background: var(--coral-soft); color: #81331f; font-size: 10px; font-weight: 800; content: "荐"; }
     .choice input { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
     .choice-count { min-width: 3.2em; color: var(--muted); font-size: 12px; font-weight: 700; text-align: right; }
+    .traits-line { margin: 12px 0 0; padding: 9px 12px; border-left: 3px solid var(--forest); background: var(--soft); color: #405047; font-size: 12px; line-height: 1.55; }
 
     .direction-panel { min-height: 102px; padding: 14px; border: 1px dashed #bdc9bd; border-radius: 6px; background: var(--soft); }
     .direction-placeholder { margin: 6px 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
     .direction-placeholder.ready { color: var(--forest-dark); }
     .direction-panel .choice-grid { margin-top: 10px; }
     .direction-panel .choice { background: var(--paper); }
-    .direction-panel .choice:has(input:checked) { background: var(--coral-soft); border-color: var(--coral); color: #81331f; }
 
     .creator-panel { display: grid; gap: 18px; }
-    .creator-fields { display: grid; gap: 16px; padding-top: 2px; }
-    .creator-fields[hidden] { display: none; }
-    .creator-summary { min-height: 42px; margin: 0; padding: 10px 12px; border-left: 3px solid var(--forest); background: var(--soft); color: #405047; font-size: 12px; line-height: 1.55; }
     .archetype-recommendations { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-    .archetype-option { display: grid; gap: 7px; min-height: 112px; padding: 12px; border: 1px solid #cbd4cc; border-radius: 6px; background: #fff; color: #405047; cursor: pointer; }
+    .archetype-option { position: relative; display: grid; gap: 7px; min-height: 112px; padding: 12px; border: 1px solid #cbd4cc; border-radius: 6px; background: #fff; color: #405047; cursor: pointer; }
     .archetype-option:has(input:focus-visible) { outline: 3px solid rgba(228, 154, 65, .55); outline-offset: 2px; }
     .archetype-option:has(input:checked) { border-color: var(--forest); background: #e6f1e9; color: var(--forest-dark); }
     .archetype-option input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
@@ -101,14 +101,10 @@
     .inherited-item { padding: 10px 12px; border-left: 3px solid #9aa79f; background: #f5f7f3; }
     .inherited-item strong { display: block; margin-bottom: 5px; font-size: 12px; }
     .inherited-item p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
-    .signature-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 18px; }
-    .signature-grid label { min-width: 0; }
-    .signature-grid textarea { min-height: 86px; }
-    .creator-actions { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
-    .creator-actions .hint { margin: 0; }
-    .secondary-button { min-height: 38px; flex: 0 0 auto; border: 1px solid var(--forest); border-radius: 5px; background: #fff; color: var(--forest-dark); font-size: 13px; font-weight: 750; padding: 8px 12px; }
-    .secondary-button:hover { background: #e6f1e9; }
-    .secondary-button:focus-visible { outline: 3px solid rgba(228, 154, 65, .6); outline-offset: 2px; }
+    .persona-hints-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 18px; }
+    .persona-hints-grid label { min-width: 0; }
+    .persona-hints-grid textarea { min-height: 96px; }
+    .creator-summary { min-height: 42px; margin: 0; padding: 10px 12px; border-left: 3px solid var(--forest); background: var(--soft); color: #405047; font-size: 12px; line-height: 1.55; }
 
     .reference-label { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
     .reference-label small { color: var(--muted); font-size: 12px; font-weight: 500; }
@@ -124,6 +120,9 @@
     .submit:active { transform: translateY(1px); }
     .submit:focus-visible { outline: 3px solid rgba(228, 154, 65, .6); outline-offset: 2px; }
     .submit:disabled { cursor: wait; opacity: .65; }
+    .secondary-button { min-height: 38px; flex: 0 0 auto; border: 1px solid var(--forest); border-radius: 5px; background: #fff; color: var(--forest-dark); font-size: 13px; font-weight: 750; padding: 8px 12px; }
+    .secondary-button:hover { background: #e6f1e9; }
+    .secondary-button:focus-visible { outline: 3px solid rgba(228, 154, 65, .6); outline-offset: 2px; }
 
     @media (max-width: 860px) {
       .workspace { grid-template-columns: 1fr; gap: 18px; }
@@ -138,10 +137,8 @@
       .form-intro p { margin-top: 10px; }
       fieldset { padding: 21px 18px; }
       .split { grid-template-columns: 1fr; gap: 22px; }
-      .signature-grid { grid-template-columns: 1fr; }
+      .persona-hints-grid { grid-template-columns: 1fr; }
       .archetype-recommendations, .archetype-all, .inherited-grid { grid-template-columns: 1fr; }
-      .creator-actions { align-items: stretch; flex-direction: column; }
-      .secondary-button { width: 100%; }
       .section-head { align-items: start; }
       .choice-count { padding-top: 2px; }
       .actionbar { align-items: stretch; flex-direction: column; padding: 16px 18px; }
@@ -177,9 +174,9 @@
         <div class="form-intro">
           <div>
             <p class="section-index">项目约束</p>
-            <h2>先定义读者入口，再交给故事方向阶段推导设定。</h2>
+            <h2>频道决定平台、题材与基调词表，先定义读者入口。</h2>
           </div>
-          <p>先填写项目定位，再选择一个或多个叙事原型作为融合素材。用户输入的作者偏好只作为原始资料提交，由 Main Agent 后续处理。</p>
+          <p>选定组合会生成项目约束快照（setup v2），随提交 JSON 交给主控落库，供故事方向及后续所有阶段读取。作者人格在最后一步选底色。</p>
         </div>
 
         <fieldset>
@@ -194,61 +191,41 @@
           <legend><div class="section-head"><h3>发布定位 <span class="required" aria-label="必填">*</span></h3><span class="section-index">02</span></div></legend>
           <div class="split">
             <div>
-              <p class="field-label">频道</p>
+              <p class="field-label">频道 <small style="color: var(--muted); font-weight: 500;">（切换后平台、题材与基调词表联动）</small></p>
               <div class="choice-grid" role="radiogroup" aria-label="频道">
-                <label class="choice"><input type="radio" name="channel" value="男频" required>男频</label>
+                <label class="choice"><input type="radio" name="channel" value="男频" checked required>男频</label>
                 <label class="choice"><input type="radio" name="channel" value="女频">女频</label>
                 <label class="choice"><input type="radio" name="channel" value="全向">全向</label>
-                <label class="choice"><input type="radio" name="channel" value="出版">出版</label>
-                <label class="choice"><input type="radio" name="channel" value="剧本">剧本</label>
               </div>
             </div>
             <div>
               <p class="field-label">目标平台</p>
-              <div class="choice-grid" role="radiogroup" aria-label="目标平台">
-                <label class="choice"><input type="radio" name="platform" value="起点" required>起点</label>
-                <label class="choice"><input type="radio" name="platform" value="番茄">番茄</label>
-                <label class="choice"><input type="radio" name="platform" value="晋江">晋江</label>
-                <label class="choice"><input type="radio" name="platform" value="七猫">七猫</label>
-              </div>
+              <div class="choice-grid" id="platform_choices" role="radiogroup" aria-label="目标平台"></div>
             </div>
           </div>
+          <p class="traits-line" id="platform_traits_line" hidden aria-live="polite"></p>
         </fieldset>
 
         <fieldset>
           <legend><div class="section-head"><h3>作品规模 <span class="required" aria-label="必填">*</span></h3><span class="section-index">03</span></div></legend>
           <div class="choice-grid" role="radiogroup" aria-label="作品规模">
-            <label class="choice"><input type="radio" name="scale" value="短篇（1-100万字）" required>短篇（1-100万字）</label>
-            <label class="choice"><input type="radio" name="scale" value="中篇（100-300万字）">中篇（100-300万字）</label>
-            <label class="choice"><input type="radio" name="scale" value="长篇（300-500万字）">长篇（300-500万字）</label>
-            <label class="choice"><input type="radio" name="scale" value="超长篇（500万字以上）">超长篇（500万字以上）</label>
+            <label class="choice"><input type="radio" name="scale" value="短篇（30万字以下）" required>短篇（30万字以下）</label>
+            <label class="choice"><input type="radio" name="scale" value="中篇（30-100万字）">中篇（30-100万字）</label>
+            <label class="choice"><input type="radio" name="scale" value="长篇（100-300万字）">长篇（100-300万字）</label>
+            <label class="choice"><input type="radio" name="scale" value="超长篇（300万字以上）">超长篇（300万字以上）</label>
           </div>
         </fieldset>
 
         <fieldset>
           <legend><div class="section-head"><h3>一级题材 <span class="required" aria-label="必填">*</span></h3><span class="section-index">04</span></div></legend>
-          <p class="hint">选择后将展示对应的 LLM 预生成二级方向候选。</p>
-          <div class="choice-grid" role="radiogroup" aria-label="一级题材">
-            <label class="choice"><input type="radio" name="primary_genre" value="玄幻" required>玄幻</label>
-            <label class="choice"><input type="radio" name="primary_genre" value="奇幻">奇幻</label>
-            <label class="choice"><input type="radio" name="primary_genre" value="武侠">武侠</label>
-            <label class="choice"><input type="radio" name="primary_genre" value="仙侠">仙侠</label>
-            <label class="choice"><input type="radio" name="primary_genre" value="都市">都市</label>
-            <label class="choice"><input type="radio" name="primary_genre" value="现实">现实</label>
-            <label class="choice"><input type="radio" name="primary_genre" value="历史">历史</label>
-            <label class="choice"><input type="radio" name="primary_genre" value="军事">军事</label>
-            <label class="choice"><input type="radio" name="primary_genre" value="游戏">游戏</label>
-            <label class="choice"><input type="radio" name="primary_genre" value="体育">体育</label>
-            <label class="choice"><input type="radio" name="primary_genre" value="科幻">科幻</label>
-            <label class="choice"><input type="radio" name="primary_genre" value="诸天无限">诸天无限</label>
-            <label class="choice"><input type="radio" name="primary_genre" value="悬疑">悬疑</label>
-            <label class="choice"><input type="radio" name="primary_genre" value="轻小说">轻小说</label>
-          </div>
+          <p class="hint">候选随频道切换；二级方向与美学推荐随一级题材联动。</p>
+          <div class="choice-grid" id="primary_genre_choices" role="radiogroup" aria-label="一级题材"></div>
+          <p class="traits-line" id="genre_profile_line" hidden aria-live="polite"></p>
         </fieldset>
 
         <fieldset>
           <legend><div class="section-head"><h3>二级方向</h3><span class="choice-count" id="secondary_count">0 项已选</span></div></legend>
-          <p class="hint">候选由 LLM 预生成，并随一级题材变化；可多选，不会直接替代世界设定或故事架构。</p>
+          <p class="hint">静态词表随「频道 × 一级题材」联动；可多选，不会直接替代世界设定或故事架构。</p>
           <div class="direction-panel" aria-live="polite">
             <p class="direction-placeholder" id="secondary_placeholder">请先选择一级题材。</p>
             <div class="choice-grid" id="secondary_choices" aria-label="二级方向候选"></div>
@@ -256,60 +233,40 @@
         </fieldset>
 
         <fieldset>
-          <legend><div class="section-head"><h3>创作偏好</h3><span class="section-index">05</span></div></legend>
+          <legend><div class="section-head"><h3>创作偏好 · 表里基调与美学</h3><span class="section-index">05</span></div></legend>
           <div class="split">
             <div>
-              <div class="section-head"><p class="field-label">主情绪基调</p><span class="choice-count" id="tone_count">可多选</span></div>
-              <p class="hint">留空时由故事方向阶段判断。</p>
-              <div class="choice-grid" role="group" aria-label="主情绪基调">
-                <label class="choice"><input type="checkbox" name="emotional_tones" value="爽快燃向">爽快燃向</label>
-                <label class="choice"><input type="checkbox" name="emotional_tones" value="轻松欢乐">轻松欢乐</label>
-                <label class="choice"><input type="checkbox" name="emotional_tones" value="沙雕搞笑">沙雕搞笑</label>
-                <label class="choice"><input type="checkbox" name="emotional_tones" value="温馨治愈">温馨治愈</label>
-                <label class="choice"><input type="checkbox" name="emotional_tones" value="慢热沉浸">慢热沉浸</label>
-                <label class="choice"><input type="checkbox" name="emotional_tones" value="热血悲壮">热血悲壮</label>
-                <label class="choice"><input type="checkbox" name="emotional_tones" value="黑暗压抑">黑暗压抑</label>
-                <label class="choice"><input type="checkbox" name="emotional_tones" value="绝望求生">绝望求生</label>
-                <label class="choice"><input type="checkbox" name="emotional_tones" value="冷峻克制">冷峻克制</label>
-                <label class="choice"><input type="checkbox" name="emotional_tones" value="疯癫混乱">疯癫混乱</label>
-                <label class="choice"><input type="checkbox" name="emotional_tones" value="史诗厚重">史诗厚重</label>
-                <label class="choice"><input type="checkbox" name="emotional_tones" value="悬疑紧张">悬疑紧张</label>
-              </div>
+              <div class="section-head"><p class="field-label">表层基调（外显）</p><span class="choice-count" id="surface_count">最多 2 项</span></div>
+              <p class="hint">读者逐章体验到的温度——决定笔触与章节情绪配比。留空由方向阶段判断。</p>
+              <div class="choice-grid" id="surface_choices" role="group" aria-label="表层基调"></div>
             </div>
             <div>
-              <div class="section-head"><p class="field-label">美学风格</p><span class="choice-count" id="style_count">最多 2 项</span></div>
-              <p class="hint">约束表现气质，不替代世界设定。</p>
-              <div class="choice-grid" role="group" aria-label="美学风格">
-                <label class="choice"><input type="checkbox" name="aesthetic_styles" value="东方古典">东方古典</label>
-                <label class="choice"><input type="checkbox" name="aesthetic_styles" value="魏晋风流">魏晋风流</label>
-                <label class="choice"><input type="checkbox" name="aesthetic_styles" value="盛唐气象">盛唐气象</label>
-                <label class="choice"><input type="checkbox" name="aesthetic_styles" value="蒸汽幻想">蒸汽幻想</label>
-                <label class="choice"><input type="checkbox" name="aesthetic_styles" value="西幻史诗">西幻史诗</label>
-                <label class="choice"><input type="checkbox" name="aesthetic_styles" value="黑暗哥特">黑暗哥特</label>
-                <label class="choice"><input type="checkbox" name="aesthetic_styles" value="废土荒凉">废土荒凉</label>
-                <label class="choice"><input type="checkbox" name="aesthetic_styles" value="赛博霓虹">赛博霓虹</label>
-                <label class="choice"><input type="checkbox" name="aesthetic_styles" value="星际宏伟">星际宏伟</label>
-                <label class="choice"><input type="checkbox" name="aesthetic_styles" value="民俗志怪">民俗志怪</label>
-                <label class="choice"><input type="checkbox" name="aesthetic_styles" value="宇宙恐怖">宇宙恐怖</label>
-                <label class="choice"><input type="checkbox" name="aesthetic_styles" value="校园青春">校园青春</label>
-                <label class="choice"><input type="checkbox" name="aesthetic_styles" value="市井烟火">市井烟火</label>
-                <label class="choice"><input type="checkbox" name="aesthetic_styles" value="工业机械">工业机械</label>
-                <label class="choice"><input type="checkbox" name="aesthetic_styles" value="神秘学仪式">神秘学仪式</label>
-              </div>
+              <div class="section-head"><p class="field-label">内核基调（底色）</p><span class="choice-count" id="core_count">恰 1 项，可留空</span></div>
+              <p class="hint">故事真正运送的情感真相。与表层不同轴即为表里反差——糖里有刀、笑声运送恐惧都从这里来。</p>
+              <div class="choice-grid" id="core_choices" role="group" aria-label="内核基调"></div>
             </div>
+          </div>
+          <label style="display: block; margin-top: 18px;">
+            <span class="field-label">表里声明（可选）</span>
+            <input id="tonal_contrast" type="text" maxlength="200" placeholder="一句话说明这个表里组合为什么有冲击力，例如：甜宠是武器，糖里有刀，最后一场戏把糖债一次讨清。">
+          </label>
+          <div style="margin-top: 18px;">
+            <div class="section-head"><p class="field-label">美学风格</p><span class="choice-count" id="style_count">最多 2 项</span></div>
+            <p class="hint">「荐」为该题材常见搭配，混搭合法——科技修仙类组合不受限。</p>
+            <div class="choice-grid" id="style_choices" role="group" aria-label="美学风格"></div>
           </div>
         </fieldset>
 
         <fieldset>
           <legend><div class="section-head"><h3>创作资料</h3><span class="section-index">06</span></div></legend>
-          <label class="reference-label field-label" for="reference_material"><span>补充给 Main Agent 的资料</span><small>可选，最多 10,000 字</small></label>
+          <label class="reference-label field-label" for="reference_material"><span>补充给主控的资料</span><small>可选，最多 10,000 字</small></label>
           <textarea id="reference_material" maxlength="10000" placeholder="可填写灵感片段、已有设定、参考作品、希望避开的内容或其他创作要求。"></textarea>
         </fieldset>
 
         <fieldset id="archetype_section">
-          <legend><div class="section-head"><h3>叙事原型与本书差异 <span class="required" aria-label="必填">*</span></h3><span class="section-index">07</span></div></legend>
+          <legend><div class="section-head"><h3>作者人格底色 <span class="required" aria-label="必填">*</span></h3><span class="section-index">07</span></div></legend>
           <div class="creator-panel">
-            <p class="hint">推荐结果由题材、情绪和美学标签确定性计算。可浏览全部原型并多选为融合素材，具体主次和调整由 Main Agent 结合小说信息确定。</p>
+            <p class="hint">推荐结果由频道、题材、表里基调与美学标签在浏览器内确定性计算。可浏览全部原型并多选为融合素材，主次与取舍由主控的融合智能体确定。</p>
             <div class="archetype-recommendations" id="archetype_recommendations" aria-label="推荐叙事原型"></div>
             <div>
               <span class="field-label">浏览全部叙事原型（可多选）</span>
@@ -317,12 +274,14 @@
             </div>
             <p class="creator-summary" id="creator_derive_summary">完成项目定位后查看推荐原型。</p>
             <div>
-              <span class="field-label">继承自原型（只读）</span>
+              <span class="field-label">融合原型的读者承诺（只读参考）</span>
               <div class="inherited-grid" id="inherited_signature"></div>
             </div>
-            <p class="hint">项目专属作者名称由 Main Agent 在读取项目资料后生成。以下内容仅作为用户原始输入，不在此页面扩展、删除或优化。</p>
-            <span class="field-label">提供给 Main Agent 的作者偏好原始输入</span>
-            <div class="signature-grid" id="derive_signature_fields"></div>
+            <div>
+              <p class="hint">以下人格素材直接喂给融合智能体反推作者生平（口味→声音与师承；圈子→目光与库存；禁区→人格禁令种子；执念→反复注视的东西）。不填则完全由原型与项目定位长出人格。</p>
+              <span class="field-label">人格素材（全部可选，每行一条）</span>
+              <div class="persona-hints-grid" id="persona_hint_fields"></div>
+            </div>
           </div>
         </fieldset>
 
@@ -346,22 +305,15 @@
 
   <script src="./project-wizard-data.js"></script>
   <script>
-    const secondaryFallback = {
-      "玄幻":["东方玄幻","高武世界","宗门崛起","无敌流","升级流","异世大陆","王朝争霸","神话复苏","末法时代","灵气枯竭","黑暗纪元","文明复兴","守护苍生","创世神话","开天辟地","诸神黄昏","群像互助","反英雄"],
-      "奇幻":["西方玄幻","剑与魔法","龙与地下城","领主战争","魔法学院","蒸汽奇幻","黑暗奇幻","神明战争","末日奇幻","诸神黄昏","失落纪元","世界树","造物主","创世史诗","文明复兴","骑士守护","反乌托邦","灾厄降临"],
-      "武侠":["传统武侠","新派武侠","江湖恩怨","门派纷争","庙堂江湖","悬疑武侠","镖局江湖","综武世界","侠义复兴","江湖末路","乱世浮沉","守护百姓","武林浩劫","门派中兴","反英雄","救世侠客","旧秩序崩塌","理想主义"],
-      "仙侠":["古典仙侠","凡人流","修真百艺","洪荒神话","门派经营","家族修仙","剑修","诡道修仙","末法时代","灵气复苏","天地大劫","仙路断绝","创世神话","开天辟地","诸神黄昏","道统复兴","守护人间","逆天改命"],
-      "都市":["都市异能","都市修仙","商战职场","娱乐明星","神豪人生","重生创业","都市悬疑","都市生活","温暖治愈","奋斗逆袭","社区守护","理想创业","行业寒冬","城市暗面","秩序崩塌","末日都市","反乌托邦","新城创世"],
-      "现实":["家庭伦理","行业纪实","成长青春","社会派","乡土现实","医疗职场","教育人生","市井生活","温暖治愈","互助成长","乡村振兴","理想主义","时代阵痛","行业寒冬","失序家庭","社会阴影","文明重建","新生活实验"],
-      "历史":["架空历史","秦汉三国","两宋元明","晚清民国","战国权谋","历史种田","大航海","宫廷权谋","王朝中兴","乱世救亡","文明复兴","理想变法","王朝末世","礼崩乐坏","末法王朝","开国创世","新秩序建立","史诗群像"],
-      "军事":["军旅生涯","特种兵","现代战争","抗战谍战","战术推演","军工科技","边境任务","热血军旅","和平守望","灾后救援","守护家园","军民互助","末日战场","战争废墟","失控武器","文明保卫战","新世界秩序","悲壮牺牲"],
-      "游戏":["虚拟网游","电竞职业","游戏制作","末日游戏","全息网游","卡牌对战","领主游戏","直播游戏","治愈种田","玩家共建","文明复兴","守护服务器","死亡游戏","反乌托邦副本","世界崩坏","创世沙盒","造物主系统","绝望求生"],
-      "体育":["竞技体育","足球","篮球","网球","田径","运动成长","教练生涯","系统流体育","团队复兴","梦想赛场","伤病治愈","弱队逆袭","职业低谷","赛场黑幕","时代落幕","体育救赎","新联赛创立","热血群像"],
-      "科幻":["硬科幻","星际文明","机甲","末世科幻","时间循环","人工智能","宇宙探索","科技争霸","文明复兴","星际救援","理想星邦","生态修复","末法宇宙","熵增末世","黑暗森林","反乌托邦","创世工程","人造神明"],
-      "诸天无限":["无限流","诸天万界","副本求生","影视综漫","主神空间","时空穿梭","任务流","文明碰撞","世界修复","诸天守护","文明火种","理想联盟","末法诸天","世界毁灭","绝望轮回","神明陨落","创世任务","造物主试炼"],
-      "悬疑":["推理悬疑","刑侦","本格推理","法医","社会派","惊悚","诡秘悬疑","密室逃脱","救赎悬疑","守护真相","治愈推理","城市微光","末法诡异","黑暗人性","绝望求生","世界崩坏","创世谜团","造物主阴影"],
-      "轻小说":["日常恋爱","青春校园","原生幻想","异世界","变身","恋爱喜剧","社团日常","治愈日常","伙伴羁绊","校园救赎","慢生活","理想社团","末日校园","黑暗异世界","绝望轮回","世界终焉","创世冒险","新世界开拓"]
-    };
+    const wizardData = window.NOVELOS_WIZARD_DATA || {};
+    const channels = wizardData.channels || {};
+    const platformTraits = wizardData.platform_traits || {};
+    const genreLists = wizardData.genres || {};
+    const secondaryMap = wizardData.secondary_directions || {};
+    const tonePools = wizardData.tone_pools || {};
+    const aestheticStyles = wizardData.aesthetic_styles || [];
+    const styleRecommendations = wizardData.style_recommendations || {};
+    const genreProfiles = wizardData.genre_profiles || {};
 
     let rpcId = 0;
     let bridgePromise;
@@ -373,26 +325,30 @@
     const jsonResult = document.querySelector("#json_result");
     const jsonOutput = document.querySelector("#json_output");
     const copyJson = document.querySelector("#copy_json");
+    const platformChoices = document.querySelector("#platform_choices");
+    const platformTraitsLine = document.querySelector("#platform_traits_line");
+    const genreChoices = document.querySelector("#primary_genre_choices");
+    const genreProfileLine = document.querySelector("#genre_profile_line");
     const secondaryChoices = document.querySelector("#secondary_choices");
     const secondaryPlaceholder = document.querySelector("#secondary_placeholder");
     const secondaryCount = document.querySelector("#secondary_count");
-    const toneCount = document.querySelector("#tone_count");
+    const surfaceChoices = document.querySelector("#surface_choices");
+    const coreChoices = document.querySelector("#core_choices");
+    const surfaceCount = document.querySelector("#surface_count");
+    const coreCount = document.querySelector("#core_count");
+    const styleChoices = document.querySelector("#style_choices");
     const styleCount = document.querySelector("#style_count");
     const creatorParentOptions = document.querySelector("#creator_parent_options");
     const archetypeRecommendations = document.querySelector("#archetype_recommendations");
     const inheritedSignature = document.querySelector("#inherited_signature");
     let creatorProfiles = [];
     let recommendationRules = { genre_temperaments: {}, tone_temperaments: {} };
-    submit.textContent = "生成项目提交 JSON";
 
-    const signatureFields = {
-      sympathies: ["天然同情", "每行一项，例如：承担具体代价的普通人"],
-      distrusts: ["持续警惕", "每行一项，例如：不承担后果的宏大目标"],
-      recurring_attention: ["反复关注", "每行一项，例如：权力如何进入日常关系"],
-      narrative_principles: ["叙事原则", "每行一项，例如：通过选择和后果表达判断"],
-      forbidden_conveniences: ["禁止的便利解法", "每行一项，例如：一句道歉抹平长期伤害"],
-      expression_preferences: ["表达偏好", "每行一项，例如：低议论、重留白"],
-      negative_constraints: ["负面约束", "每行一项，例如：不模仿具体作者"]
+    const personaHintFields = {
+      taste_anchors: ["口味锚点", "喜欢的作家/作品/影视与为何喜欢（喂人格的声音与师承）\n例如：喜欢《大明王朝1566》的台词机锋"],
+      people_and_scenes: ["最想写的人与圈子", "最想写哪类人、哪个圈子/行当/阶层（喂目光与库存）\n例如：县城中学的师生"],
+      hard_nos: ["绝不触碰", "写出来会难受、绝不想碰的内容（喂人格禁令种子）\n例如：无意义的宠物死亡"],
+      obsessions: ["执念话题", "反复想写、放不下的东西（喂执念来路）\n例如：普通人怎么在有裂缝的制度里过得体面"]
     };
 
     const request = (method, params) => new Promise((resolve, reject) => {
@@ -412,7 +368,7 @@
     const initializeBridge = () => {
       if (!bridgePromise) {
         bridgePromise = request("ui/initialize", {
-          appInfo: { name: "novelos-project-wizard", version: "3.0.0" },
+          appInfo: { name: "novelos-project-wizard", version: "4.0.0" },
           appCapabilities: {},
           protocolVersion: "2026-01-26"
         }).then(() => notify("ui/notifications/initialized", {})).catch(error => {
@@ -427,20 +383,15 @@
     const selectedValues = name => [...form.querySelectorAll(`input[name="${name}"]:checked`)].map(input => input.value);
     const escapeHtml = value => value.replace(/[&<>'"]/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[character]);
     const splitLines = value => [...new Set(value.split(/\n+/).map(item => item.trim()).filter(Boolean))];
+    const setStatus = (message, success) => { status.textContent = message; status.className = success ? "success" : ""; };
 
-    const editableSignatureFields = ["recurring_attention", "narrative_principles", "forbidden_conveniences", "expression_preferences"];
-    const inheritedSignatureFields = ["sympathies", "distrusts", "negative_constraints"];
-
-    const renderSignatureFields = () => {
-      document.querySelector("#derive_signature_fields").innerHTML = editableSignatureFields.map(field => {
-        const [label, placeholder] = signatureFields[field];
-        return `
+    const renderPersonaHintFields = () => {
+      document.querySelector("#persona_hint_fields").innerHTML = Object.entries(personaHintFields).map(([field, [label, placeholder]]) => `
         <label>
           <span class="field-label">${label}</span>
-          <textarea id="derive_${field}" data-signature-field="${field}" maxlength="4000" placeholder="${placeholder}"></textarea>
+          <textarea id="hint_${field}" data-hint-field="${field}" maxlength="2000" placeholder="${placeholder}"></textarea>
         </label>
-      `;
-      }).join("");
+      `).join("");
     };
 
     const selectedParentIds = () => [...document.querySelectorAll('input[name="creator_parents"]:checked')].map(input => input.value);
@@ -454,23 +405,32 @@
         inheritedSignature.innerHTML = "";
         return;
       }
-      summary.textContent = `已选 ${profiles.length} 个融合原型：${profiles.map(profile => profile.display_name).join("、")}。Main Agent 将结合项目资料确定主次与取舍。`;
+      summary.textContent = `已选 ${profiles.length} 个融合原型：${profiles.map(profile => profile.display_name).join("、")}。融合智能体将结合项目资料确定主次与取舍。`;
       inheritedSignature.innerHTML = profiles.map(profile => `
         <div class="inherited-item"><strong>${escapeHtml(profile.display_name)} · 只读参考</strong><p>${escapeHtml(profile.reader_promise)}</p></div>
       `).join("");
     };
 
     const recommendationScore = profile => {
+      const channel = selectedRadio("channel") || "";
       const genre = selectedRadio("primary_genre") || "";
-      const tones = selectedValues("emotional_tones");
+      const surface = selectedValues("emotional_surface");
+      const core = selectedRadio("emotional_core") || "";
       const directions = selectedValues("secondary_directions");
       const styles = selectedValues("aesthetic_styles");
       let score = (profile.genre_tags || []).includes(genre) ? 10 : 0;
+      const affinity = profile.channel_affinity || "通吃";
+      if (channel === "全向") score += affinity === "通吃" ? 8 : 2;
+      else if (affinity === "通吃") score += 3;
+      else if (affinity === channel) score += 8;
+      else score -= 6;
       const temperamentTags = profile.temperament_tags || [];
-      for (const tone of tones) {
+      const toneHit = tone => {
         const expected = recommendationRules.tone_temperaments[tone] || [];
-        score += temperamentTags.filter(tag => expected.some(item => tag === item || tag.includes(item))).length * 3;
-      }
+        return temperamentTags.filter(tag => expected.some(item => tag === item || tag.includes(item))).length;
+      };
+      if (core) score += toneHit(core) * 4;
+      for (const tone of surface) score += toneHit(tone) * 3;
       const expectedGenre = recommendationRules.genre_temperaments[genre] || [];
       score += temperamentTags.filter(tag => expectedGenre.some(item => tag.includes(item))).length * 2;
       score += directions.filter(item => profile.reader_promise.includes(item) || [...(profile.genre_tags || []), ...temperamentTags].some(tag => item.includes(tag))).length * 1.5;
@@ -479,6 +439,7 @@
     };
 
     const renderRecommendations = () => {
+      if (!creatorProfiles.length) return;
       const ranked = creatorProfiles.map((profile, index) => ({ profile, index, score: recommendationScore(profile) }))
         .sort((left, right) => right.score - left.score || left.index - right.index).slice(0, 3);
       const selected = new Set(selectedParentIds());
@@ -487,7 +448,7 @@
           <input type="checkbox" name="recommended_archetype" value="${escapeHtml(profile.profile_version_id)}" ${selected.has(profile.profile_version_id) ? "checked" : ""}>
           <strong>${index + 1}. ${escapeHtml(profile.display_name)}</strong>
           <small>${escapeHtml(profile.reader_promise)}</small>
-          <small>匹配分 ${score.toFixed(1)} · ${(profile.temperament_tags || []).map(escapeHtml).join(" / ")}</small>
+          <small>匹配分 ${score.toFixed(1)} · 频道亲和 ${escapeHtml(profile.channel_affinity || "通吃")} · ${(profile.temperament_tags || []).map(escapeHtml).join(" / ")}</small>
         </label>
       `).join("");
     };
@@ -505,17 +466,17 @@
           <input type="checkbox" name="creator_parents" value="${escapeHtml(profile.profile_version_id)}">
           <strong>${escapeHtml(profile.display_name)} · r${profile.revision}</strong>
           <small>${escapeHtml(profile.reader_promise)}</small>
-          <small>${(profile.temperament_tags || []).map(escapeHtml).join(" / ")}</small>
+          <small>频道亲和 ${escapeHtml(profile.channel_affinity || "通吃")} · ${(profile.temperament_tags || []).map(escapeHtml).join(" / ")}</small>
         </label>
       `).join("");
       refreshArchetypes();
     };
 
-
-    const signaturePayload = () => {
-      const payload = { schema_version: 1 };
-      for (const field of editableSignatureFields) {
-        payload[field] = splitLines(document.querySelector(`#derive_${field}`).value);
+    const personaHintsPayload = () => {
+      const payload = {};
+      for (const field of Object.keys(personaHintFields)) {
+        const lines = splitLines(document.querySelector(`#hint_${field}`).value);
+        if (lines.length) payload[field] = lines;
       }
       return payload;
     };
@@ -523,7 +484,6 @@
     const creatorPayload = () => {
       const profiles = selectedParentProfiles();
       if (!profiles.length) throw new Error("请至少选择一个叙事原型。");
-      const userInputs = signaturePayload();
       return {
         mode: "derive",
         selected_archetypes: profiles.map(profile => ({
@@ -531,27 +491,31 @@
           subject_hash: profile.subject_hash,
           display_name: profile.display_name
         })),
-        user_signature_inputs: Object.fromEntries(Object.entries(userInputs).filter(([key, value]) => key !== "schema_version" && value.length)),
-        main_agent_processing: {
-          generate_display_name: true,
-          reconcile_archetypes: true,
-          refine_user_inputs: true
-        }
+        user_persona_hints: personaHintsPayload()
       };
     };
 
-    const setupPayload = () => ({
-      title: document.querySelector("#title").value.trim(),
-      creator: creatorPayload(),
-      channel: selectedRadio("channel"),
-      platform: selectedRadio("platform"),
-      scale: selectedRadio("scale"),
-      primary_genre: selectedRadio("primary_genre"),
-      secondary_directions: selectedValues("secondary_directions"),
-      emotional_tones: selectedValues("emotional_tones"),
-      aesthetic_styles: selectedValues("aesthetic_styles"),
-      reference_material: document.querySelector("#reference_material").value.trim() || null
-    });
+    const setupPayload = () => {
+      const platform = selectedRadio("platform");
+      const channel = selectedRadio("channel");
+      const primaryGenre = selectedRadio("primary_genre");
+      return {
+        title: document.querySelector("#title").value.trim(),
+        creator: creatorPayload(),
+        channel,
+        platform,
+        platform_traits: platform ? (platformTraits[platform] || null) : null,
+        scale: selectedRadio("scale"),
+        primary_genre: primaryGenre,
+        secondary_directions: selectedValues("secondary_directions"),
+        emotional_surface: selectedValues("emotional_surface"),
+        emotional_core: selectedRadio("emotional_core") || null,
+        tonal_contrast: document.querySelector("#tonal_contrast").value.trim() || null,
+        aesthetic_styles: selectedValues("aesthetic_styles"),
+        genre_profile: primaryGenre ? (genreProfiles[`${channel}|${primaryGenre}`] || null) : null,
+        reference_material: document.querySelector("#reference_material").value.trim() || null
+      };
+    };
 
     const copyText = async value => {
       try {
@@ -566,88 +530,206 @@
 
     const generateStandaloneJson = async () => {
       const request = {
-        request_type: "novelos.project.create.v1",
+        request_type: "novelos.project.create.v2",
         setup: setupPayload()
       };
       const serialized = JSON.stringify(request, null, 2);
       jsonOutput.value = serialized;
       jsonResult.hidden = false;
       const copied = await copyText(serialized);
-      status.textContent = copied ? "项目提交 JSON 已生成并复制，请发送给 Main Agent。" : "项目提交 JSON 已生成，请点击“复制 JSON”后发送给 Main Agent。";
-      status.className = "success";
+      setStatus(copied ? "项目提交 JSON 已生成并复制，请发送给 Main Agent。" : "项目提交 JSON 已生成，请点击“复制 JSON”后发送给 Main Agent。", true);
       if (!standalone) {
         notify("ui/update-model-context", {
-          content: [{ type: "text", text: `请处理以下 NovelOS 项目创建请求，先融合叙事原型、生成项目专属作者名称并优化用户原始输入，再以 derive 模式提交：\n${serialized}` }]
+          content: [{ type: "text", text: `请处理以下 NovelOS 项目创建请求：先经引导融合智能体融合作者人格（derive 模式），落库时 projects.metadata_json 需写入 setup 快照：\n${serialized}` }]
         });
       }
       jsonResult.scrollIntoView({ behavior: "smooth", block: "start" });
     };
 
     const loadCreatorProfiles = () => {
-      const data = window.NOVELOS_WIZARD_DATA || {};
-      renderCreatorProfiles(data.system_archetypes || [], data.recommendation_rules || {});
+      renderCreatorProfiles(wizardData.system_archetypes || [], wizardData.recommendation_rules || {});
     };
 
+    const renderPlatformOptions = () => {
+      const channel = selectedRadio("channel");
+      const platforms = (channels[channel] || {}).platforms || [];
+      platformChoices.innerHTML = platforms.map((platform, index) => `
+        <label class="choice"><input type="radio" name="platform" value="${escapeHtml(platform)}" ${index === 0 ? "required" : ""}>${escapeHtml(platform)}</label>
+      `).join("");
+    };
+
+    const updatePlatformTraitsLine = () => {
+      const platform = selectedRadio("platform");
+      const traits = platform ? platformTraits[platform] : null;
+      if (!traits) { platformTraitsLine.hidden = true; platformTraitsLine.textContent = ""; return; }
+      platformTraitsLine.hidden = false;
+      platformTraitsLine.textContent = `${platform} · ${traits.model} · ${traits.patience} —— ${traits.reader_profile}`;
+    };
+
+    const renderGenreOptions = () => {
+      const channel = selectedRadio("channel");
+      const genres = genreLists[channel] || [];
+      genreChoices.innerHTML = genres.map((genre, index) => `
+        <label class="choice"><input type="radio" name="primary_genre" value="${escapeHtml(genre)}" ${index === 0 ? "required" : ""}>${escapeHtml(genre)}</label>
+      `).join("");
+      secondaryChoices.innerHTML = "";
+      secondaryPlaceholder.textContent = "请先选择一级题材。";
+      secondaryPlaceholder.classList.remove("ready");
+      genreProfileLine.hidden = true;
+      genreProfileLine.textContent = "";
+    };
+
+    const updateGenreProfileLine = () => {
+      const channel = selectedRadio("channel");
+      const genre = selectedRadio("primary_genre");
+      if (!genre) { genreProfileLine.hidden = true; genreProfileLine.textContent = ""; return; }
+      const profile = genreProfiles[`${channel}|${genre}`];
+      if (!profile) {
+        genreProfileLine.hidden = false;
+        genreProfileLine.textContent = `「${genre}」的题材信息包待补齐，方向阶段将现场推导力量货币与典型两难。`;
+        return;
+      }
+      genreProfileLine.hidden = false;
+      genreProfileLine.textContent = `题材信息包（将随提交 JSON 交给方向阶段）：力量货币候选：${profile.power_currency_candidates.join(" / ")} · 典型两难与读者期待、雷点已附。`;
+    };
+
+    const renderSecondaryDirections = (channel, genre) => {
+      const suggestions = (secondaryMap[channel] || {})[genre] || [];
+      secondaryChoices.innerHTML = suggestions.map(value => `<label class="choice"><input type="checkbox" name="secondary_directions" value="${escapeHtml(value)}">${escapeHtml(value)}</label>`).join("");
+      secondaryPlaceholder.textContent = `已为「${channel} · ${genre}」准备 ${suggestions.length} 个二级方向候选。`;
+      secondaryPlaceholder.classList.add("ready");
+    };
+
+    const renderTonePools = () => {
+      const channel = selectedRadio("channel");
+      const pool = tonePools[channel] || [];
+      const choice = (tone, name) => `<label class="choice"><input type="checkbox" name="${name}" value="${escapeHtml(tone.value)}" data-pole="${tone.pole}">${escapeHtml(tone.value)}</label>`;
+      surfaceChoices.innerHTML = pool.map(tone => choice(tone, "emotional_surface")).join("");
+      coreChoices.innerHTML = pool.map(tone => choice(tone, "emotional_core")).join("");
+    };
+
+    const renderStyleOptions = () => {
+      const genre = selectedRadio("primary_genre");
+      const recommended = genre ? (styleRecommendations[genre] || []) : [];
+      const checked = new Set(selectedValues("aesthetic_styles"));
+      const ordered = genre
+        ? [...recommended.filter(item => aestheticStyles.includes(item)), ...aestheticStyles.filter(item => !recommended.includes(item))]
+        : [...aestheticStyles];
+      styleChoices.innerHTML = ordered.map(style => `
+        <label class="choice ${genre && recommended.includes(style) ? "recommended" : ""}">
+          <input type="checkbox" name="aesthetic_styles" value="${escapeHtml(style)}" ${checked.has(style) ? "checked" : ""}>${escapeHtml(style)}
+        </label>
+      `).join("");
+    };
+
+    const tonePoleWarningMessage = () => {
+      const surfacePoles = [...form.querySelectorAll('input[name="emotional_surface"]:checked')].map(input => input.dataset.pole);
+      if (surfacePoles.includes("light") && surfacePoles.includes("dark")) {
+        return "表层基调同时含治愈系与暗色系，方向阶段可能无法兼顾——表里反差请放在「表层 × 内核」之间，而非表层内部。";
+      }
+      return "";
+    };
 
     const refreshCounts = () => {
       secondaryCount.textContent = `${selectedValues("secondary_directions").length} 项已选`;
-      toneCount.textContent = selectedValues("emotional_tones").length ? `${selectedValues("emotional_tones").length} 项已选` : "可多选";
+      const surface = selectedValues("emotional_surface");
+      surfaceCount.textContent = surface.length ? `${surface.length} / 2 项` : "最多 2 项";
+      const core = selectedRadio("emotional_core");
+      coreCount.textContent = core ? "1 项已选" : "恰 1 项，可留空";
       const styles = selectedValues("aesthetic_styles").length;
       styleCount.textContent = styles ? `${styles} / 2 项` : "最多 2 项";
     };
 
-    const renderSecondaryDirections = (genre, suggestions) => {
-      secondaryChoices.innerHTML = suggestions.map(value => `<label class="choice"><input type="checkbox" name="secondary_directions" value="${escapeHtml(value)}">${escapeHtml(value)}</label>`).join("");
-      secondaryPlaceholder.textContent = `已为「${genre}」生成 ${suggestions.length} 个二级方向候选。`;
-      secondaryPlaceholder.classList.add("ready");
-      refreshCounts();
+    let wizardReady = false;
+
+    const onChannelChange = () => {
+      const previousPlatform = selectedRadio("platform");
+      renderPlatformOptions();
+      const platforms = [...platformChoices.querySelectorAll("input")];
+      const keep = platforms.find(input => input.value === previousPlatform);
+      (keep || platforms[0]).checked = true;
+      renderGenreOptions();
+      renderTonePools();
+      renderStyleOptions();
+      updatePlatformTraitsLine();
+      if (!keep && wizardReady) {
+        setStatus(`频道切换为「${selectedRadio("channel")}」，平台已按频道调整为 ${selectedRadio("platform")}，题材与基调词表已联动。`);
+        return;
+      }
+      setStatus("");
     };
 
-    const loadSecondaryDirections = genre => renderSecondaryDirections(genre, secondaryFallback[genre] || []);
+    const onGenreChange = () => {
+      const channel = selectedRadio("channel");
+      const genre = selectedRadio("primary_genre");
+      renderSecondaryDirections(channel, genre);
+      renderStyleOptions();
+      updateGenreProfileLine();
+    };
 
     form.addEventListener("change", event => {
-      if (event.target.name === "primary_genre") loadSecondaryDirections(event.target.value);
-      if (event.target.name === "recommended_archetype") {
+      const name = event.target.name;
+      let message = "";
+      if (name === "channel") {
+        onChannelChange();
+        refreshCounts();
+        renderRecommendations();
+        return;
+      }
+      if (name === "primary_genre") {
+        onGenreChange();
+      } else if (name === "recommended_archetype") {
         const parentInput = document.querySelector(`input[name="creator_parents"][value="${CSS.escape(event.target.value)}"]`);
         if (parentInput) parentInput.checked = event.target.checked;
-        refreshArchetypes();
-      }
-      if (event.target.name === "creator_parents") refreshArchetypes();
-      if (event.target.name === "aesthetic_styles" && selectedValues("aesthetic_styles").length > 2) {
+        renderSelectedArchetype();
+      } else if (name === "creator_parents") {
+        renderSelectedArchetype();
+      } else if (name === "emotional_core") {
+        for (const input of form.querySelectorAll('input[name="emotional_core"]:checked')) {
+          if (input !== event.target) input.checked = false;
+        }
+        message = tonePoleWarningMessage();
+      } else if (name === "emotional_surface" && selectedValues("emotional_surface").length > 2) {
         event.target.checked = false;
-        status.textContent = "美学风格最多选择两项。";
-      } else if (event.target.name !== "primary_genre") {
-        status.textContent = "";
+        message = "表层基调最多选择两项。";
+      } else if (name === "aesthetic_styles" && selectedValues("aesthetic_styles").length > 2) {
+        event.target.checked = false;
+        message = "美学风格最多选择两项。";
+      } else if (name === "platform") {
+        updatePlatformTraitsLine();
+      } else if (name === "emotional_surface") {
+        message = tonePoleWarningMessage();
       }
+      setStatus(message);
       refreshCounts();
-      if (["primary_genre", "secondary_directions", "emotional_tones", "aesthetic_styles"].includes(event.target.name)) renderRecommendations();
-    });
-
-    copyJson.addEventListener("click", async () => {
-      const copied = await copyText(jsonOutput.value);
-      status.textContent = copied ? "项目提交 JSON 已复制，请发送给 Main Agent。" : "浏览器拒绝访问剪贴板，请手动选择下方 JSON。";
-      status.className = copied ? "success" : "";
+      if (["primary_genre", "secondary_directions", "emotional_surface", "emotional_core", "aesthetic_styles"].includes(name)) renderRecommendations();
     });
 
     form.addEventListener("submit", async event => {
       event.preventDefault();
-      status.textContent = "";
-      status.className = "";
+      setStatus("");
       if (!form.reportValidity()) return;
       submit.disabled = true;
       try {
         if (!standalone) await initializeBridge();
         await generateStandaloneJson();
       } catch (error) {
-        status.textContent = error?.message || "无法生成项目提交 JSON，请检查填写内容。";
+        setStatus(error?.message || "无法生成项目提交 JSON，请检查填写内容。");
       } finally {
         submit.disabled = false;
       }
     });
 
-    renderSignatureFields();
+    copyJson.addEventListener("click", async () => {
+      const copied = await copyText(jsonOutput.value);
+      setStatus(copied ? "项目提交 JSON 已复制，请发送给 Main Agent。" : "浏览器拒绝访问剪贴板，请手动选择下方 JSON。", copied);
+    });
+
+    renderPersonaHintFields();
+    onChannelChange();
     loadCreatorProfiles();
     refreshCounts();
+    wizardReady = true;
   </script>
 </body>
 </html>

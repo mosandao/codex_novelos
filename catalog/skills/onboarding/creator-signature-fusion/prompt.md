@@ -11,9 +11,18 @@
 ## 输入
 
 - `selected_archetypes`：向导勾选的原型（profile_version_id / subject_hash / display_name）
-- `user_signature_inputs`：用户在向导编辑过的签名字段（可能粗糙、可能为空）
-- `project_setup`：项目名、频道、平台、规模、题材、情绪基调、美学风格、创作资料
+- `user_persona_hints`：用户在向导填写的人格素材（可能粗糙、可能为空）——`taste_anchors`（口味锚点）/ `people_and_scenes`（最想写的人与圈子）/ `hard_nos`（绝不触碰）/ `obsessions`（执念话题）
+- `project_setup`（v2）：项目名、频道、平台（含 platform_traits 平台画像）、规模、一级题材、二级方向、表里基调（emotional_surface 表层 / emotional_core 内核 / tonal_contrast 表里声明）、美学风格、genre_profile（题材信息包：力量货币候选/典型两难/读者期待/雷点，可能为 null）、创作资料
 - `system_archetypes.json` 全文（含每个原型的 7 字段签名与 temperament_tags）
+
+### 人格素材的用法（user_persona_hints）
+
+素材是**间接养料**，不是照抄的答案：`taste_anchors` 喂声音与师承（他为什么这样说话）；`people_and_scenes` 喂目光与库存（五维里的阶层圈子/职业履历优先从这里长）；`hard_nos` 是 `refuses` 的种子（须翻译成「因为怕过/伤过所以不碰」的心理来源，不是平铺禁令）；`obsessions` 喂执念来路与 recurring_attention。素材与原型气质冲突时上报 parent_rationale，不静默丢弃任一方。素材为空则完全由原型与 project_setup 长出人格。
+
+### 表里基调与题材信息包
+
+- `emotional_surface`（外显）与 `emotional_core`（内核）是**书的意图**，不是人格的属性——但要做一次兼容检验：人格气质与内核基调根本相斥时（如只会写喜剧的人格 × 悲剧内核），在 `parent_rationale` 上报并给调和建议，不静默硬融。
+- `genre_profile` 非空时，其力量货币候选与典型两难可作题材资格的背景知识；为 null 时该题材的资格判断由你现场推导，标准不降。
 
 ## 第一步：立人（persona）
 
@@ -74,7 +83,7 @@
 
 ### 1.6 素材边界
 
-用户素材（`user_signature_inputs`、`reference_material`、情绪基调/美学）优先织入生平，虚构补足空缺。允许简笔虚构侧写（职业、地域、烙印事件），但记住 persona 是**创作人格**——为一本书立起来的作者分身，不是替真实用户捏造身份。
+用户素材（`user_persona_hints`、`reference_material`、表里基调/美学）优先织入生平，虚构补足空缺。允许简笔虚构侧写（职业、地域、烙印事件），但记住 persona 是**创作人格**——为一本书立起来的作者分身，不是替真实用户捏造身份。
 
 ## 第二步：落规（7 字段从人身上长出来）
 
@@ -102,10 +111,10 @@
 
 凝聚主轴的一句话人格名（「在档案馆整理地方志的秩序守望者」），不是原型罗列。
 
-## 用户输入与处理标志
+## 用户输入处理
 
-- `user_signature_inputs`：显式输入 > 原型默认。粗糙输入（「想要爽一点」）→ 映射到最贴切字段并项目化改写。
-- `main_agent_processing` 三标志行为：`generate_display_name=true` → 由你产出 display_name；`reconcile_archetypes=true` → 执行 parent 判定与风味裁剪；`refine_user_inputs=true` → 粗糙输入精炼后织入 persona 与字段。
+- `user_persona_hints`：显式素材 > 原型默认。粗糙素材（「喜欢爽文」）→ 溯因到具体经历与偏好再织入，按「人格素材的用法」节消费，不逐字照抄进字段。
+- display_name 与 parent 判定/风味裁剪无需处理标志，为本流程固有职责。
 
 ## 坏味道对照（抽象自真实失败样本）
 
