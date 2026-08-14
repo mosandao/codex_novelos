@@ -654,6 +654,8 @@ world_contract v2 lock 后，story_arc（如果深渊影响跨卷）、volume_ou
 
 ### 22.5（规划层）新增"创作种子"入口层 ｜ 就绪度：🔴 需看 agent run 介入记录
 
+> **已废弃（2026-08，migration 017）**：creation_seeds 表建成以来从未获得写入通路（向导 JSON 不含种子字段、无任何流程写它），全库为空。用户原始意图的权威入口统一为向导「创作资料」（project_setup.reference_material），由方向智能体提炼消费（识别主角雏形/世界感觉/爽点偏好三类意图反推 book_soul）。表已删除，本节保留作设计史。
+
 在 project 创建和 direction 之间，加一个**非权威的"创作种子"层**：
 - 不是 planning_asset，不进依赖图，不触发 stale。
 - 用户原始想法的结构化记录（主角雏形 + 世界感觉 + 爽点偏好）。

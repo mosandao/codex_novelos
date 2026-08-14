@@ -208,9 +208,6 @@ def load_snapshot(conn: sqlite3.Connection, project_id: str) -> dict[str, Any]:
         ),
     }
 
-    # active 创作种子
-    seed = _row(conn, "SELECT * FROM creation_seeds WHERE project_id=? AND is_active=1", (project_id,))
-
     # 权威快照 hash（只覆盖权威内容，确定性可重现）
     snapshot_payload = {
         "project": project,
@@ -233,7 +230,6 @@ def load_snapshot(conn: sqlite3.Connection, project_id: str) -> dict[str, Any]:
         "characters": characters,
         "worlds": worlds,
         "continuity": continuity,
-        "seed": seed,
         "authority_snapshot_hash": authority_snapshot_hash,
     }
 
@@ -259,8 +255,10 @@ _PERSONA_DIMENSION_LABELS = {
     "life_trajectory": "人生轨迹",
 }
 _SOUL_LABELS = {
+    "organizing_principle": "组织原则",
     "unresolved_claims": "未决追问",
     "central_contradiction": "核心矛盾",
+    "promise_cadence": "承诺兑现节奏",
     "costly_commitments": "有代价的承诺",
     "protected_dignity": "受保护的尊严",
     "forbidden_resolutions": "禁止的解决方式",
@@ -452,12 +450,14 @@ def render(snapshot: dict[str, Any], project_id: str, output_root: str) -> dict[
             f"- **Hash**：`{soul['direction_subject_hash']}`",
         ]
         for field, label in _SOUL_LABELS.items():
-            lines.extend(["", f"## {label}"])
             value = sv.get(field)
+            if not value:
+                continue
+            lines.extend(["", f"## {label}"])
             if isinstance(value, list):
                 lines.extend(f"- {item}" for item in value)
             else:
-                lines.append(str(value) if value is not None else "")
+                lines.append(str(value))
         body = "\n".join(lines)
         src = {"source_type": "book_soul", "source_id": soul["direction_id"],
                "source_version": soul["direction_version"], "source_hash": soul["direction_subject_hash"]}
@@ -465,22 +465,6 @@ def render(snapshot: dict[str, Any], project_id: str, output_root: str) -> dict[
         body = "*当前没有包含有效 `book_soul` 的 locked Story Direction。*"
         src = {"source_type": "book_soul_absent", "source_id": project_id}
     write_markdown("创作约束/本书创作灵魂.md", "本书创作灵魂", body, src)
-
-    # D. 创作约束/创作种子
-    seed = snapshot["seed"]
-    if seed:
-        body = "\n".join([
-            f"- **版本**：v{seed['version']}",
-            "", "## 主角雏形", seed["protagonist_seed"] or "*（未填写）*",
-            "", "## 世界感觉", seed["world_seed"] or "*（未填写）*",
-            "", "## 爽点偏好", seed["hook_seed"] or "*（未填写）*",
-            "", "## 其他备注", seed["notes"] or "*（未填写）*",
-        ])
-        src = {"source_type": "creation_seed", "source_id": seed["id"], "source_version": seed["version"]}
-    else:
-        body = "*当前项目尚未填写创作种子。*"
-        src = {"source_type": "creation_seed_absent", "source_id": project_id}
-    write_markdown("创作约束/创作种子.md", "创作种子", body, src)
 
     # E. 规划/（locked 资产，character_contract 除外——见 E2）
     planning = snapshot["planning"]

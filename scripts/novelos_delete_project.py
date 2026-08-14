@@ -142,7 +142,6 @@ def delete_project(conn: sqlite3.Connection, pid: str, ids: dict[str, Any]) -> N
             tuple(ids["subjects"]))
     for table in _CONTINUITY_TABLES:
         exe(table, f"DELETE FROM {table} WHERE project_id=?", (pid,))
-    exe("creation_seeds", "DELETE FROM creation_seeds WHERE project_id=?", (pid,))
     if ids["chapters"]:
         exe("chapters", f"DELETE FROM chapters WHERE id IN ({_placeholders(len(ids['chapters']))})",
             tuple(ids["chapters"]))

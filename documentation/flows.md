@@ -100,7 +100,7 @@ characters/worlds/factions/rules/timelines 等实体的状态（`state_json`）�
 
 1. 主控先以 `--dry-run` 调查项目范围，确认将删除的 books/volumes/chapters、各 `asset_type`/`status` 的 planning_assets、待删 resources 与 reviews 数量。
 2. 需要安全网时加 `--backup`，在 `data/` 下写出 `.db.bak-<时间戳>`（已被 gitignore 覆盖）。
-3. 执行删除：脚本在 `foreign_keys=OFF` 下按依赖逆序逐表删除——先解除 `planning_asset_dependencies` 与 `reviews`（避免 RESTRICT 与留孤儿），再删连续性账本、creation_seeds、chapters、volumes、planning_assets、characters、worlds、project_creator_bindings、books、projects，最后删项目专属 resources。全过程用 `isolation_level=None` + 显式 `BEGIN/COMMIT`，避免连接关闭未提交而回滚。
+3. 执行删除：脚本在 `foreign_keys=OFF` 下按依赖逆序逐表删除——先解除 `planning_asset_dependencies` 与 `reviews`（避免 RESTRICT 与留孤儿），再删连续性账本、chapters、volumes、planning_assets、characters、worlds、project_creator_bindings、books、projects，最后删项目专属 resources。全过程用 `isolation_level=None` + 显式 `BEGIN/COMMIT`，避免连接关闭未提交而回滚。
 4. 脚本只删项目专属内容资源（planning_assets/chapters/实体/连续性的 `resource_id`），**不动** `creator_profile_versions` 引用的共享系统原型资源（跨项目共享）。
 5. 删除后脚本用 `foreign_keys=ON` 复验：项目残留为 0、全库孤儿 reviews/dependencies 计数。`--clean-orphans` 可顺手清理全库历史遗留孤儿（非本次删除造成）。
 6. 默认同时删除投影目录：按 `manifest.json` 的 `project_id` 匹配（不依赖目录命名），删除该项目的 `novels/<目录>/`。`--no-projection` 跳过。
