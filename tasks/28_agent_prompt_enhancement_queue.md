@@ -18,6 +18,8 @@
 
 「先立人，再落规」：persona（五维生平×双向拟合×盲区清单）+ 带体温七字段；creator-signature schema v2；投影渲染 persona；Direction/Writer 的 persona 消费通路；sql-reference 补 creator 链落库模板。
 
+补丁：防指纹补丁（响应外部同质化审查——世代/创伤源多样化、道具指纹禁令、inner_tension 形态菜单、不体面缺点、条目数自然浮动、示例意象中性化）已并入 prompt，验证四命令绿；对照重测按用户决定取消（2026-08-14）。
+
 ## 阶段 1：方向智能体（direction）—— ✅ 主体已完成 `57f1e38`，**补丁待执行**
 
 主体：从 persona 长出 book_soul（v2 十二字段 + organizing_principle + promise_cadence）；清退创作种子（migration 017）；候选比较表；九项自检。
@@ -31,7 +33,7 @@
 | `planning-direction-review/prompt.md` | 加检查项：串味检测（频道轴是否立对）/ 力量货币已定义且被矛盾锚定 / 代价质量（对称可预算代价 = warning） |
 | `novel-planning/SKILL.md` | Direction 输入清单补 channel/platform 显式传入 |
 | `catalog/skills/onboarding/creator-signature-fusion/prompt.md`（阶段 0 联动） | **双向拟合扩展「频道资格」**：频道核心情感登记进题材资格检验——女频核心登记（被辜负后的重新掌控/情感主导权争夺/规则内博弈）要求 persona 库存与人生轨迹有**经历来源**（非性别来源，如经历过权力不对称的关系）；男频核心登记（力量兑现/地位翻盘/秩序掌控）同理要求库存覆盖相应圈子；覆盖不了 → 调生平 / 进盲区清单 / 上报错配。**声音样本平台匹配**：吆喝语言对目标平台读者气质发声（检验自然度，不改人格内核）。**错配上报扩展**：频道×人格根本错配（库存无法覆盖频道核心登记且不可调）时上报。**防刻板化条款**：频道要求叙事资格而非性别/年龄/刻板人格；跨频道人格合法，资格缺口必须显式处理。咬合关系：阶段 0 保证人格**有资格**写该频道核心情感登记，阶段 1 频道语法保证 book_soul 在正确轴上构建——一个管人一个管书 |
-| `creator-signature-fusion/prompt.md` + `creator-signature.schema.json`（阶段 0 联动·心理学补强，依据 McAdams 人格三层理论 / agency-communion 双主题 / LLM persona 信念-行为一致性研究） | ①**特质层补齐**（McAdams：完整人格=特质→关注→叙事三层；现有关注层=五维生平、叙事层=narrative+inner_tension，缺特质层）：anchors 加 `trait_profile`（3-5 维行为倾向），**每维必须行为化**——「尽责性高」写成「他的修车记录本二十年没断过」（LLM 研究教训：抽象特质不配行为锚点必然漂移，GCA 情境化>特质描述）。②**主题倾向声明**：anchors 加 `theme_orientation`（agency 主导=自主/成就/掌控 / communion 主导=联结/归属/关系 / 双高 / 双低——双低=疏离叙事，长篇不可用即重做；两主题人人混合只有主导不同）；给频道资格加心理学判据：主题错配（communion 主导人格×男频核心登记）进错配上报，与 direction 层频道语法双向咬合。③**fear 补进血肉要素**：wound→motivation→fear 链补全——烙印事件→执念已有，补「他怕什么」；`refuses` 盲区从平铺清单变成有心理来源的禁令（因为伤过所以不碰）。④**行为锚点纪律进自检**：加「行为锚点测试」——抽 persona 任何一条抽象声明，必须能指认对应的具体行为/习惯/偏好，指认不出即重写 |
+| `creator-signature-fusion/prompt.md` + `creator-signature.schema.json`（阶段 0 联动·心理学补强，依据 McAdams 人格三层理论 / agency-communion 双主题 / LLM persona 信念-行为一致性研究） | ①**特质层补齐**（McAdams：完整人格=特质→关注→叙事三层；现有关注层=五维生平、叙事层=narrative+inner_tension，缺特质层）：anchors 加 `trait_profile`（3-5 维行为倾向），**每维必须行为化**——「尽责性高」写成「他的教案边角每年都重新抄一遍」（LLM 研究教训：抽象特质不配行为锚点必然漂移，GCA 情境化>特质描述）。②**主题倾向声明**：anchors 加 `theme_orientation`（agency 主导=自主/成就/掌控 / communion 主导=联结/归属/关系 / 双高 / 双低——双低=疏离叙事，长篇不可用即重做；两主题人人混合只有主导不同）；给频道资格加心理学判据：主题错配（communion 主导人格×男频核心登记）进错配上报，与 direction 层频道语法双向咬合。③**fear 补进血肉要素**：wound→motivation→fear 链补全——烙印事件→执念已有，补「他怕什么」；`refuses` 盲区从平铺清单变成有心理来源的禁令（因为伤过所以不碰）。④**行为锚点纪律进自检**：加「行为锚点测试」——抽 persona 任何一条抽象声明，必须能指认对应的具体行为/习惯/偏好，指认不出即重写 |
 | 实测 | 男频修仙 vs 女频宅斗两个合成场景对比：验证频道轴、力量货币、代价形态、道德账户的差异化落地；频道资格对 persona 的拟合效果（女频场景的 persona 库存应覆盖规则/关系登记的来源、theme_orientation 应与频道轴咬合）；行为锚点测试抽检 |
 
 ## 阶段 2：架构智能体（architecture）—— ✅ 已完成 `1f98893`，**小补丁随阶段 1 补丁联动**
@@ -116,6 +118,7 @@
 - **三阶段串测**：合成素材走 direction → architecture → strategy 最小闭环（验移交链路：四段式下游影响 → strategy 消费）
 - documentation 全面复核（automation/flows 与新机制一致）
 - 四条验证命令终验
+- **原型库审美多样性（待专项设计）**：18 个系统原型的 forbidden_conveniences 全偏高级文学禁令（无代价机械降神/无理由碾压/巧合），血缘继承导致不同人格共享同一套审美洁癖，系统性压制纯爽型/娱乐型人格（对应平台真实市场）。治本需扩娱乐向原型或为原型配置可选爽型滤镜——涉及全部原型 subject_hash 与派生校验链，须专项设计后再动。
 
 ---
 
