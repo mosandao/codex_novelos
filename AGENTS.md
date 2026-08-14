@@ -18,6 +18,7 @@
 | `scripts/novelos_validate_book_soul.py` | 校验 book_soul JSON |
 | `scripts/novelos_render_projection.py` | 渲染项目文件目录 |
 | `scripts/novelos_propagate_stale.py` | 上游变更后标记下游 stale |
+| `scripts/novelos_delete_project.py` | 删除项目（数据库+投影，按依赖逆序删，清理孤儿，支持 --dry-run/--backup） |
 
 ### 操作细节速查
 

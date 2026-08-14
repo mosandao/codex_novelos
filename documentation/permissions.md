@@ -5,45 +5,48 @@
 | 角色 | 来源 | 生命周期 | 权限原则 |
 |---|---|---|---|
 | 用户 | Codex 当前任务 | 外部 | 提供意图并决定是否继续，不直接写 SQLite |
-| 主控智能体 | Codex | 唯一常驻 | 可调用全部 MCP 工具；必须遵守 Review 和版本门禁 |
-| 规划资产 Agent | `config/agents.yaml` | 临时 | 只读；只生产自己拥有的候选或上游 change proposal |
-| 写作智能体 | `config/agents.yaml` | 临时 | 只读；只返回正文候选 |
-| 审查智能体 | `config/agents.yaml` | 临时 | 只读；只返回 Review Receipt candidate |
-| 上下文构建智能体 | `config/agents.yaml` | 临时 | 只读；只返回上下文包 |
-| MCP | 本地 stdio 进程 | 按任务 | 唯一数据库执行者，实施硬门禁 |
+| 主控智能体 | Codex | 唯一常驻 | 唯一经 SQLite MCP `execute_sql` 读写数据库者；必须遵守审查前置、版本/Hash 与状态机约束 |
+| 规划资产 Agent | 主控用 Agent 工具创建 + 注入 `catalog/skills` 方法论 | 临时 | 无数据库权限；只返回自己拥有的候选或上游 change proposal |
+| 写作智能体 | 主控用 Agent 工具创建 | 临时 | 无数据库权限；只返回正文候选 |
+| 审查智能体 | 主控用 Agent 工具创建（独立上下文） | 临时 | 无数据库权限；只返回审查意见 |
+| 上下文构建智能体 | 主控用 Agent 工具创建 | 临时 | 无数据库权限；只返回上下文包 |
+| 引导融合智能体（onboarding） | 主控用 Agent 工具创建 | 临时 | 无数据库权限；只返回 `creator_derivation_candidate` |
 
-V1 没有用户登录、tenant、管理员角色或 RLS。Scope 来自 Main 提供并由 MCP 查询数据库关系重新确认的 `project_id`、资源 ID 和版本，而不是不可信 token claim。
+V1 没有用户登录、tenant、管理员角色或 RLS。Scope 来自主控查询数据库关系重新确认的 `project_id`、资源 ID 和版本，而不是不可信 token claim。
 
 ## 操作矩阵
 
-| 资源/操作 | Main | 规划/Writer/Context | Reviewer | MCP 强制条件 |
+主控是唯一数据库执行者；sub agent 在所有写操作上都是「禁止直接写」（它们只返回候选，由主控落库）。
+
+| 资源/操作 | 主控 | 规划/Writer/Context/Onboarding | Reviewer | 主控落库前置条件 |
 |---|---:|---:|---:|---|
-| 读取 Project/Canon/Planning/Catalog | 允许 | 白名单内允许 | 白名单内允许 | ID 存在、项目关系有效 |
-| 打开/提交项目创建向导 | 允许 | 禁止 | 禁止 | V3 仅接受系统叙事原型 `derive`、精确父版本/Hash、固定题材选项、最多两项美学风格和 10,000 字资料；项目与绑定同事务 |
-| 管理 Creator Profile | 允许 | 只读精确版本 | 只读精确版本 | 内容修订创建不可变 revision；归档不破坏历史读取；禁止人口属性推导和具体作者模仿目标 |
-| rebind 项目作者版本 | 允许 | 禁止 | 禁止 | 当前 `expected_version`、运行中的本项目 Trace、目标精确 Hash；Direction 及后代递归 `stale`，不自动重生成 |
-| 删除无权威项目 | 允许 | 禁止 | 禁止 | 当前 `expected_version`、无运行中 Trace、无 `authority_commits`、投影 manifest 归属匹配 |
-| 创建 Agent run | 允许 | 禁止 | 禁止 | 临时角色、最小输入、spawn gate |
-| 登记规划候选 | 允许 | 禁止 | 禁止 | 完成的唯一 owner run、输出一致、锁定上游 |
-| 锁定规划资产 | 允许 | 禁止 | 禁止 | 精确 Review Receipt、Profile、无 blocking finding、同一 Trace |
-| 创建章节草稿 | 允许 | 禁止 | 禁止 | 完整章节绑定 Writer run |
-| 接受章节 | 允许 | 禁止 | 禁止 | 精确正文 Hash、approved Review、同一 Trace |
-| 记录 Review | 允许 | 禁止 | 禁止直接写 | 完成的独立 Reviewer run 与输出一致 |
-| 准备质量评测 subject | 允许 | 禁止 | 只读 subject | 运行中 Trace、不可变输出、完成的 Producer runs、精确 Profile |
-| 提交 Entity mutation | 允许 | 禁止 | 禁止 | 权威来源、Review、目标版本均有效 |
-| 晋升连续性 | 允许 | 禁止 | 禁止 | accepted 章节、Authority Snapshot、Review、单事务 |
-| 直接 SQLite | 禁止 | 禁止 | 禁止 | 仅 MCP Storage 层允许 |
+| 读取 Project/Canon/Planning/Catalog | 允许（SQL/Read） | 无直接 DB 权限（主控注入上下文） | 无直接 DB 权限（主控注入 subject） | ID 存在、项目关系有效 |
+| 打开/提交项目创建向导 | 允许 | 禁止 | 禁止 | V3 仅接受系统叙事原型 `derive`、精确父版本/Hash、固定题材选项、最多两项美学风格和 10,000 字资料；jsonschema 校验签名合规；项目与绑定同事务 |
+| 管理 Creator Profile | 允许 | 只读（主控注入） | 只读（主控注入） | 内容修订创建不可变 revision；禁止人口属性推导和具体作者模仿目标 |
+| rebind 项目作者版本 | 允许 | 禁止 | 禁止 | 提供用户原因；Direction 及后代递归 `stale`，不自动重生成 |
+| 删除项目 | 允许（`novelos_delete_project.py`） | 禁止 | 禁止 | 先 `--dry-run` 调查；保护共享 creator_profile 资源；投影 manifest 归属匹配 |
+| 创建 sub agent | 允许 | 禁止 | 禁止 | 临时角色、注入方法论 prompt 与最小输入 |
+| 登记规划候选 | 允许 | 禁止 | 禁止 | 算 content_hash、`CAST(? AS BLOB)` 写 resource、锁定上游、记录 `planning_asset_dependencies` |
+| 锁定规划资产 | 允许 | 禁止 | 禁止 | 独立审查通过、无 blocking finding、`UPDATE status='locked'` |
+| 创建章节草稿 | 允许 | 禁止 | 禁止 | 绑定 Chapter Plan、`style_refs` 含当前作者与 locked Direction ref |
+| 接受章节 | 允许 | 禁止 | 禁止 | 精确正文 Hash、approved 审查、`UPDATE status='accepted'` |
+| 记录审查 | 允许 | 禁止 | 禁止直接写 | 独立审查 sub agent 输出、`INSERT INTO reviews` |
+| 修改实体 | 允许 | 禁止 | 禁止 | 重要变更经审查；`UPDATE state_json, version=version+1` |
+| 晋升连续性 | 允许 | 禁止 | 禁止 | accepted 章节、单事务 INSERT 事实/承诺/期待/关系/故事弧状态 |
+| 直接执行 SQL | 允许（经 `execute_sql`） | 禁止 | 禁止 | 主控是唯一数据库执行入口 |
 
-## 工具白名单
+## 工具面
 
-临时 Agent 的精确工具列表以 `config/agents.yaml` 为唯一机器可校验来源。生产 Agent 白名单只包含 `planning.get/list`、Memory、Knowledge 和 Skill Catalog 的只读方法；只有 审查智能体 额外拥有 `review.get_subject`。任何临时 Agent 都不能调用 `project.wizard.*`、`project.delete`、`resource.create`、`review.prepare_subject/record`、`*.lock`、`*.accept`、`*.commit`、`*.promote` 或 Agent 生命周期工具。
+- 主控经 SQLite MCP 的 `execute_sql` 工具读写数据库；不再有领域工具层或运行时工具白名单（`config/agents.yaml` 已为历史留档，无脚本依赖）。
+- sub agent 不持有 `execute_sql` 或任何写工具——它们由主控用 Agent 工具创建，只接收主控注入的只读上下文，返回候选文本。所有持久化由主控完成。
+- 确定性脚本（`scripts/novelos_*.py`）由主控在需要时调用，不调 LLM，不依赖 `config/agents.yaml`。
 
-## 失败关闭
+## 失败关闭与硬约束
 
-- 未知 role、输入字段、输出类型或 Schema 字段拒绝。
-- Agent 失败或超时不得携带部分输出。
-- Trace 存在运行中 Agent 时不能结束。
+- jsonschema 校验签名/book_soul 失败时拒绝落库。
+- SQL `CHECK` 约束与状态机：`planning_assets.status` 仅允许 candidate/locked/stale/superseded；`revision`/`version` 必须 > 0；`asset_type` 仅允许枚举值。
+- sub agent 失败或超时不得携带部分输出；主控决定是否重新路由并创建新 sub agent。
 - change proposal 必须绑定当前项目 locked 上游的 ID、版本和 Hash。
-- `project.delete` 在项目存在 authority commit 或运行中 Trace 时失败关闭；投影目录缺少、损坏或归属不符的 `manifest.json` 时同样拒绝删除。
+- 删除项目时 `scripts/novelos_delete_project.py` 保护共享 creator_profile 系统原型资源；`--dry-run` 不写数据；删除按单事务提交。
 - 绑定项目的 Direction 缺少/错绑 `creator_signature_ref` 或 `book_soul` 时拒绝；Chapter Plan 缺少/错绑 `soul_pressure` 与 `moral_residue` 时拒绝；Writer `style_refs` 缺少当前作者或 locked Direction ref 时拒绝。
-- 生产 seed 只允许使用授权审计绑定的固定 commit/Hash 副本；runner 禁止环境变量替换，MCP 同时校验 frozen inventory、只读连接和 sidecar。
+- 落库约定：写 `resources.content` 必须用 `CAST(? AS BLOB)`，否则存为 TEXT 导致下游解码出错；写 resource 时必须同时算 `content_hash`。
