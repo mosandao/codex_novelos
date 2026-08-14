@@ -2,6 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://novelos.local/schemas/creator-signature.schema.json",
   "title": "NovelOS 作者签名",
+  "description": "v1 = 系统原型签名（无 persona）；v2 = 派生签名（persona 必填，先立人再落规）",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -15,7 +16,8 @@
     "negative_constraints"
   ],
   "properties": {
-    "schema_version": {"const": 1},
+    "schema_version": {"enum": [1, 2]},
+    "persona": {"$ref": "#/$defs/persona"},
     "sympathies": {"$ref": "#/$defs/non_empty_text_list"},
     "distrusts": {"$ref": "#/$defs/non_empty_text_list"},
     "recurring_attention": {"$ref": "#/$defs/non_empty_text_list"},
@@ -24,6 +26,16 @@
     "expression_preferences": {"$ref": "#/$defs/non_empty_text_list"},
     "negative_constraints": {"$ref": "#/$defs/non_empty_text_list"}
   },
+  "allOf": [
+    {
+      "if": {"properties": {"schema_version": {"const": 2}}},
+      "then": {"required": ["persona"]}
+    },
+    {
+      "if": {"properties": {"schema_version": {"const": 1}}},
+      "then": {"not": {"required": ["persona"]}}
+    }
+  ],
   "$defs": {
     "non_empty_text_list": {
       "type": "array",
@@ -35,6 +47,89 @@
         "minLength": 1,
         "maxLength": 500,
         "pattern": "\\S"
+      }
+    },
+    "persona": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["narrative", "anchors"],
+      "properties": {
+        "narrative": {
+          "type": "string",
+          "minLength": 200,
+          "maxLength": 2000,
+          "description": "300-500 字连贯人格叙事：五维生平织入，含目光/执念来路/自觉的内在矛盾"
+        },
+        "anchors": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "profile_sketch",
+            "five_dimensions",
+            "inner_tension",
+            "voice_samples",
+            "blindspots"
+          ],
+          "properties": {
+            "profile_sketch": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 200,
+              "description": "一句生平定位"
+            },
+            "five_dimensions": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "generation_age",
+                "education_horizon",
+                "class_circle_inventory",
+                "career_track",
+                "life_trajectory"
+              ],
+              "properties": {
+                "generation_age": {"type": "string", "minLength": 2, "maxLength": 300},
+                "education_horizon": {"type": "string", "minLength": 2, "maxLength": 300},
+                "class_circle_inventory": {"type": "string", "minLength": 2, "maxLength": 300},
+                "career_track": {"type": "string", "minLength": 2, "maxLength": 300},
+                "life_trajectory": {"type": "string", "minLength": 2, "maxLength": 300}
+              }
+            },
+            "inner_tension": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 300,
+              "description": "他自觉保留的内在矛盾——风格发动机，不许消解"
+            },
+            "voice_samples": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 3,
+              "items": {"type": "string", "minLength": 4, "maxLength": 200}
+            },
+            "blindspots": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["refuses", "cannot_write"],
+              "properties": {
+                "refuses": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 12,
+                  "items": {"type": "string", "minLength": 4, "maxLength": 300},
+                  "description": "拒绝写：价值观上不屑的写法/题材"
+                },
+                "cannot_write": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 12,
+                  "items": {"type": "string", "minLength": 4, "maxLength": 300},
+                  "description": "写不了：库存空白（没接触过的圈子/行当/暗面）——对全知全能的限制器，必须非空"
+                }
+              }
+            }
+          }
+        }
       }
     }
   }

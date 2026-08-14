@@ -53,6 +53,52 @@ WHERE c.status = 'accepted' AND c.volume_id = 'volume:xxx'
 ORDER BY c.number;
 ```
 
+## 作者签名链（项目创建落库）
+
+onboarding_agent 产出 `creator_derivation_candidate` 后，主控按以下顺序落库。签名 JSON（schema v2，含 persona）存 resources，派生记录（parent 指向 + rationale）存 derivation_resource_id 指向的第二个 resource。
+
+```sql
+-- 1. 签名内容（含 persona 的完整签名 JSON）
+INSERT INTO resources (id, media_type, content, content_hash)
+VALUES ('resource:sig', 'application/json', CAST(? AS BLOB), ?);  -- hash 用 novelos_hash.py
+
+-- 2. 派生记录（parent 指向 + 判定理由 + 用户输入快照）
+INSERT INTO resources (id, media_type, content, content_hash)
+VALUES ('resource:deriv', 'application/json', CAST(? AS BLOB), ?);
+
+-- 3. creator profile（每次派生新建）
+INSERT INTO creator_profiles (id, display_name, ownership)
+VALUES ('creator-profile:xxx', '一句话人格名', 'user');
+
+-- 4. profile version（parent 指向系统原型版本，双资源链）
+INSERT INTO creator_profile_versions (id, profile_id, revision, content_resource_id,
+    subject_hash, parent_version_id, derivation_resource_id)
+VALUES ('creator-profile-version:xxx', 'creator-profile:xxx', 1,
+    'resource:sig', 'sha256:...',          -- 签名 JSON 的 content_hash
+    'creator-profile-version:system-xxx:1', -- parent = 选定系统原型（单/多原型均为判定出的 parent）
+    'resource:deriv');
+
+-- 5. 项目 + 绑定
+INSERT INTO projects (id, name, description, version, metadata_json)
+VALUES ('project:xxx', '书名', '描述', 1, '{}');
+INSERT INTO project_creator_bindings (project_id, profile_id, profile_version_id,
+    profile_revision, subject_hash, binding_mode)
+VALUES ('project:xxx', 'creator-profile:xxx', 'creator-profile-version:xxx', 1,
+    'sha256:...', 'derive');  -- subject_hash 与 profile version 一致
+
+-- 查询项目绑定的完整签名（含 persona）
+SELECT v.id, v.revision, v.subject_hash, CAST(r.content AS TEXT) AS signature_json
+FROM project_creator_bindings b
+JOIN creator_profile_versions v ON v.id = b.profile_version_id
+JOIN resources r ON r.id = v.content_resource_id
+WHERE b.project_id = 'project:xxx';
+```
+
+落库校验门（INSERT 前必须全部通过）：
+- `config/schemas/creator-signature.schema.json` 校验签名（v2 必须含 persona，`blindspots.cannot_write` 非空）
+- overrides 字段在 7 个签名字段内且无逐字复制父值（语义继承允许，须从 persona 重新长出）
+- `parent_version_id` / `parent_subject_hash` 与 `config/system_archetypes.json` 中的原型一致
+
 ## 规划资产（planning_assets）
 
 ```sql
@@ -101,6 +147,8 @@ WHERE subject_ref = 'chapter:xxx'
 
 ## 记忆 / 连续性
 
+连续性账本统一模式：描述文本先存 resources，再引用 resource id；必须带来源章节与正文 hash 溯源。
+
 ```sql
 -- 章节事实（先存描述到 resources，再引用）
 INSERT INTO resources (id, media_type, content, content_hash) VALUES ('resource:desc', 'text/markdown', CAST(? AS BLOB), ?);
@@ -108,13 +156,27 @@ INSERT INTO chapter_facts (id, project_id, source_chapter_id, source_content_has
 VALUES ('fact:xxx', 'project:xxx', 'chapter:xxx', 'sha256:...', 'character_state', '人物名', 'resource:desc', 'accepted', '{}');
 -- status 只接受: accepted/superseded/rejected/quarantined
 
--- 叙事承诺
-INSERT INTO narrative_promises (id, project_id, promise_type, description, status)
-VALUES ('promise:xxx', 'project:xxx', 'mystery', '描述', 'open');
+-- 叙事承诺（promise_key 项目内唯一；描述存 resource）
+INSERT INTO resources (id, media_type, content, content_hash) VALUES ('resource:pd', 'text/markdown', CAST(? AS BLOB), ?);
+INSERT INTO narrative_promises (id, project_id, promise_key, description_resource_id, status, source_chapter_id, source_content_hash)
+VALUES ('promise:xxx', 'project:xxx', '伏笔键名', 'resource:pd', 'open', 'chapter:xxx', 'sha256:...');
+-- status 只接受: open/resolved/broken
 
--- 人物关系
-INSERT INTO relationship_states (id, project_id, character_a, character_b, relationship_type, description)
-VALUES ('rel:xxx', 'project:xxx', 'char:a', 'char:b', 'ally', '描述');
+-- 读者期待
+INSERT INTO resources (id, media_type, content, content_hash) VALUES ('resource:ed', 'text/markdown', CAST(? AS BLOB), ?);
+INSERT INTO expectation_ledgers (id, project_id, expectation_key, description_resource_id, status, source_chapter_id, source_content_hash)
+VALUES ('expectation:xxx', 'project:xxx', '期待键名', 'resource:ed', 'open', 'chapter:xxx', 'sha256:...');
+-- status 只接受: open/met/abandoned
+
+-- 人物关系（subject_ref/object_ref + 状态存 resource）
+INSERT INTO resources (id, media_type, content, content_hash) VALUES ('resource:rd', 'text/markdown', CAST(? AS BLOB), ?);
+INSERT INTO relationship_states (id, project_id, subject_ref, object_ref, state_resource_id, source_chapter_id, source_content_hash)
+VALUES ('rel:xxx', 'project:xxx', '人物A的ref', '人物B的ref', 'resource:rd', 'chapter:xxx', 'sha256:...');
+
+-- 故事弧状态（arc_ref 指向 story_arc 资产中的弧线标识）
+INSERT INTO resources (id, media_type, content, content_hash) VALUES ('resource:ad', 'text/markdown', CAST(? AS BLOB), ?);
+INSERT INTO arc_states (id, project_id, arc_ref, state_resource_id, source_chapter_id, source_content_hash)
+VALUES ('arcstate:xxx', 'project:xxx', '弧线ref', 'resource:ad', 'chapter:xxx', 'sha256:...');
 
 -- 搜索事实
 SELECT cf.*, r.content FROM chapter_facts cf

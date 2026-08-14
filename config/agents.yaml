@@ -350,6 +350,7 @@ roles:
     required_upstream_types: []
     minimum_inputs:
       - selected_archetypes
+      - user_signature_inputs
       - project_setup
       - system_archetype_refs
     allowed_tools: *read_only_tools
@@ -357,7 +358,7 @@ roles:
       - creator_derivation_candidate
       - change_proposal
     review_profile: null
-    catalog_package: null
+    catalog_package: onboarding/creator-signature-fusion
     spawn_condition: archetype_merge_required
     must_destroy: true
 

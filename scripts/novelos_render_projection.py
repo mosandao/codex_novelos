@@ -251,6 +251,13 @@ _SIGNATURE_LABELS = {
     "expression_preferences": "表达偏好",
     "negative_constraints": "负面约束",
 }
+_PERSONA_DIMENSION_LABELS = {
+    "generation_age": "世代与年龄",
+    "education_horizon": "教育与视野",
+    "class_circle_inventory": "阶层与圈子库存",
+    "career_track": "职业履历",
+    "life_trajectory": "人生轨迹",
+}
 _SOUL_LABELS = {
     "unresolved_claims": "未决追问",
     "central_contradiction": "核心矛盾",
@@ -386,7 +393,7 @@ def render(snapshot: dict[str, Any], project_id: str, output_root: str) -> dict[
     write_markdown("README.md", f"《{project_title}》项目展示视图", readme_body,
                    {"source_type": "project_readme", "source_id": project_id})
 
-    # B. 创作约束/作者签名
+    # B. 创作约束/作者签名（先见人，再见规：persona 在前）
     creator = snapshot["creator_signature"]
     if creator:
         sig = creator["signature"]
@@ -396,6 +403,35 @@ def render(snapshot: dict[str, Any], project_id: str, output_root: str) -> dict[
             f"- **Hash**：`{creator['subject_hash']}`",
             f"- **绑定模式**：`{creator['binding_mode']}`",
         ]
+        persona = sig.get("persona")
+        if isinstance(persona, dict):
+            lines.extend(["", "## 创作者人格", "", persona.get("narrative", "")])
+            anchors = persona.get("anchors") or {}
+            sketch = anchors.get("profile_sketch")
+            if sketch:
+                lines.extend(["", f"> {sketch}"])
+            dims = anchors.get("five_dimensions") or {}
+            dim_lines = [
+                (label, dims.get(key))
+                for key, label in _PERSONA_DIMENSION_LABELS.items()
+            ]
+            if any(value for _, value in dim_lines):
+                lines.extend(["", "### 人生五维"])
+                lines.extend(f"- **{label}**：{value}" for label, value in dim_lines if value)
+            tension = anchors.get("inner_tension")
+            if tension:
+                lines.extend(["", f"### 自觉的内在矛盾", "", tension])
+            voices = anchors.get("voice_samples") or []
+            if voices:
+                lines.extend(["", "### 声音样本"])
+                lines.extend(f"> {v}" for v in voices)
+            blindspots = anchors.get("blindspots") or {}
+            refuses = blindspots.get("refuses") or []
+            cannot = blindspots.get("cannot_write") or []
+            if refuses or cannot:
+                lines.extend(["", "### 盲区（对全知全能的限制）"])
+                lines.extend(f"- **拒绝写**：{item}" for item in refuses)
+                lines.extend(f"- **写不了**：{item}" for item in cannot)
         for field, label in _SIGNATURE_LABELS.items():
             lines.extend(["", f"## {label}"])
             lines.extend(f"- {item}" for item in sig.get(field, []))

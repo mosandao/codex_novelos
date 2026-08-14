@@ -73,8 +73,8 @@ Character 与 World 可以并行生成。每个规划资产存入 `planning_asse
 
 | Agent | 负责的资产 | asset_type | catalog 目录 | 主要上游 |
 |---|---|---|---|---|
-| 引导融合智能体（onboarding） | 作者签名融合（derive 结构） | — | — | 用户选的原型 + project_setup |
-| 方向智能体 | 故事方向 | `direction` | `story-direction` | Project Profile、用户约束 |
+| 引导融合智能体（onboarding） | 作者签名融合（先立人再落规） | — | `onboarding/creator-signature-fusion` | 用户选的原型 + project_setup |
+| 方向智能体 | 故事方向 | `direction` | `story-direction` | Creator persona、用户约束 |
 | 架构智能体 | 叙事机制 | `architecture` | `story-architecture` | Direction |
 | 策略智能体 | 全书战略 | `strategy` | `story-strategy` | Direction、Architecture |
 | 人物智能体 | 人物契约 | `character_contract` | `character-contract` | Architecture、Strategy |
@@ -103,7 +103,8 @@ Character 与 World 可以并行生成。每个规划资产存入 `planning_asse
 
 - `catalog/skills/` 目录是创作方法论的唯一来源。每个 skill 的 `prompt.md` 定义了该阶段的方法和约束。
 - **发现 skill**：按上表 asset_type → catalog 目录映射，Read `catalog/skills/<分类>/<目录名>/prompt.md`。
-- Writer 必须遵守 `style_refs`（Creator Profile + Direction）。
+- Writer 必须遵守 `style_refs`（Creator Profile + Direction）。签名含 `persona`（创作者人格，schema v2）时必须一并注入：narrative 全文 + anchors（目光/五维/内在矛盾/声音样本/盲区）。Writer 写到超出作者经验边界的场景时按 persona 处理——绕开、转喻、有限视角，禁止全知叙述假装在场（`blindspots.cannot_write` 是硬边界）。
+- Direction 智能体的输入必须包含 persona：book_soul 从这个人身上长出来，不从原型标签推导。
 - `book_soul` 属于 Story Direction，包含 central_contradiction、costly_commitments、protected_dignity 等承诺。用 `scripts/novelos_validate_book_soul.py` 校验。
 - 审查标准由 `catalog/skills/review/` 下的 prompt 定义。审查时必须 Read review skill 和它引用的 craft skill。
 
@@ -111,11 +112,13 @@ Character 与 World 可以并行生成。每个规划资产存入 `planning_asse
 
 项目创建的默认入口是本地 HTML 向导 `ui/project-wizard.html`。同目录 `project-wizard-data.js` 提供 18 个原型与推荐规则（静态文件，浏览器用其在页面内算分推荐）。
 
+> **强制首步**：收到「创建 / 开始 / 新建小说项目」类请求时，主控的**第一个动作**必须是 `open ui/project-wizard.html` 打开向导。**禁止**用 `AskUserQuestion`、结构化问卷或自由文本在 CLI 内收集创建字段来替代——原型打分推荐、原型勾选、`user_signature_inputs` 编辑都依赖页面交互，CLI 复刻会导致签名缺失或字段不全，落库校验门会失败。仅在用户明确表示无法使用浏览器时，才考虑 fallback，且必须在回复中说明原因。
+
 1. 用户在 HTML 中填写项目名、频道、平台、规模、题材、情绪基调、美学风格和可选创作资料。页面用 `recommendation_rules` 在浏览器内算分推荐三个原型。
 2. 用户选择原型后，页面生成 `novelos.project.create.v1` JSON（含 `selected_archetypes` + `project_setup`）。
-3. **原型融合（单/多统一）**：主控创建临时 **引导融合智能体（onboarding_agent）** sub agent，注入 `selected_archetypes` + `project_setup` + `config/system_archetypes.json` 全文。agent 反查选中原型、校验 subject_hash、判定 parent（单原型直接取唯一项，多原型综合判定）、生成项目化 overrides，产出 `creator_derivation_candidate`（`parent_version_id` + `parent_subject_hash` + `display_name` + `overrides`）。
-4. **落库校验门**（主控，agent 产出后）：用 jsonschema（`config/schemas/creator-signature.schema.json`）校验 parent signature 与融合签名合规；校验 overrides 字段在 7 个签名字段内且不重复父值；用 `scripts/novelos_hash.py` 算融合签名 hash。校验失败拒绝落库。
-5. **SQL 落库**：INSERT resources（签名 JSON）→ creator_profiles → creator_profile_versions（parent 指向 system archetype）→ projects → project_creator_bindings（binding_mode='derive'）。模板见 sql-reference.md。
+3. **原型融合（先立人，再落规）**：主控 Read `catalog/skills/onboarding/creator-signature-fusion/prompt.md` 注入临时 **引导融合智能体（onboarding_agent）** sub agent，输入 = `selected_archetypes` + `user_signature_inputs` + `project_setup` + `config/system_archetypes.json` 全文。agent 按「先立人，再落规」两步法执行：判定 parent（单原型直接取唯一项，多原型按推荐位次 + 基调契合度，输出 `parent_rationale`）→ 反推式五维生平（世代年龄/教育视野/阶层圈子库存/职业履历/人生轨迹，双向拟合：气质溯因 × 题材资格）→ 化合出 persona（narrative + anchors，含盲区清单 refuses/cannot_write）→ 从 persona 长出带体温的 7 字段，产出 `creator_derivation_candidate`（`parent_version_id` + `parent_subject_hash` + `display_name` + `parent_rationale` + signature v2 含 persona）。
+4. **落库校验门**（主控，agent 产出后）：用 jsonschema（`config/schemas/creator-signature.schema.json`）校验 parent signature（v1）与融合签名（v2，persona 必填且 `blindspots.cannot_write` 非空）；校验 overrides 字段在 7 个签名字段内且无逐字复制父值（语义继承允许，但须从 persona 重新长出）；用 `scripts/novelos_hash.py` 算融合签名 hash。校验失败拒绝落库。
+5. **SQL 落库**：按 sql-reference.md「作者签名链」模板——INSERT resources（签名 JSON）→ resources（派生记录：parent 指向 + rationale）→ creator_profiles → creator_profile_versions（content + derivation 双资源链）→ projects → project_creator_bindings（binding_mode='derive'）。
 
 不再有确定性 reconcile 脚本——原型打分与融合由 onboarding_agent（LLM）承接，落库前 jsonschema 校验门保证签名合规。
 
@@ -132,6 +135,10 @@ Character 与 World 可以并行生成。每个规划资产存入 `planning_asse
 投影是单向派生——直接编辑其中 Markdown 不会回写权威存储。日常创作不需要每次都刷新投影；需要查看文件目录视图时运行即可。
 
 ## 重要约束
+
+### 项目创建入口（强制首步）
+
+收到「创建 / 开始 / 新建小说项目」类请求时，主控的第一个动作必须是 `open ui/project-wizard.html` 打开本地向导，禁止用 CLI 问卷或自由文本替代。详见「项目创建向导」段的强制首步规则。fallback（用户明确表示无法使用浏览器时）须在回复中说明原因。
 
 ### config/agents.yaml（历史留档）
 

@@ -28,7 +28,7 @@ description: 识别小说规划层级并准备对应权威资产的最小输入�
 2. `SELECT * FROM planning_assets WHERE project_id=? AND status='locked' ORDER BY asset_type` 读取当前资产；复用所有有效 locked 上游，拒绝使用 stale/superseded。
 3. Read `catalog/skills/planning/<对应 skill>/prompt.md` 获取方法论。
 4. 探索性讨论直接返回方案，不持久化。
-5. 需要正式版本时，创建 sub agent（用 Agent 工具）生成候选正文。Direction 必须包含完整 `book_soul`（见末尾速查表）和 `creator_signature_ref`。Chapter Plan 必须给出 `soul_pressure` 与 `moral_residue`。
+5. 需要正式版本时，创建 sub agent（用 Agent 工具）生成候选正文。Direction 必须包含完整 `book_soul`（见末尾速查表）和 `creator_signature_ref`；**Direction sub agent 的输入必须包含项目绑定的创作者人格**——从 `project_creator_bindings` 查签名（sql-reference.md「作者签名链」查询模板），把 `persona`（narrative + anchors）全文注入 prompt：book_soul 从这个人身上长出来，而不是从原型标签推导。Chapter Plan 必须给出 `soul_pressure` 与 `moral_residue`。
 6. sub agent 返回候选后：
    ```sql
    INSERT INTO resources (id, media_type, content, content_hash) VALUES (?, 'text/markdown', CAST(? AS BLOB), ?);

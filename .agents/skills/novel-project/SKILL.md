@@ -10,7 +10,7 @@ description: 管理 NovelOS 小说项目、书、卷和章节容器。创建或�
 ## 工作流
 
 1. **查询项目层级**：`SELECT * FROM projects` → `SELECT * FROM books WHERE project_id=?` → `SELECT * FROM volumes WHERE book_id=?` → `SELECT * FROM chapters WHERE volume_id=?`。
-2. **创建项目**：向导 HTML（`ui/project-wizard.html`）产出 JSON → 引导融合智能体（onboarding_agent）做原型融合 → 主控 jsonschema 校验签名 + hash → SQL INSERT projects + creator_profiles + creator_profile_versions + project_creator_bindings。
+2. **创建项目**：向导 HTML（`ui/project-wizard.html`）产出 JSON → 主控 Read `catalog/skills/onboarding/creator-signature-fusion/prompt.md` 注入引导融合智能体（onboarding_agent）sub agent（输入 = `selected_archetypes` + `user_signature_inputs` + `project_setup` + `config/system_archetypes.json` 全文），产出 `creator_derivation_candidate`（schema v2，含 persona）→ 主控 jsonschema 校验签名 + hash → 按 sql-reference.md「作者签名链」模板 SQL INSERT。
 3. **创建章节容器**：INSERT resources（存内容）→ INSERT chapters。
 4. **判断操作类型**：容器管理（项目/书/卷/章节的 CRUD）用 SQL 直接操作；小说语义规划（方向/架构/策略/人物/世界/卷纲/章纲）加载 `$novel-planning`。
 

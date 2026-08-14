@@ -1,0 +1,11 @@
+origin: target-native
+source_repository: null
+source_path: null
+source_commit: null
+source_hash: null
+license: NovelOS-project
+migration_note: |
+  根据 onboarding_agent（引导融合智能体）职责独立编写。
+  设计来源：对既有并集式融合产出的复盘（同一主题跨字段重复、无主次并列、
+  无主体规条、LLM 全知全能回退），升级为「先立人（五维生平×双向拟合×盲区
+  清单）、再落规（带体温七字段）」两步法。schema v2 引入 persona。

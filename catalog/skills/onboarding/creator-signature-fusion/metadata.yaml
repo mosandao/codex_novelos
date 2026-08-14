@@ -1,0 +1,14 @@
+name: creator-signature-fusion
+description: 把向导选中的叙事原型化合为有血肉的创作者人格（persona），再从人格长出带体温的作者签名七字段
+stage: onboarding
+asset: creator_signature
+capability: generate
+lifecycle: active
+version: 1.0.0
+genres: []
+risk: P1
+output_contract: typed_result
+priority: 10
+tags: [onboarding, persona, creator-signature, archetype-fusion]
+use_when: 项目创建阶段需要融合单/多叙事原型生成 creator_derivation_candidate 时
+avoid_when: 修订既有签名版本（走 derive 新 revision）或绑定既有 profile（binding_mode='reuse'）

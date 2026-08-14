@@ -4,7 +4,7 @@
 
 Codex **主控智能体** 是唯一自动化编排者。NovelOS 不运行后台 worker、cron、Webhook 或自主循环；业务 sub agent 只能在用户任务期间由主控按需创建（用 Agent 工具），返回一次结果后销毁。
 
-项目创建向导由主控编排：主控提供本地 HTML 路径（`ui/project-wizard.html`），页面生成结构化 `novelos.project.create.v1` JSON；用户将其发回后，主控创建临时 **引导融合智能体（onboarding_agent）** sub agent，注入 `selected_archetypes` + `project_setup` + `config/system_archetypes.json`，由 onboarding_agent 判定 parent 并（多原型时）深度融合跨原型约束，产出 `creator_derivation_candidate`。主控用 jsonschema（`config/schemas/creator-signature.schema.json`）校验签名合规、用 `scripts/novelos_hash.py` 算 hash 后，用 SQL INSERT 原子创建 creator_profiles/versions、projects 与精确绑定。落库事务本身不调用 LLM，LLM 只在 onboarding_agent 的 Codex run 内运行；该步骤不产生规划资产。本地页面不直接写数据库，只负责原型选择、表单校验和 JSON 生成。
+项目创建向导由主控编排：主控提供本地 HTML 路径（`ui/project-wizard.html`），页面生成结构化 `novelos.project.create.v1` JSON；用户将其发回后，主控 Read `catalog/skills/onboarding/creator-signature-fusion/prompt.md`，连同 `selected_archetypes` + `user_signature_inputs` + `project_setup` + `config/system_archetypes.json` 一起注入临时 **引导融合智能体（onboarding_agent）** sub agent。agent 按「先立人，再落规」两步法：判定 parent 并输出 rationale → 反推式五维生平化合出 persona（含盲区清单 refuses/cannot_write）→ 从 persona 长出带体温的 7 字段，产出 `creator_derivation_candidate`（签名 schema v2）。主控用 jsonschema（`config/schemas/creator-signature.schema.json`）校验签名合规（v2 强制 persona 且 `cannot_write` 非空）、用 `scripts/novelos_hash.py` 算 hash 后，按 sql-reference.md「作者签名链」模板用 SQL 原子创建 creator_profiles/versions（content + derivation 双资源链）、projects 与精确绑定。落库事务本身不调用 LLM，LLM 只在 onboarding_agent 的 Codex run 内运行；该步骤不产生规划资产。本地页面不直接写数据库，只负责原型选择、表单校验和 JSON 生成。
 
 ## Agent 清单
 
