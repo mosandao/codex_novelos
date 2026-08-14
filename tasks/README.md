@@ -8,6 +8,7 @@
 
 | Task | 状态 | 说明 |
 |---|---|---|
+| [Task 28](./28_agent_prompt_enhancement_queue.md) | `IN PROGRESS` | 各级 Agent Prompt 增强队列，按创作阶段拆分（阶段 0-2 已提交；待执行：阶段 1 补丁=频道×题材语法/力量货币/代价形态学/道德债权，阶段 3-10=各下游 agent 方法论补全，横切收尾=metadata/串测/文档复核）。 |
 | [Task 25](./25_sqlite_mcp_poc.md) | `DONE` | SQLite MCP server + POC 验证 + 5 个桥接脚本（stale 传播/hash/book_soul/reconcile/projection）。纯增量，不停 NovelOS MCP。 |
 | [Task 26](./26_creation_flow_sql_migration.md) | `DONE` | migration 016 在真实数据库执行（35→26 表）+ NovelOS MCP 停用 + 6 个 SKILL.md/AGENTS.md 重写 + 端到端 7/7 验证通过。 |
 | [Task 27](./27_prose_webnovel_accessibility.md) | `DONE` | craft skill prose-webnovel-accessibility（通俗度/开头/钩子强度）+ writer/reviewer/章纲三端引用。 |

@@ -254,6 +254,11 @@ _PERSONA_DIMENSION_LABELS = {
     "career_track": "职业履历",
     "life_trajectory": "人生轨迹",
 }
+_THEME_LABELS = {
+    "agency": "agency（自主·成就·掌控）",
+    "communion": "communion（联结·归属·关系）",
+    "dual": "双主题并重",
+}
 _SOUL_LABELS = {
     "organizing_principle": "组织原则",
     "unresolved_claims": "未决追问",
@@ -416,6 +421,16 @@ def render(snapshot: dict[str, Any], project_id: str, output_root: str) -> dict[
             if any(value for _, value in dim_lines):
                 lines.extend(["", "### 人生五维"])
                 lines.extend(f"- **{label}**：{value}" for label, value in dim_lines if value)
+            traits = anchors.get("trait_profile") or []
+            if traits:
+                lines.extend(["", "### 特质简档（行为化）"])
+                lines.extend(f"- {item}" for item in traits)
+            theme = anchors.get("theme_orientation") or {}
+            if theme.get("dominant"):
+                theme_label = _THEME_LABELS.get(theme["dominant"], theme["dominant"])
+                evidence = theme.get("evidence", "")
+                lines.extend(["", "### 主题倾向"])
+                lines.append(f"- **主导**：{theme_label}" + (f"——{evidence}" if evidence else ""))
             tension = anchors.get("inner_tension")
             if tension:
                 lines.extend(["", f"### 自觉的内在矛盾", "", tension])

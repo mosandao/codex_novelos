@@ -66,6 +66,8 @@
           "required": [
             "profile_sketch",
             "five_dimensions",
+            "trait_profile",
+            "theme_orientation",
             "inner_tension",
             "voice_samples",
             "blindspots"
@@ -95,6 +97,30 @@
                 "life_trajectory": {"type": "string", "minLength": 2, "maxLength": 300}
               }
             },
+            "trait_profile": {
+              "type": "array",
+              "minItems": 3,
+              "maxItems": 5,
+              "items": {"type": "string", "minLength": 8, "maxLength": 300},
+              "description": "特质层（人格三层之特质）：每维必须行为化——抽象形容词不合格，须能指认具体行为/习惯"
+            },
+            "theme_orientation": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["dominant", "evidence"],
+              "properties": {
+                "dominant": {
+                  "enum": ["agency", "communion", "dual"],
+                  "description": "人生叙事的动机主题主导：agency=自主/成就/掌控；communion=联结/归属/关系；双低（疏离叙事）不允许出现，须重做"
+                },
+                "evidence": {
+                  "type": "string",
+                  "minLength": 8,
+                  "maxLength": 300,
+                  "description": "主导倾向的行为证据"
+                }
+              }
+            },
             "inner_tension": {
               "type": "string",
               "minLength": 8,
@@ -117,7 +143,7 @@
                   "minItems": 1,
                   "maxItems": 12,
                   "items": {"type": "string", "minLength": 4, "maxLength": 300},
-                  "description": "拒绝写：价值观上不屑的写法/题材"
+                  "description": "拒绝写：价值观上不屑的写法/题材，每条可追溯恐惧或创伤来源"
                 },
                 "cannot_write": {
                   "type": "array",
