@@ -13,7 +13,7 @@ NovelOS MCP（89 工具 + 门禁基础设施）已彻底删除。数据库操作
 ```text
 .agents/skills/       6 个顶层 Codex 业务 Skill（novel-project/planning/memory/writing/review/continuity）
 catalog/skills/       细粒度创作方法论 Catalog（planning/writing/review/continuity/craft/expansions）
-config/agents.yaml    【历史留档】NovelOS MCP 时代的 Agent 角色定义，无脚本依赖
+config/schemas/      jsonschema 校验门（项目创建/签名/候选/book_soul 等）
 config/system_archetypes.json   18 个系统叙事原型
 mcp/sqlite-mcp/       极薄 SQLite MCP Server（仅暴露 execute_sql）
 scripts/              确定性脚本（novelos_*.py）+ MCP 启动脚本

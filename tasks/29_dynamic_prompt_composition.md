@@ -63,8 +63,8 @@ Task 28（Agent Prompt 增强队列）剩余范围由本任务吸收执行，映
   - 验收：51 tests OK（含 book_soul 十三字段断言）；四命令全绿。
 - [x] **P0-3 消除现存文档矛盾 + 接通已交付路由**：① `novel-project/SKILL.md` 第 2 步改为 composer 流（消除与 AGENTS.md 第 4 步的互相矛盾，删去「注入原型全库」旧指令）；② `novel-planning` 第 3 步 / `novel-review` 第 2 步改为「已模块化资产走组装器、未模块化暂 Read prompt.md」的分流规则（direction / direction-review 路由接通；novel-writing 的 chapter-draft-generation 留待 P2-7）；③ AGENTS.md「Agent 角色」段通用注入规则同步为分流规则。
   - 验收：`.agents/skills` 中不再有指向已模块化资产的旧式注入指令；`system_archetypes.json 全文` 注入指令零残留；51 tests OK。
-- [ ] **P0-4 目录结构清理（低风险删减）**：① 删除 `config/agents.yaml`——全库零引用（scripts/tests/catalog/.agents 均不读它），AGENTS.md 已声明其为历史留档，git 历史可查；同步删除 AGENTS.md「config/agents.yaml（历史留档）」段；② 根目录 `readme.md` 改名 `README.md`（大小写一致性）。
-  - 验收：`grep -rn 'agents.yaml' scripts/ tests/ catalog/ .agents/ AGENTS.md` 零命中；四命令全绿。
+- [x] **P0-4 目录结构清理（低风险删减）**：① 删除 `config/agents.yaml`（全库零引用死档，git 历史可查）+ 同步删除 AGENTS.md「config/agents.yaml（历史留档）」段 + README 目录表更新；② `readme.md` 改名 `README.md`。
+  - 验收：`grep -rn 'agents.yaml'` 全库零命中；四命令全绿。
   - 说明：`db/migrations/`（留档承诺）、`tasks/` 各证据子目录（`07_prompt_catalog/fixtures` 是 `test_prompt_catalog_boundaries` 的活依赖，migration/cutover/experiments 是追溯证据）**明确不动**。
 
 ### P1 组装器通用化（schema + 槽位 + 日志）

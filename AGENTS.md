@@ -144,10 +144,6 @@ Character 与 World 可以并行生成。每个规划资产存入 `planning_asse
 
 收到「创建 / 开始 / 新建小说项目」类请求时，主控的第一个动作必须是 `open ui/project-wizard.html` 打开本地向导，禁止用 CLI 问卷或自由文本替代。详见「项目创建向导」段的强制首步规则。fallback（用户明确表示无法使用浏览器时）须在回复中说明原因。
 
-### config/agents.yaml（历史留档）
-
-`config/agents.yaml` 是 NovelOS MCP 时代的 Agent 角色定义，现在仅作历史留档。确定性脚本已不依赖它。Agent 角色职责见本文档「Agent 角色」段的方法论描述；项目创建的原型融合改由引导融合智能体（onboarding_agent）承接。
-
 ### NovelOS MCP 已彻底删除
 
 `mcp/novelos/` 与 `lib/novelos/` 均已删除。原型融合改由 onboarding_agent（LLM）承接，落库前用 jsonschema 校验门保证签名合规。数据库 schema/migration 留档到 `db/migrations/`，项目向导在 `ui/`。`.codex/config.toml` 只注册 SQLite MCP。**不要尝试恢复 NovelOS MCP**——migration 016 已删除 traces/agent_runs/authority_commits 等门禁表，源码也已不在仓库。
