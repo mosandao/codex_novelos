@@ -73,6 +73,9 @@ SIGNATURE_FIELDS = (
 HINT_KEYS = {"taste_anchors", "people_and_scenes", "hard_nos", "obsessions"}
 MISMATCH_MARKERS = ("错配警告", "mismatch", "根本冲突", "根本相斥", "调和建议")
 
+# 跨原型查重：候选 7 字段与未选中原型的 3-gram 包容度超阈值触发 WARN。
+CROSS_ARCHETYPE_THRESHOLD = 0.60
+
 
 def content_hash(text: str) -> str:
     return f"sha256:{hashlib.sha256(text.encode('utf-8')).hexdigest()}"
@@ -316,6 +319,63 @@ def validate_candidate(
     return errors, sig_hash
 
 
+def _char_ngrams(text: str, n: int = 3) -> set[str]:
+    """中文按字符 n-gram；去空白与常见标点。"""
+    cleaned = "".join(
+        ch for ch in text if not ch.isspace() and ch not in "，。、；：？！—…「」『』""''（）,.:;?!"
+    )
+    if len(cleaned) < n:
+        return {cleaned} if cleaned else set()
+    return {cleaned[i:i + n] for i in range(len(cleaned) - n + 1)}
+
+
+def cross_archetype_similarity(
+    candidate: dict[str, Any],
+    cfg_list: list[dict[str, Any]],
+    selected_ids: set[str],
+) -> list[str]:
+    """候选 7 字段逐条与**未选中原型**逐条做 n-gram 包容度比对，取最大值。
+
+    条级比对而非整库聚合：单条措辞高度雷同即值得用户裁决，聚合会稀释
+    （一条照抄只占原型 1/7 内容）。选中集的逐字复制由 validate_candidate 另查。
+    融合 sub agent 只看选中原型条目全文（全库仅一行式清单），理论上不会长出
+    未选中原型的措辞——撞上即「清单泄漏」或「生成偏好撞库」，须用户裁决。
+    """
+    sig = candidate.get("signature", {})
+    cand_items: list[set[str]] = []
+    for field in SIGNATURE_FIELDS:
+        for item in sig.get(field, []) or []:
+            grams = _char_ngrams(str(item))
+            if grams:
+                cand_items.append(grams)
+    if not cand_items:
+        return []
+
+    warns: list[str] = []
+    for a in cfg_list:
+        pvid = f"creator-profile-version:{a['id']}:{a['revision']}"
+        if pvid in selected_ids:
+            continue
+        best = 0.0
+        for field in SIGNATURE_FIELDS:
+            for item in a.get("signature", {}).get(field, []) or []:
+                arch_grams = _char_ngrams(str(item))
+                if not arch_grams:
+                    continue
+                for cand_grams in cand_items:
+                    overlap = len(cand_grams & arch_grams) / min(
+                        len(cand_grams), len(arch_grams)
+                    )
+                    best = max(best, overlap)
+        if best > CROSS_ARCHETYPE_THRESHOLD:
+            warns.append(
+                f"候选签名与未选中原型 [{a['display_name']}] 条级 n-gram 包容度 "
+                f"{best:.0%} > {CROSS_ARCHETYPE_THRESHOLD:.0%}——疑似撞库，"
+                "须呈报用户裁决后方可落库"
+            )
+    return warns
+
+
 def persist(
     db_path: Path,
     payload: dict[str, Any],
@@ -472,6 +532,12 @@ def main() -> int:
             "\n!! parent_rationale 含错配警告字样——按协议必须把冲突与调和建议"
             "呈报用户裁决，未获裁决不得落库。"
         )
+
+    selected = {
+        a["profile_version_id"] for a in payload["setup"]["creator"]["selected_archetypes"]
+    }
+    for w in cross_archetype_similarity(candidate, cfg_list, selected):
+        print(f"\n!! 跨原型查重 WARN {w}")
 
     if args.dry_run:
         print(f"\n--dry-run：未落库。融合签名 hash = {sig_hash}")

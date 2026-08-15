@@ -119,7 +119,9 @@ WHERE b.project_id = 'project:xxx';
 
 ## 人格库指纹（融合前跨批次去重注入）
 
-注入 onboarding_agent 前查询已派生人格的指纹摘要（`existing_persona_fingerprints`），供 prompt 的 1.2.1 跨批次去重校验——道具结构/烙印事件/张力形态/主题×频道组合不得与库中雷同。人格库为空（查询无结果）时省略此输入。
+> **日常路径已固化**：`scripts/novelos_compose_prompt.py --asset fusion` 会自动按量化范围（库 ≤10 全量；>10 最近 10 份 + 全部同 parent）执行本查询并拼进注入文本，主控不再手工跑。本模板留作排查参照。
+
+注入 onboarding_agent 前查询已派生人格的指纹摘要（`existing_persona_fingerprints`），供跨批次去重校验——道具结构/烙印事件/张力形态/主题×频道组合不得与库中雷同。人格库为空（查询无结果）时省略此输入。
 
 ```sql
 SELECT cp.display_name,

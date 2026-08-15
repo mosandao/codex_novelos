@@ -23,6 +23,10 @@
 - 缺失或错绑 `creator_signature_ref`，人口属性刻板推导，具体作者模仿，或静默改写 Creator Profile。
 - `book_soul` 字段不完整（v2 含 organizing_principle / promise_cadence）、核心矛盾单向口号、承诺不承担任何叙事代价，或照抄作者签名而没有本书独有追问。
 
+## 条件审查模块（按项目组装）
+
+频道语法（男频力量轴/女频规则关系轴/全向双轨）、平台画像（免费/付费三字段消费）、题材信息包（非空/缺位）的专项审查**不在本主干**——组装器按 setup 取值把对应 check 模块附加在本清单之后，与上述条目同级执行。手工阅读完整 rubric 时按 `modules/manifest.json` 索引。
+
 ## 不得检查的下游
 - 不得审查下游具体的叙事机制 (Architecture)、阶段战略 (Strategy) 或具体卷章安排。
 

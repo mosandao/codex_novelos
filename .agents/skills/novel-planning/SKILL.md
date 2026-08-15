@@ -28,7 +28,7 @@ description: 识别小说规划层级并准备对应权威资产的最小输入�
 2. `SELECT * FROM planning_assets WHERE project_id=? AND status='locked' ORDER BY asset_type` 读取当前资产；复用所有有效 locked 上游，拒绝使用 stale/superseded。
 3. Read `catalog/skills/planning/<对应 skill>/prompt.md` 获取方法论。
 4. 探索性讨论直接返回方案，不持久化。
-5. 需要正式版本时，创建 sub agent（用 Agent 工具）生成候选正文。**Direction sub agent 的输入必须包含**：①项目绑定的创作者人格——从 `project_creator_bindings` 查签名（sql-reference.md「作者签名链」查询模板），把 `persona`（narrative + anchors）全文注入 prompt，book_soul 从这个人身上长出来；②`project_setup` v2 快照——SQL 查 `projects.metadata_json` 的 `$.setup`（sql-reference.md「读项目 setup 快照」模板），含 channel/platform/platform_traits/scale/primary_genre/secondary_directions/emotional_surface/emotional_core/tonal_contrast/aesthetic_styles/genre_profile 与 `reference_material`（创作资料——用户原始意图，按 prompt 的三类意图提炼法消费），**不靠会话记忆回传**；③`scale`（四档分档的可展开性硬约束，在 setup 内，分档要求见 story-direction prompt）。Direction 按其 prompt「上游消费：表里基调、题材信息包与平台耐心」节消费 setup：`emotional_core`→book_soul 情感承诺（central_contradiction 情感底色 + protected_dignity 底线）、`emotional_surface`→promise_cadence 表层节奏、`genre_profile`→力量货币候选（非空不现场发明、为 null 现场推导并显式定义）、`platform_traits.patience`→promise_cadence 平台节奏翻译，交付前过**表里失联自检**。Direction 必须包含完整 `book_soul`（v2 十二字段，见末尾速查表）和 `creator_signature_ref`。**Architecture sub agent 的输入** = direction 正文 + book_soul v2 全文 + persona（直接注入权威源，不靠 direction 转述）+ setup 内的 scale 与 genre_profile，核心职责是把 organizing_principle / promise_cadence 翻译成叙事引擎。其余资产按各自 prompt 的输入边界注入。Chapter Plan 必须给出 `soul_pressure` 与 `moral_residue`。
+5. 需要正式版本时，创建 sub agent（用 Agent 工具）生成候选正文。**Direction sub agent 的输入**用组装器一步产出：`.venv/bin/python scripts/novelos_compose_prompt.py --asset direction --project <project_id>`——组装器查库取①项目绑定的创作者人格（`project_creator_bindings` 签名全文，persona 从这个人身上长出 book_soul）②`project_setup` v2 快照（含 channel/platform/platform_traits/scale/primary_genre/secondary_directions/emotional_surface/emotional_core/tonal_contrast/aesthetic_styles/genre_profile 与 `reference_material`——用户原始意图，按 prompt 的三类意图提炼法消费，**不靠会话记忆回传**）③`scale`（四档分档的可展开性硬约束，在 setup 内，分档要求见 story-direction prompt），并按 setup 取值附加条件模块（频道语法男频力量轴/女频规则关系轴/全向双轨、平台三字段消费、题材信息包、美学基因）。Direction 按其 prompt「上游消费」各节消费 setup：`emotional_core`→book_soul 情感承诺（central_contradiction 情感底色 + protected_dignity 底线）、`emotional_surface`→promise_cadence 表层节奏、`genre_profile`→力量货币候选（非空不现场发明、为 null 现场推导并显式定义）、`platform_traits`→promise_cadence 平台节奏与受众画像翻译，交付前过**表里失联自检**。Direction 必须包含完整 `book_soul`（v2 十二字段，见末尾速查表）和 `creator_signature_ref`。**Architecture sub agent 的输入** = direction 正文 + book_soul v2 全文 + persona（直接注入权威源，不靠 direction 转述）+ setup 内的 scale 与 genre_profile，核心职责是把 organizing_principle / promise_cadence 翻译成叙事引擎。其余资产按各自 prompt 的输入边界注入。Chapter Plan 必须给出 `soul_pressure` 与 `moral_residue`。
 6. sub agent 返回候选后：
    ```sql
    INSERT INTO resources (id, media_type, content, content_hash) VALUES (?, 'text/markdown', CAST(? AS BLOB), ?);
@@ -37,7 +37,7 @@ description: 识别小说规划层级并准备对应权威资产的最小输入�
    -- 记录上游依赖
    INSERT INTO planning_asset_dependencies (asset_id, upstream_asset_id, upstream_version) VALUES (?, ?, ?);
    ```
-7. 用 `$novel-review` 审查（sub agent 审查 → INSERT reviews）。
+7. 用 `$novel-review` 审查（sub agent 审查 → INSERT reviews）。direction 的审查 rubric 同样按项目组装：`.venv/bin/python scripts/novelos_compose_prompt.py --asset direction-review --project <project_id>`——频道语法/平台画像/题材信息包的专项检查随项目路由，与生成端对称。
 8. 审查通过后锁定：`UPDATE planning_assets SET status='locked', locked_review_id=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`。
 9. 若下游 Agent 发现上游问题，返回变更提案由主控路由给上游所有者，不在下游候选中隐式重写上游。
 
