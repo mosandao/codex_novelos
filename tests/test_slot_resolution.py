@@ -34,6 +34,11 @@ def _make_db() -> sqlite3.Connection:
         CREATE TABLE planning_assets (
             id TEXT PRIMARY KEY, project_id TEXT, asset_type TEXT, scope_ref TEXT,
             revision INTEGER, status TEXT, content_resource_id TEXT, metadata_json TEXT);
+        CREATE TABLE chapters (
+            id TEXT PRIMARY KEY, volume_id TEXT, number INTEGER, title TEXT,
+            status TEXT, content_resource_id TEXT, summary TEXT DEFAULT '',
+            metadata_json TEXT DEFAULT '{}', version INTEGER DEFAULT 1,
+            created_at TEXT, updated_at TEXT);
         """
     )
     return conn
@@ -222,6 +227,59 @@ class FusionSlots(unittest.TestCase):
         ids = _fusion_selected_ids(_fusion_payload())
         self.assertEqual(len(ids), 1)
         self.assertTrue(ids[0].startswith("creator-profile-version:"))
+
+
+class FullChainSmoke(unittest.TestCase):
+    """P2 总验收：同一合成项目贯穿 direction → … → chapter-draft 的组装链路。"""
+
+    def _seed_chain(self, conn: sqlite3.Connection) -> None:
+        _seed_user_persona(conn)
+        _seed_locked_direction(conn)
+        for i, (aid, atype) in enumerate((
+            ("pa:arch1", "architecture"), ("pa:str1", "strategy"),
+            ("pa:vol1", "volume_outline"), ("pa:cp1", "chapter_plan"),
+        )):
+            conn.execute("INSERT INTO resources VALUES (?, CAST(? AS BLOB))",
+                         (f"res:{aid}", f"# {atype}（locked）\n机制节选 {i}。"))
+            conn.execute(
+                "INSERT INTO planning_assets VALUES "
+                f"('{aid}', 'project:p1', '{atype}', 'book', 1, 'locked', 'res:{aid}', '{{}}')")
+        conn.execute("INSERT INTO resources VALUES ('res:ch1', CAST(? AS BLOB))",
+                     ("第一章正文……",))
+        conn.execute(
+            "INSERT INTO chapters VALUES ('chapter:c1', 'vol:1', 1, '第一章', 'draft', "
+            "'res:ch1', '', '{}', 1, '2026-01-01', '2026-01-01')")
+        conn.execute(
+            "INSERT INTO planning_assets VALUES "
+            "('pa:draft1', 'project:p1', 'chapter_plan', 'ch1', 1, 'candidate', 'res:cp1', '{}')")
+
+    def test_chain_composes_end_to_end(self):
+        from scripts.novelos_compose_prompt import compose as _compose
+        conn = _make_db()
+        self._seed_chain(conn)
+        # strategy 组装：吃到 direction + architecture 双上游
+        sections = resolve_slots(conn, ASSET_DIRS["strategy"], project_id="project:p1")
+        upstreams = [t for t, _ in sections if t.startswith("上游 ")]
+        self.assertTrue(any("direction" in t for t in upstreams))
+        self.assertTrue(any("architecture" in t for t in upstreams))
+        # chapter-draft 组装：persona + chapter_plan 上游 + 四张 craft 卡
+        sections = resolve_slots(conn, ASSET_DIRS["chapter-draft"], project_id="project:p1")
+        titles = [t for t, _ in sections]
+        self.assertTrue(any("创作者人格签名" in t for t in titles))
+        self.assertTrue(any(t.startswith("上游 chapter_plan") for t in titles))
+        self.assertEqual(sum(t.startswith("craft 方法卡") for t in titles), 4)
+        # prose-review 组装：subject 为章节正文（chapter 表）+ craft 卡
+        sections = resolve_slots(conn, ASSET_DIRS["prose-review"],
+                                 project_id="project:p1", subject_id="chapter:c1")
+        self.assertTrue(sections[0][0].startswith("被审章节正文"))
+        self.assertIn("第一章正文", sections[0][1])
+        self.assertGreaterEqual(sum(t.startswith("craft 方法卡") for t, _ in sections), 5)
+        # continuity-extraction：subject 章节 + 主干方法论
+        sections = resolve_slots(conn, ASSET_DIRS["continuity-extraction"],
+                                 project_id="project:p1", subject_id="chapter:c1")
+        self.assertEqual(len(sections), 1)
+        out = _compose(ASSET_DIRS["continuity-extraction"], {"setup": {}}, sections)
+        self.assertIn("判定标准（五条边界）", out)
 
 
 if __name__ == "__main__":

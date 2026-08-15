@@ -41,6 +41,7 @@
 | continuity-quality-review（review/continuity-quality-review） | subject, canon_minimal | 跟随被审对象 | judge | Review Receipt | 条目拒绝/修订循环 |
 | cross-consistency-review（review/planning-cross-consistency-review） | subject, upstream:direction, upstream:architecture, upstream:strategy | 跟随被审对象 | judge | Review Receipt（跨资产一致性） | 修复循环 |
 | entity-authority-review（review/entity-authority-review） | subject | 跟随被审对象 | judge | Review Receipt（实体权威边界） | 修复循环 |
+| planning-quality-review（review/planning-quality-review） | subject | 跟随被审对象 | judge | Review Receipt（兜底通用质量） | 修复循环；专属 review skill 存在时优先专属 |
 <!-- END RECIPES TABLE -->
 
 ## 演进规约

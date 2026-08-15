@@ -321,7 +321,7 @@
     },
     {
       "asset": "cross-consistency-review",
-      "composer_key": null,
+      "composer_key": "cross-consistency-review",
       "skill": "review/planning-cross-consistency-review",
       "slots": [
         "subject",
@@ -336,7 +336,7 @@
     },
     {
       "asset": "entity-authority-review",
-      "composer_key": null,
+      "composer_key": "entity-authority-review",
       "skill": "review/entity-authority-review",
       "slots": [
         "subject"
@@ -345,6 +345,18 @@
       "decision_scope": "judge",
       "output": "Review Receipt（实体权威边界）",
       "failure": "修复循环"
+    },
+    {
+      "asset": "planning-quality-review",
+      "composer_key": "planning-quality-review",
+      "skill": "review/planning-quality-review",
+      "slots": [
+        "subject"
+      ],
+      "divergence": null,
+      "decision_scope": "judge",
+      "output": "Review Receipt（兜底通用质量）",
+      "failure": "修复循环；专属 review skill 存在时优先专属"
     }
   ]
 }

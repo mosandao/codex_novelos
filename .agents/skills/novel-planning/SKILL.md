@@ -47,7 +47,7 @@ description: 识别小说规划层级并准备对应权威资产的最小输入�
 
 ## Expansion Skill（可选方法素材）
 
-主干 skill（`catalog/skills/planning/`）的 prompt 末尾列出了可选 expansion。按需 Read `catalog/skills/expansions/<name>/prompt.md` 注入 sub agent 上下文。含 clusters/ 子目录的 atlas 包，按题材 Read 对应簇文件。
+expansion 方法卡是**共享模块库**（原位保留在 `catalog/skills/expansions/`），两种消费方式：① 组装器 manifest 声明——skill 的 `modules/manifest.json` 可跨包引用 expansion 卡（`file` 相对路径）随项目路由注入；② 按需 Read——`catalog/skills/expansions/<name>/prompt.md` 注入 sub agent 上下文。含 clusters/ 子目录的 atlas 包，按题材 Read 对应簇文件。
 
 ## book_soul 字段速查表
 

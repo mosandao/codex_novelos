@@ -1,0 +1,5 @@
+{
+  "modules": [],
+  "data_slots": ["subject", "upstream:direction", "upstream:architecture", "upstream:strategy"],
+  "decision_scope": "judge"
+}

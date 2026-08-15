@@ -60,6 +60,9 @@ ASSET_DIRS = {
     "prose-review": ROOT / "catalog/skills/review/prose-quality-review",
     "continuity-extraction": ROOT / "catalog/skills/continuity/continuity-candidate-extraction",
     "continuity-review": ROOT / "catalog/skills/review/continuity-quality-review",
+    "cross-consistency-review": ROOT / "catalog/skills/review/planning-cross-consistency-review",
+    "entity-authority-review": ROOT / "catalog/skills/review/entity-authority-review",
+    "planning-quality-review": ROOT / "catalog/skills/review/planning-quality-review",
 }
 
 # 主干自检节标题（匹配行首；该节被剪切到输出尾部，模块附加自检附于其后）
