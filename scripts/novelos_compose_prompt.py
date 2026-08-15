@@ -32,6 +32,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DB_PATH = ROOT / "data" / "novelos-v2.db"
 ARCHETYPE_CONFIG = ROOT / "config" / "system_archetypes.json"
 MANIFEST_SCHEMA = ROOT / "config" / "schemas" / "compose-manifest.schema.json"
+CREATE_REQUEST_SCHEMA = ROOT / "config" / "schemas" / "project-create-request.schema.json"
 
 # asset → skill 目录（prompt.md 所在目录；modules/ 在同目录下）
 ASSET_DIRS = {
@@ -189,7 +190,7 @@ def _persona_library_count(conn: sqlite3.Connection) -> int:
     return int(row[0])
 
 
-def _persona_fingerprints(conn: sqlite3.Connection, selected_ids: list[str]) -> list[dict[str, Any]]:
+def _persona_fingerprints_query(conn: sqlite3.Connection, selected_ids: list[str]) -> list[dict[str, Any]]:
     """跨批次比对基准人格指纹，按量化范围取数：库 ≤10 全量；>10 最近 10 份 + 全部同 parent。"""
     rows = conn.execute(
         "SELECT v.id, v.parent_version_id, v.created_at, "
@@ -234,72 +235,122 @@ def build_context_direction(conn: sqlite3.Connection, project_id: str) -> dict[s
 
 
 def build_context_fusion(conn: sqlite3.Connection, payload: dict[str, Any]) -> dict[str, Any]:
-    setup = payload.get("project_setup") or payload.get("setup") or {}
-    selected = payload.get("selected_archetypes", [])
+    selected = payload["setup"]["creator"]["selected_archetypes"]
     return {
-        "setup": setup,
+        "setup": payload["setup"],
         "selected_count": len(selected),
         "persona_library_count": _persona_library_count(conn),
     }
 
 
-def _direction_data_sections(conn: sqlite3.Connection, project_id: str) -> list[tuple[str, str]]:
-    setup_row = conn.execute(
-        "SELECT metadata_json FROM projects WHERE id = ?", (project_id,)
-    ).fetchone()
-    if setup_row is None:
-        raise SystemExit(f"项目不存在: {project_id}")
-    setup = json.loads(setup_row[0]).get("setup", {})
+# ---------------------------------------------------------------- 槽位注册表
+# slot id → resolver(conn, project_id, payload) -> (title, body)。
+# 项目域槽位（direction 系）用 project_id；融合域槽位（fusion）用 payload（已过
+# project-create-request schema 校验，selected_archetypes 等在 setup.creator 内）。
 
-    sig_row = conn.execute(
+def _load_archetypes() -> list[dict[str, Any]]:
+    return json.loads(ARCHETYPE_CONFIG.read_text(encoding="utf-8"))
+
+
+def _slot_project_setup(conn: sqlite3.Connection, project_id: str | None,
+                        payload: dict[str, Any] | None) -> tuple[str, str]:
+    if project_id is not None:
+        row = conn.execute(
+            "SELECT metadata_json FROM projects WHERE id = ?", (project_id,)
+        ).fetchone()
+        if row is None:
+            raise SystemExit(f"项目不存在: {project_id}")
+        setup = json.loads(row[0]).get("setup", {})
+        return ("project_setup v2 快照（硬输入）", json.dumps(setup, ensure_ascii=False, indent=1))
+    return ("project_setup v2 快照", json.dumps(payload["setup"], ensure_ascii=False, indent=1))
+
+
+def _slot_persona_full(conn: sqlite3.Connection, project_id: str | None,
+                       payload: dict[str, Any] | None) -> tuple[str, str]:
+    row = conn.execute(
         "SELECT CAST(r.content AS TEXT), v.subject_hash FROM project_creator_bindings b "
         "JOIN creator_profile_versions v ON v.id = b.profile_version_id "
         "JOIN resources r ON r.id = v.content_resource_id "
-        "WHERE b.project_id = ?", (project_id,)
+        "WHERE b.project_id = ?",
+        (project_id,),
     ).fetchone()
-    sections: list[tuple[str, str]] = [
-        ("project_setup v2 快照（硬输入）", json.dumps(setup, ensure_ascii=False, indent=1)),
-    ]
-    if sig_row is not None:
-        sections.append((
-            "创作者人格签名（第一因，persona 全文）",
-            f"subject_hash: {sig_row[1]}\n" + sig_row[0],
-        ))
-    else:
-        sections.append(("创作者人格签名", "（未查到项目绑定——停下来上报，禁止无签名生成方向）"))
-    return sections
+    if row is not None:
+        return ("创作者人格签名（第一因，persona 全文）",
+                f"subject_hash: {row[1]}\n" + row[0])
+    return ("创作者人格签名", "（未查到项目绑定——停下来上报，禁止无签名生成方向）")
 
 
-def _fusion_data_sections(conn: sqlite3.Connection, payload: dict[str, Any]) -> list[tuple[str, str]]:
-    setup = payload.get("project_setup") or payload.get("setup") or {}
-    selected = payload.get("selected_archetypes", [])
-    selected_ids = [a.get("profile_version_id", "") for a in selected]
-    hints = payload.get("user_persona_hints") or {}
+def _fusion_selected_ids(payload: dict[str, Any]) -> list[str]:
+    return [a["profile_version_id"] for a in payload["setup"]["creator"]["selected_archetypes"]]
 
-    archetypes = json.loads(ARCHETYPE_CONFIG.read_text(encoding="utf-8"))
+
+def _slot_selected_archetypes(conn: sqlite3.Connection, project_id: str | None,
+                              payload: dict[str, Any] | None) -> tuple[str, str]:
+    archetypes = _load_archetypes()
     by_key = {f"creator-profile-version:{a['id']}:{a['revision']}": a for a in archetypes}
+    selected_ids = _fusion_selected_ids(payload)
     chosen = [by_key[i] for i in selected_ids if i in by_key]
     missing = [i for i in selected_ids if i not in by_key]
     if missing:
         raise SystemExit(f"选中原型不在 config/system_archetypes.json: {missing}")
+    return ("selected_archetypes（选中条目全文——parent 判定与气质溯因只用这些）",
+            json.dumps(chosen, ensure_ascii=False, indent=1))
 
-    roster = "\n".join(f"- {a['id']}：{a['display_name']}" for a in archetypes)
-    sections = [
-        ("selected_archetypes（选中条目全文——parent 判定与气质溯因只用这些）",
-         json.dumps(chosen, ensure_ascii=False, indent=1)),
-        ("系统原型全库一行式清单（仅作语境：库里还有什么；禁止从清单外原型取材）", roster),
-        ("user_persona_hints（人格素材）", json.dumps(hints, ensure_ascii=False, indent=1)),
-        ("project_setup v2 快照", json.dumps(setup, ensure_ascii=False, indent=1)),
-    ]
-    fingerprints = _persona_fingerprints(conn, selected_ids)
+
+def _slot_archetype_roster(conn: sqlite3.Connection, project_id: str | None,
+                           payload: dict[str, Any] | None) -> tuple[str, str]:
+    roster = "\n".join(f"- {a['id']}：{a['display_name']}" for a in _load_archetypes())
+    return ("系统原型全库一行式清单（仅作语境：库里还有什么；禁止从清单外原型取材）", roster)
+
+
+def _slot_persona_hints(conn: sqlite3.Connection, project_id: str | None,
+                        payload: dict[str, Any] | None) -> tuple[str, str]:
+    hints = payload["setup"]["creator"]["user_persona_hints"]
+    return ("user_persona_hints（人格素材）", json.dumps(hints, ensure_ascii=False, indent=1))
+
+
+def _slot_persona_fingerprints(conn: sqlite3.Connection, project_id: str | None,
+                               payload: dict[str, Any] | None) -> tuple[str, str]:
+    fingerprints = _persona_fingerprints_query(conn, _fusion_selected_ids(payload))
     if fingerprints:
-        sections.append((
-            "跨批次比对基准人格（existing_persona_fingerprints，按量化范围取数）",
-            json.dumps(fingerprints, ensure_ascii=False, indent=1),
-        ))
-    else:
-        sections.append(("跨批次比对基准人格", "（人格库为空——首个人格，按空库模块执行）"))
+        return ("跨批次比对基准人格（existing_persona_fingerprints，按量化范围取数）",
+                json.dumps(fingerprints, ensure_ascii=False, indent=1))
+    return ("跨批次比对基准人格", "（人格库为空——首个人格，按空库模块执行）")
+
+
+SLOT_REGISTRY: dict[str, Any] = {
+    "project_setup": _slot_project_setup,
+    "persona_full": _slot_persona_full,
+    "selected_archetypes": _slot_selected_archetypes,
+    "archetype_roster": _slot_archetype_roster,
+    "persona_hints": _slot_persona_hints,
+    "persona_fingerprints": _slot_persona_fingerprints,
+}
+
+
+def resolve_slots(conn: sqlite3.Connection, skill_dir: Path, *,
+                  project_id: str | None = None,
+                  payload: dict[str, Any] | None = None) -> list[tuple[str, str]]:
+    """按 manifest 的 data_slots 声明顺序解析注入槽位。未注册槽位即报错。"""
+    manifest = load_manifest(skill_dir)
+    sections: list[tuple[str, str]] = []
+    for slot in manifest.get("data_slots", []):
+        resolver = SLOT_REGISTRY.get(slot)
+        if resolver is None:
+            raise SystemExit(f"未注册的槽位: {slot}（{skill_dir.name}）")
+        sections.append(resolver(conn, project_id, payload))
     return sections
+
+
+def validate_fusion_payload(payload: dict[str, Any]) -> None:
+    """向导载荷过 project-create-request schema——与 create 脚本同一契约，防两处解析漂移。"""
+    import jsonschema
+
+    schema = json.loads(CREATE_REQUEST_SCHEMA.read_text(encoding="utf-8"))
+    try:
+        jsonschema.validate(payload, schema)
+    except jsonschema.ValidationError as exc:
+        raise SystemExit(f"向导载荷不符合 project-create-request schema: {exc.message}")
 
 
 # ---------------------------------------------------------------- CLI
@@ -318,13 +369,14 @@ def main() -> int:
             if not args.project:
                 parser.error(f"--asset {args.asset} 需要 --project")
             context = build_context_direction(conn, args.project)
-            data = _direction_data_sections(conn, args.project)
+            data = resolve_slots(conn, skill_dir, project_id=args.project)
         else:
             if not args.payload:
                 parser.error("--asset fusion 需要 --payload")
             payload = json.loads(Path(args.payload).read_text(encoding="utf-8"))
+            validate_fusion_payload(payload)
             context = build_context_fusion(conn, payload)
-            data = _fusion_data_sections(conn, payload)
+            data = resolve_slots(conn, skill_dir, payload=payload)
     finally:
         conn.close()
 

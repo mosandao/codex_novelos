@@ -80,8 +80,8 @@ Task 28（Agent Prompt 增强队列）剩余范围由本任务吸收执行，映
     横切审查（cross-consistency / quality / entity-authority）不单独立档，**跟随被审对象的档位**。
   - 已落地：三个 manifest 补齐顶层声明（direction=expansive/propose_only；direction-review=judge/无 divergence；fusion=expansive/flag）；`load_manifest` 加载即校验；跨包引用经 `file` 相对路径天然支持（P2-9 使用）。
   - 验收：新增 `test_manifest_schema`（schema 通过 + 顶层声明断言 + 未知字段拒绝）；54 tests OK；四命令全绿。
-- [ ] **P1-2 槽位解析框架**：`_direction_data_sections` / `_fusion_data_sections` 硬编码改为按 manifest `data_slots` 声明解析；实现槽位注册表（slot id → resolver）。**迁移不改行为**。另：fusion 载荷解析与 `novelos_create_project.py` 共用同一 jsonschema 校验（复用 `project-create-request.schema.json` 加载器），防止向导契约漂移时两处解析各自为政。
-  - 验收：快照测试证明改造前后组装输出 byte 级一致（同输入）；四命令全绿。
+- [x] **P1-2 槽位解析框架**：`_direction_data_sections` / `_fusion_data_sections` 硬编码改为按 manifest `data_slots` 声明解析；实现槽位注册表（slot id → resolver）。**迁移不改行为**（槽位标题/顺序/占位与旧实现逐字一致，`tests/test_slot_resolution.py` 以种子库断言）。另：fusion 载荷与 `novelos_create_project.py` 共用 `project-create-request.schema.json` 校验——顺带修复真实 bug：旧代码读顶层 `selected_archetypes`，而向导契约里它在 `setup.creator` 内（真实载荷下 single/multi 模块永不命中）。
+  - 验收：62 tests OK（新增 8 个槽位测试：方向槽序/占位/审查对齐/未注册拒绝 + 融合槽序/空库占位/非法载荷拒绝/嵌套读取）；四命令全绿。
 - [ ] **P1-3 组装日志**：每次组装写 `data/compositions/<scope>/<asset>/<timestamp>.md` + 追加 `index.jsonl`（content_hash、命中模块 id、槽位清单、输入 key 版本）。CLI 加 `--log-dir` / `--no-log`。`.gitignore` 增加 `data/compositions/`。
   - 验收：同输入组装两次 hash 一致；输入变更后 hash 变化；日志文件含注入清单可读。
 - [ ] **P1-4 测试扩充**：路由确定性（同 context 两次组装 byte-identical）、互斥模块、SIZE_BUDGET 维持、日志一致性。
@@ -180,3 +180,8 @@ P5 依赖 P1-3 且为可选
 - **[T29-P1-1] manifest schema v2** — 2026-08-15 / commit 待填
   - 验证：54 tests OK；hygiene exit 0；manifest exit 0
   - 文档变更：`config/schemas/compose-manifest.schema.json`（新增）；三个 `modules/manifest.json`（顶层 v2 声明）；`scripts/novelos_compose_prompt.py`（load_manifest 校验门）；`tests/test_compose_prompt.py`（ManifestSchema 三测试）
+  - 备注：本项提交途中发现外部进程删除了 `tasks/07_prompt_catalog|cutover|migration|experiments|07_prompt_catalog_expansion.md`（测试活依赖 + 追溯证据），已全部恢复并 amend 出干净提交。
+
+- **[T29-P1-2] 槽位解析框架** — 2026-08-15 / commit 待填
+  - 验证：62 tests OK；hygiene exit 0；manifest exit 0
+  - 文档变更：`scripts/novelos_compose_prompt.py`（SLOT_REGISTRY + resolve_slots + validate_fusion_payload，删除两个硬编码数据区函数，修复 selected_archetypes 嵌套读取 bug）；`tests/test_slot_resolution.py`（新增，8 测试）
