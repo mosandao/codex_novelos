@@ -252,6 +252,24 @@ class SizeBudget(unittest.TestCase):
             )
 
 
+class ComposeDeterminism(unittest.TestCase):
+    """路由确定性：同 context 两次组装 byte 级一致（三个资产 × 枚举边界）。"""
+
+    def test_compose_is_pure_function(self):
+        cases = [
+            (ASSET_DIRS["direction"], _ctx_direction()),
+            (ASSET_DIRS["direction"], _ctx_direction(channel="女频", model="付费订阅")),
+            (ASSET_DIRS["direction-review"], _ctx_direction(channel="全向")),
+            (ASSET_DIRS["fusion"], _ctx_fusion(channel="女频", library_count=0, selected_count=1)),
+            (ASSET_DIRS["fusion"], _ctx_fusion(channel="男频", library_count=9, selected_count=3)),
+        ]
+        for skill_dir, ctx in cases:
+            with self.subTest(asset=skill_dir.name):
+                a = compose(skill_dir, ctx, [])
+                b = compose(skill_dir, ctx, [])
+                self.assertEqual(a, b)
+
+
 class WhenEvaluator(unittest.TestCase):
     """when 求值器：is_null / not_null / non_empty / all 组合。"""
 
