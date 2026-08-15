@@ -32,6 +32,8 @@ SIZE_BUDGET = {
     "story-arc-review": 70,
     "volume-outline": 100,
     "volume-outline-review": 70,
+    "chapter-plan": 110,
+    "chapter-plan-review": 70,
 }
 
 # 频道/模式标记行：用于断言「装了 A 就不能装 B」的路由正确性。
@@ -266,6 +268,8 @@ class SizeBudget(unittest.TestCase):
             ("story-arc-review", worst_direction),
             ("volume-outline", worst_direction),
             ("volume-outline-review", worst_direction),
+            ("chapter-plan", _ctx_direction(channel="女频")),
+            ("chapter-plan-review", _ctx_direction(channel="女频")),
         ):
             out = compose(ASSET_DIRS[asset], ctx, [])
             lines = len(out.splitlines())
@@ -361,6 +365,16 @@ class P2RoutingBatch(unittest.TestCase):
         vol_rev = compose(ASSET_DIRS["volume-outline-review"], _ctx_direction(channel="女频"), [])
         self.assertIn("卷内节奏量化", vol_rev)
         self.assertIn("频道轴审查：女频", vol_rev)
+
+
+    def test_chapter_plan_enhancements(self):
+        plan = compose(ASSET_DIRS["chapter-plan"], _ctx_direction(channel="女频"), [])
+        self.assertIn("场景序列指引（接章级单元机器三拍）", plan)
+        self.assertIn("债权兑付对接", plan)
+        rev = compose(ASSET_DIRS["chapter-plan-review"], _ctx_direction(channel="女频"), [])
+        self.assertIn("三拍完整", rev)
+        self.assertIn("唯一权威源", rev)
+        self.assertIn("频道轴审查：女频", rev)
 
 
 class ComposeDeterminism(unittest.TestCase):

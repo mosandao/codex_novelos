@@ -238,7 +238,7 @@
     },
     {
       "asset": "chapter_plan",
-      "composer_key": null,
+      "composer_key": "chapter-plan",
       "skill": "planning/chapter-plan-execution-card",
       "slots": [
         "upstream:volume_outline",
@@ -252,7 +252,7 @@
     },
     {
       "asset": "chapter-plan-review",
-      "composer_key": null,
+      "composer_key": "chapter-plan-review",
       "skill": "review/planning-chapter-plan-review",
       "slots": [
         "subject",

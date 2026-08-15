@@ -7,6 +7,8 @@
 - 精确上游：已锁定的 `volume_outline` 与近期 Canon 上下文
 
 ## 检查清单
+0. **三拍完整**：每场声明分级/执行/结算位置——只有执行无结算或只有结算无分级 = blocking；跨章半循环无衔接点 = warning。
+0b. **钩子强度合规**：metadata `hook_strength` 已标注且判级与 `catalog/skills/craft/prose-webnovel-accessibility` §3 一致（唯一权威源）——开篇/卷末章非强钩子 = blocking；弱钩子 = blocking。
 1. **场景目标**：本章核心场景的矛盾对抗与推进目标是否明确。
 2. **冲突阶梯**：场景内部的张力与冲突是否呈阶梯递进。
 3. **信息揭示**：本章揭示的关键信息与知识边界是否合规。

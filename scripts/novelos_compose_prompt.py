@@ -54,6 +54,8 @@ ASSET_DIRS = {
     "story-arc-review": ROOT / "catalog/skills/review/planning-story-arc-review",
     "volume-outline": ROOT / "catalog/skills/planning/volume-outline",
     "volume-outline-review": ROOT / "catalog/skills/review/planning-volume-outline-review",
+    "chapter-plan": ROOT / "catalog/skills/planning/chapter-plan-execution-card",
+    "chapter-plan-review": ROOT / "catalog/skills/review/planning-chapter-plan-review",
 }
 
 # 主干自检节标题（匹配行首；该节被剪切到输出尾部，模块附加自检附于其后）
