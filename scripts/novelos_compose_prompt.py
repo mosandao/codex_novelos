@@ -25,6 +25,7 @@ import json
 import re
 import sqlite3
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -353,6 +354,48 @@ def validate_fusion_payload(payload: dict[str, Any]) -> None:
         raise SystemExit(f"向导载荷不符合 project-create-request schema: {exc.message}")
 
 
+# ---------------------------------------------------------------- 组装日志
+# 每次组装落盘完整注入文本 + 追加 index.jsonl（content_hash / 命中模块 / 声明槽位 /
+# 发散档位 / 决策权限）——「这次生成看到了什么」可回查，精细 stale 与审查取证的地基。
+
+COMPOSITIONS_DIR = ROOT / "data" / "compositions"
+
+
+def content_hash(text: str) -> str:
+    import hashlib
+
+    return "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def write_composition_log(log_dir: Path, skill_dir: Path, asset: str, scope: str,
+                          text: str, context: dict[str, Any]) -> Path:
+    """把一次组装的产物与路由事实记入日志目录，返回产物文件路径。"""
+    manifest = load_manifest(skill_dir)
+    module_ids = [mid for mid, _ in select_modules(skill_dir, context)]
+    digest = content_hash(text)
+    ts = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
+    safe_scope = re.sub(r"[^A-Za-z0-9._-]", "_", scope)
+    rel = Path(safe_scope) / asset / f"{ts}-{digest[7:19]}.md"
+    dest = log_dir / rel
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_text(text, encoding="utf-8")
+    entry = {
+        "ts": ts,
+        "asset": asset,
+        "scope": scope,
+        "content_hash": digest,
+        "modules": module_ids,
+        "data_slots": manifest.get("data_slots", []),
+        "divergence": manifest.get("divergence"),
+        "decision_scope": manifest.get("decision_scope"),
+        "file": str(rel),
+    }
+    index = log_dir / "index.jsonl"
+    with index.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    return dest
+
+
 # ---------------------------------------------------------------- CLI
 
 def main() -> int:
@@ -360,6 +403,9 @@ def main() -> int:
     parser.add_argument("--asset", required=True, choices=sorted(ASSET_DIRS))
     parser.add_argument("--project", help="项目 ID（direction / direction-review 模式）")
     parser.add_argument("--payload", help="向导 JSON 路径（fusion 模式）")
+    parser.add_argument("--log-dir", default=str(COMPOSITIONS_DIR),
+                        help="组装日志目录（default: data/compositions/）")
+    parser.add_argument("--no-log", action="store_true", help="不写组装日志")
     args = parser.parse_args()
 
     skill_dir = ASSET_DIRS[args.asset]
@@ -380,7 +426,13 @@ def main() -> int:
     finally:
         conn.close()
 
-    sys.stdout.write(compose(skill_dir, context, data) + "\n")
+    output = compose(skill_dir, context, data)
+    if not args.no_log:
+        scope = args.project or "wizard"
+        logged = write_composition_log(Path(args.log_dir), skill_dir, args.asset,
+                                       scope, output, context)
+        print(f"[compose] logged: {logged}", file=sys.stderr)
+    sys.stdout.write(output + "\n")
     return 0
 
 

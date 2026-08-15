@@ -25,3 +25,4 @@ tasks/experiments/agent_quality/results/work/
 *.p12
 *.pfx
 data/*.db.bak
+data/compositions/
