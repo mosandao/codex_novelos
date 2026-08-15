@@ -86,7 +86,7 @@ Character 与 World 可以并行生成。每个规划资产存入 `planning_asse
 | 写作智能体 | 正文 | — | `writing/chapter-draft-generation` | Chapter Plan |
 | 审查智能体 | 审查 Receipt | — | `review/prose-quality-review` 等 | subject + 上游原文 |
 
-创建 sub agent 时获取方法论的方式按资产分流：**已模块化资产**（fusion / direction / direction-review）用组装器 `scripts/novelos_compose_prompt.py --asset <asset>` 一步产出完整注入文本（主干 + 按 setup 路由的条件模块 + 输入数据区 + 自检汇总），不 Read prompt.md、不手工拼注入；**未模块化资产**暂 Read 对应 `catalog/skills/<分类>/<目录名>/prompt.md` 注入，Task 29 P2 完成后逐一切换为组装器。
+创建 sub agent 时获取方法论的方式按资产分流（以 `scripts/novelos_compose_prompt.py` 的 **ASSET_DIRS 注册表**为准）：**已注册资产**用组装器 `--asset <asset>` 一步产出完整注入文本（主干 + 按 setup 路由的条件模块 + 输入数据区 + 自检汇总；审查资产另需 `--subject`），不 Read prompt.md、不手工拼注入；**未注册资产**暂 Read 对应 `catalog/skills/<分类>/<目录名>/prompt.md` 注入，Task 29 P2 完成后逐一切换为组装器。
 
 ## 小说工作流
 

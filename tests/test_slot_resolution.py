@@ -31,9 +31,60 @@ def _make_db() -> sqlite3.Connection:
             id TEXT PRIMARY KEY, profile_id TEXT, parent_version_id TEXT,
             created_at TEXT, content_resource_id TEXT, subject_hash TEXT);
         CREATE TABLE project_creator_bindings (project_id TEXT, profile_version_id TEXT);
+        CREATE TABLE planning_assets (
+            id TEXT PRIMARY KEY, project_id TEXT, asset_type TEXT, scope_ref TEXT,
+            revision INTEGER, status TEXT, content_resource_id TEXT, metadata_json TEXT);
         """
     )
     return conn
+
+
+def _seed_locked_direction(conn: sqlite3.Connection) -> None:
+    conn.execute("INSERT INTO resources VALUES ('res:d1', CAST(? AS BLOB))",
+                 ("# 故事方向（locked）\n力量货币：名望账。",))
+    conn.execute(
+        "INSERT INTO planning_assets VALUES "
+        "('pa:d1', 'project:p1', 'direction', 'book', 1, 'locked', 'res:d1', '{}')")
+    conn.execute(
+        "INSERT INTO planning_assets VALUES "
+        "('pa:a1', 'project:p1', 'architecture', 'book', 1, 'candidate', 'res:d1', '{\"engines\": []}')")
+
+
+class UpstreamAndSubjectSlots(unittest.TestCase):
+    """architecture 链路合成素材实测：upstream 槽注入 locked 原文，subject 槽注入被审对象。"""
+
+    def test_architecture_upstream_slot(self):
+        conn = _make_db()
+        _seed_user_persona(conn)
+        _seed_locked_direction(conn)
+        sections = resolve_slots(conn, ASSET_DIRS["architecture"], project_id="project:p1")
+        titles = [t for t, _ in sections]
+        self.assertEqual(titles[0], "project_setup v2 快照（硬输入）")
+        self.assertTrue(titles[2].startswith("上游 direction（scope: book，locked rev 1"))
+        self.assertIn("力量货币：名望账", sections[2][1])
+
+    def test_missing_upstream_stops(self):
+        conn = _make_db()
+        _seed_user_persona(conn)  # 无 locked direction
+        with self.assertRaises(SystemExit):
+            resolve_slots(conn, ASSET_DIRS["architecture"], project_id="project:p1")
+
+    def test_review_subject_slot(self):
+        conn = _make_db()
+        _seed_user_persona(conn)
+        _seed_locked_direction(conn)
+        sections = resolve_slots(conn, ASSET_DIRS["architecture-review"],
+                                 project_id="project:p1", subject_id="pa:a1")
+        self.assertTrue(sections[0][0].startswith("被审对象全文（subject: pa:a1）"))
+        self.assertIn("engines", sections[0][1])  # metadata 注入
+        self.assertTrue(sections[1][0].startswith("上游 direction"))
+
+    def test_subject_slot_requires_arg(self):
+        conn = _make_db()
+        _seed_user_persona(conn)
+        _seed_locked_direction(conn)
+        with self.assertRaises(SystemExit):
+            resolve_slots(conn, ASSET_DIRS["architecture-review"], project_id="project:p1")
 
 
 def _seed_user_persona(conn: sqlite3.Connection) -> None:

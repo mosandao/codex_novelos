@@ -96,7 +96,7 @@ Task 28（Agent Prompt 增强队列）剩余范围由本任务吸收执行，映
 
 - [ ] **P2-0 阶段配方矩阵（设计基线）**：在 `documentation/agent-recipes.md` 落一张全资产矩阵——每个资产/审查场景一行，列 = **消费槽位配方（加载什么）× 发散档位（怎么想）× 决策权限（能定什么）× 输出契约（JSON schema 或文本形态）× 失败行为（进修复循环 / 上报裁决 / 组装重试）**。P2-1..P2-9 照矩阵实现；manifest 与矩阵不一致即测试失败。
   - 验收：矩阵覆盖 P2 全部资产 + 已模块化三个资产；新增 `test_recipe_matrix` 校验各 manifest 的 data_slots/divergence/decision_scope 与矩阵一致；四命令全绿。
-- [ ] **P2-1 story-architecture + planning-architecture-review**（含 28 阶段 2 小补丁；前置：P0-2 的 direction 增补模块）— divergence: expansive
+- [x] **P2-1 story-architecture + planning-architecture-review**（含 28 阶段 2 小补丁：power_currency 进翻译表、代价条款引用五种形态、十三字段措辞同步；新增五模块×2：频道轴架构翻译（男/女/全向）+ 平台节奏适配（免费/付费），审查端 check-* 对偶）+ **核心使能件**：upstream:&lt;type&gt; 槽位（locked 上游原文按 scope 分节、缺失即停）、subject 槽位（被审对象全文+metadata）、CLI `--subject`、项目域资产通用分流。路由改为「以 ASSET_DIRS 注册表为准」（后续 P2 各项自动生效）。矩阵回填 architecture / architecture-review composer_key。
 - [ ] **P2-2 story-strategy + planning-strategy-review**（28 阶段 3）— balanced
 - [ ] **P2-3 world-contract + planning-world-contract-review ‖ character-contract + planning-character-contract-review**（28 阶段 4，两项可并行）— balanced
 - [ ] **P2-4 story-arc + planning-story-arc-review**（28 阶段 5）— balanced

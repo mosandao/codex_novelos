@@ -20,6 +20,8 @@ SIZE_BUDGET = {
     "direction": 180,
     "direction-review": 120,
     "fusion": 280,
+    "architecture": 130,
+    "architecture-review": 60,
 }
 
 # 频道/模式标记行：用于断言「装了 A 就不能装 B」的路由正确性。
@@ -242,6 +244,8 @@ class SizeBudget(unittest.TestCase):
             ("direction", worst_direction),
             ("direction-review", _ctx_direction(channel="女频")),
             ("fusion", worst_fusion),
+            ("architecture", worst_direction),
+            ("architecture-review", _ctx_direction(channel="女频")),
         ):
             out = compose(ASSET_DIRS[asset], ctx, [])
             lines = len(out.splitlines())
@@ -250,6 +254,35 @@ class SizeBudget(unittest.TestCase):
                 f"{asset} 组装结果 {lines} 行超预算 {SIZE_BUDGET[asset]}——"
                 "检查是否有人把条件条款回填了主干",
             )
+
+
+class ArchitectureRouting(unittest.TestCase):
+    """architecture 双端：频道/平台模块互斥 + 审查端与生成端同维度路由。"""
+
+    def test_channel_exclusive(self):
+        for channel, marker in (("男频", "频道轴的架构翻译：男频"), ("女频", "频道轴的架构翻译：女频")):
+            ctx = _ctx_direction(channel=channel)
+            out = compose(ASSET_DIRS["architecture"], ctx, [])
+            self.assertIn(marker, out)
+        both = compose(ASSET_DIRS["architecture"], _ctx_direction(), [])
+        self.assertNotIn("频道轴的架构翻译：女频", both)
+        self.assertIn("代价条款须引用 direction 声明的代价形态", both)  # 阶段2补丁落地
+
+    def test_platform_exclusive(self):
+        free = compose(ASSET_DIRS["architecture"], _ctx_direction(), [])
+        self.assertIn("平台节奏适配：免费算法", free)
+        paid = compose(ASSET_DIRS["architecture"], _ctx_direction(model="付费订阅"), [])
+        self.assertIn("平台节奏适配：付费订阅", paid)
+        self.assertNotIn("平台节奏适配：免费算法", paid)
+
+    def test_review_matches_generation(self):
+        for channel in ("男频", "女频", "全向"):
+            ctx = _ctx_direction(channel=channel)
+            gen = compose(ASSET_DIRS["architecture"], ctx, [])
+            rev = compose(ASSET_DIRS["architecture-review"], ctx, [])
+            axis = {"男频": "男频", "女频": "女频", "全向": "全向"}[channel]
+            self.assertIn(f"频道轴的架构翻译：{axis}", gen)
+            self.assertIn(f"频道轴审查：{axis}", rev)
 
 
 class ComposeDeterminism(unittest.TestCase):

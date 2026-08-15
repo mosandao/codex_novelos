@@ -35,11 +35,15 @@ ARCHETYPE_CONFIG = ROOT / "config" / "system_archetypes.json"
 MANIFEST_SCHEMA = ROOT / "config" / "schemas" / "compose-manifest.schema.json"
 CREATE_REQUEST_SCHEMA = ROOT / "config" / "schemas" / "project-create-request.schema.json"
 
-# asset → skill 目录（prompt.md 所在目录；modules/ 在同目录下）
+# asset → skill 目录（prompt.md 所在目录；modules/ 在同目录下）。
+# 除 fusion（--payload 向导载荷域）外全部为项目域（--project）；
+# 审查资产另需 --subject（被审对象 planning_asset ID）。
 ASSET_DIRS = {
     "direction": ROOT / "catalog/skills/planning/story-direction",
     "direction-review": ROOT / "catalog/skills/review/planning-direction-review",
     "fusion": ROOT / "catalog/skills/onboarding/creator-signature-fusion",
+    "architecture": ROOT / "catalog/skills/planning/story-architecture",
+    "architecture-review": ROOT / "catalog/skills/review/planning-architecture-review",
 }
 
 # 主干自检节标题（匹配行首；该节被剪切到输出尾部，模块附加自检附于其后）
@@ -277,7 +281,8 @@ def _load_archetypes() -> list[dict[str, Any]]:
 
 
 def _slot_project_setup(conn: sqlite3.Connection, project_id: str | None,
-                        payload: dict[str, Any] | None) -> tuple[str, str]:
+                        payload: dict[str, Any] | None,
+                        subject_id: str | None = None) -> tuple[str, str]:
     if project_id is not None:
         row = conn.execute(
             "SELECT metadata_json FROM projects WHERE id = ?", (project_id,)
@@ -290,7 +295,8 @@ def _slot_project_setup(conn: sqlite3.Connection, project_id: str | None,
 
 
 def _slot_persona_full(conn: sqlite3.Connection, project_id: str | None,
-                       payload: dict[str, Any] | None) -> tuple[str, str]:
+                       payload: dict[str, Any] | None,
+                       subject_id: str | None = None) -> tuple[str, str]:
     row = conn.execute(
         "SELECT CAST(r.content AS TEXT), v.subject_hash FROM project_creator_bindings b "
         "JOIN creator_profile_versions v ON v.id = b.profile_version_id "
@@ -309,7 +315,8 @@ def _fusion_selected_ids(payload: dict[str, Any]) -> list[str]:
 
 
 def _slot_selected_archetypes(conn: sqlite3.Connection, project_id: str | None,
-                              payload: dict[str, Any] | None) -> tuple[str, str]:
+                              payload: dict[str, Any] | None,
+                              subject_id: str | None = None) -> tuple[str, str]:
     archetypes = _load_archetypes()
     by_key = {f"creator-profile-version:{a['id']}:{a['revision']}": a for a in archetypes}
     selected_ids = _fusion_selected_ids(payload)
@@ -322,24 +329,69 @@ def _slot_selected_archetypes(conn: sqlite3.Connection, project_id: str | None,
 
 
 def _slot_archetype_roster(conn: sqlite3.Connection, project_id: str | None,
-                           payload: dict[str, Any] | None) -> tuple[str, str]:
+                           payload: dict[str, Any] | None,
+                           subject_id: str | None = None) -> tuple[str, str]:
     roster = "\n".join(f"- {a['id']}：{a['display_name']}" for a in _load_archetypes())
     return ("系统原型全库一行式清单（仅作语境：库里还有什么；禁止从清单外原型取材）", roster)
 
 
 def _slot_persona_hints(conn: sqlite3.Connection, project_id: str | None,
-                        payload: dict[str, Any] | None) -> tuple[str, str]:
+                        payload: dict[str, Any] | None,
+                        subject_id: str | None = None) -> tuple[str, str]:
     hints = payload["setup"]["creator"]["user_persona_hints"]
     return ("user_persona_hints（人格素材）", json.dumps(hints, ensure_ascii=False, indent=1))
 
 
 def _slot_persona_fingerprints(conn: sqlite3.Connection, project_id: str | None,
-                               payload: dict[str, Any] | None) -> tuple[str, str]:
+                               payload: dict[str, Any] | None,
+                               subject_id: str | None = None) -> tuple[str, str]:
     fingerprints = _persona_fingerprints_query(conn, _fusion_selected_ids(payload))
     if fingerprints:
         return ("跨批次比对基准人格（existing_persona_fingerprints，按量化范围取数）",
                 json.dumps(fingerprints, ensure_ascii=False, indent=1))
     return ("跨批次比对基准人格", "（人格库为空——首个人格，按空库模块执行）")
+
+
+def _slot_subject(conn: sqlite3.Connection, project_id: str | None,
+                  payload: dict[str, Any] | None,
+                  subject_id: str | None) -> tuple[str, str]:
+    """被审对象全文（candidate/locked 资产正文 + metadata）——审查组装的必需槽。"""
+    if subject_id is None:
+        raise SystemExit("该资产声明 subject 槽位，CLI 需要 --subject <planning_asset_id>")
+    row = conn.execute(
+        "SELECT pa.asset_type, pa.scope_ref, pa.revision, pa.status, "
+        "       CAST(r.content AS TEXT) AS body, pa.metadata_json "
+        "FROM planning_assets pa JOIN resources r ON r.id = pa.content_resource_id "
+        "WHERE pa.id = ?",
+        (subject_id,),
+    ).fetchone()
+    if row is None:
+        raise SystemExit(f"被审对象不存在: {subject_id}")
+    header = (f"asset_type: {row[0]} | scope: {row[1]} | revision: {row[2]} | "
+              f"status: {row[3]}")
+    meta = row[5] or "{}"
+    return (f"被审对象全文（subject: {subject_id}）",
+            f"{header}\n\n{row[4]}\n\n--- metadata ---\n{meta}")
+
+
+def _slot_upstream(conn: sqlite3.Connection, asset_type: str,
+                   project_id: str | None) -> list[tuple[str, str]]:
+    """locked 上游资产原文，按 scope 分节（每 scope 取最高 revision）。缺失即停。"""
+    rows = conn.execute(
+        "SELECT pa.scope_ref, pa.revision, CAST(r.content AS TEXT) AS body "
+        "FROM planning_assets pa JOIN resources r ON r.id = pa.content_resource_id "
+        "WHERE pa.project_id = ? AND pa.asset_type = ? AND pa.status = 'locked' "
+        "ORDER BY pa.scope_ref, pa.revision",
+        (project_id, asset_type),
+    ).fetchall()
+    if not rows:
+        raise SystemExit(f"无 locked 上游 {asset_type}——上游缺失即停止，禁止无上游生成")
+    latest: dict[str, tuple[int, str]] = {}
+    for scope, revision, body in rows:
+        if scope not in latest or revision > latest[scope][0]:
+            latest[scope] = (revision, body)
+    return [(f"上游 {asset_type}（scope: {scope}，locked rev {rev}，原文）", body)
+            for scope, (rev, body) in sorted(latest.items())]
 
 
 SLOT_REGISTRY: dict[str, Any] = {
@@ -349,20 +401,28 @@ SLOT_REGISTRY: dict[str, Any] = {
     "archetype_roster": _slot_archetype_roster,
     "persona_hints": _slot_persona_hints,
     "persona_fingerprints": _slot_persona_fingerprints,
+    "subject": _slot_subject,
 }
 
 
 def resolve_slots(conn: sqlite3.Connection, skill_dir: Path, *,
                   project_id: str | None = None,
-                  payload: dict[str, Any] | None = None) -> list[tuple[str, str]]:
-    """按 manifest 的 data_slots 声明顺序解析注入槽位。未注册槽位即报错。"""
+                  payload: dict[str, Any] | None = None,
+                  subject_id: str | None = None) -> list[tuple[str, str]]:
+    """按 manifest 的 data_slots 声明顺序解析注入槽位。未注册槽位即报错。
+
+    upstream:<asset_type> 为前缀族槽位，展开为多节（每 scope 一节）。
+    """
     manifest = load_manifest(skill_dir)
     sections: list[tuple[str, str]] = []
     for slot in manifest.get("data_slots", []):
+        if slot.startswith("upstream:"):
+            sections.extend(_slot_upstream(conn, slot[len("upstream:"):], project_id))
+            continue
         resolver = SLOT_REGISTRY.get(slot)
         if resolver is None:
             raise SystemExit(f"未注册的槽位: {slot}（{skill_dir.name}）")
-        sections.append(resolver(conn, project_id, payload))
+        sections.append(resolver(conn, project_id, payload, subject_id))
     return sections
 
 
@@ -434,7 +494,8 @@ def write_composition_log(log_dir: Path, skill_dir: Path, asset: str, scope: str
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--asset", required=True, choices=sorted(ASSET_DIRS))
-    parser.add_argument("--project", help="项目 ID（direction / direction-review 模式）")
+    parser.add_argument("--project", help="项目 ID（除 fusion 外的全部资产）")
+    parser.add_argument("--subject", help="被审对象 planning_asset ID（声明 subject 槽的审查资产必需）")
     parser.add_argument("--payload", help="向导 JSON 路径（fusion 模式）")
     parser.add_argument("--log-dir", default=str(COMPOSITIONS_DIR),
                         help="组装日志目录（default: data/compositions/）")
@@ -445,18 +506,19 @@ def main() -> int:
     skill_dir = ASSET_DIRS[args.asset]
     conn = sqlite3.connect(DB_PATH)
     try:
-        if args.asset in ("direction", "direction-review"):
-            if not args.project:
-                parser.error(f"--asset {args.asset} 需要 --project")
-            context = build_context_direction(conn, args.project)
-            data = resolve_slots(conn, skill_dir, project_id=args.project)
-        else:
+        if args.asset == "fusion":
             if not args.payload:
                 parser.error("--asset fusion 需要 --payload")
             payload = json.loads(Path(args.payload).read_text(encoding="utf-8"))
             validate_fusion_payload(payload)
             context = build_context_fusion(conn, payload)
             data = resolve_slots(conn, skill_dir, payload=payload)
+        else:
+            if not args.project:
+                parser.error(f"--asset {args.asset} 需要 --project")
+            context = build_context_direction(conn, args.project)
+            data = resolve_slots(conn, skill_dir, project_id=args.project,
+                                 subject_id=args.subject)
     finally:
         conn.close()
 
