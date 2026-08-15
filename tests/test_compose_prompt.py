@@ -81,6 +81,52 @@ class ManifestIntegrity(unittest.TestCase):
                 self.assertEqual(actual, declared, f"{asset} modules/ 存在未声明文件")
 
 
+class ManifestSchema(unittest.TestCase):
+    """manifest v2：过 compose-manifest.schema.json 校验门 + 顶层声明断言。"""
+
+    SCHEMA_PATH = REPO_ROOT / "config" / "schemas" / "compose-manifest.schema.json"
+
+    def setUp(self):
+        import jsonschema
+
+        self.jsonschema = jsonschema
+        self.schema = json.loads(self.SCHEMA_PATH.read_text(encoding="utf-8"))
+
+    def test_all_manifests_pass_schema(self):
+        for asset, skill_dir in ASSET_DIRS.items():
+            with self.subTest(asset=asset):
+                data = json.loads(
+                    (skill_dir / "modules" / "manifest.json").read_text(encoding="utf-8")
+                )
+                self.jsonschema.validate(data, self.schema)
+
+    def test_top_level_declarations(self):
+        direction = json.loads(
+            (ASSET_DIRS["direction"] / "modules" / "manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual(direction["divergence"], "expansive")
+        self.assertEqual(direction["decision_scope"], "propose_only")
+        self.assertIn("persona_full", direction["data_slots"])
+
+        review = json.loads(
+            (ASSET_DIRS["direction-review"] / "modules" / "manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual(review["decision_scope"], "judge")
+        self.assertNotIn("divergence", review)  # 审查档位跟随被审对象
+
+        fusion = json.loads(
+            (ASSET_DIRS["fusion"] / "modules" / "manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual(fusion["decision_scope"], "flag")
+        self.assertEqual(fusion["divergence"], "expansive")
+
+    def test_schema_rejects_unknown_fields(self):
+        bad = {"modules": [{"id": "x", "file": "x.md", "when": {"field": "a", "equals": 1},
+                            "typo": True}]}
+        with self.assertRaises(self.jsonschema.ValidationError):
+            self.jsonschema.validate(bad, self.schema)
+        bad_top = {"modules": [], "divergence": "wild"}
+        with self.assertRaises(self.jsonschema.ValidationError):
+            self.jsonschema.validate(bad_top, self.schema)
+
+
 class EnumCoverage(unittest.TestCase):
     """每个枚举维度（channel 三值、model 两值、genre 两态、库规模三档、原型数两档）
     至少命中一个模块——向导新增取值后漏配模块在这里红灯。"""

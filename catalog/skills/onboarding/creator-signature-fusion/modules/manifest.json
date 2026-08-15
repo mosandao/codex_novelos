@@ -1,26 +1,107 @@
 {
   "modules": [
-    {"id": "channel-male", "file": "channel-male.md",
-     "when": {"field": "setup.channel", "equals": "男频"}},
-    {"id": "channel-female", "file": "channel-female.md",
-     "when": {"field": "setup.channel", "equals": "女频"}},
-    {"id": "channel-omni", "file": "channel-omni.md",
-     "when": {"field": "setup.channel", "equals": "全向"}},
-    {"id": "library-empty", "file": "library-empty.md",
-     "when": {"query": "persona_library_count", "op": "==", "value": 0}},
-    {"id": "library-small", "file": "library-small.md",
-     "when": {"all": [
-       {"query": "persona_library_count", "op": ">", "value": 0},
-       {"query": "persona_library_count", "op": "<", "value": 5}]}},
-    {"id": "library-established", "file": "library-established.md",
-     "when": {"query": "persona_library_count", "op": ">=", "value": 5}},
-    {"id": "single-archetype", "file": "single-archetype.md",
-     "when": {"query": "selected_count", "op": "==", "value": 1}},
-    {"id": "multi-archetype", "file": "multi-archetype.md",
-     "when": {"query": "selected_count", "op": ">=", "value": 2}},
-    {"id": "genre-present", "file": "genre-present.md",
-     "when": {"field": "setup.genre_profile", "not_null": true}},
-    {"id": "genre-null", "file": "genre-null.md",
-     "when": {"field": "setup.genre_profile", "is_null": true}}
-  ]
+    {
+      "id": "channel-male",
+      "file": "channel-male.md",
+      "when": {
+        "field": "setup.channel",
+        "equals": "男频"
+      }
+    },
+    {
+      "id": "channel-female",
+      "file": "channel-female.md",
+      "when": {
+        "field": "setup.channel",
+        "equals": "女频"
+      }
+    },
+    {
+      "id": "channel-omni",
+      "file": "channel-omni.md",
+      "when": {
+        "field": "setup.channel",
+        "equals": "全向"
+      }
+    },
+    {
+      "id": "library-empty",
+      "file": "library-empty.md",
+      "when": {
+        "query": "persona_library_count",
+        "op": "==",
+        "value": 0
+      }
+    },
+    {
+      "id": "library-small",
+      "file": "library-small.md",
+      "when": {
+        "all": [
+          {
+            "query": "persona_library_count",
+            "op": ">",
+            "value": 0
+          },
+          {
+            "query": "persona_library_count",
+            "op": "<",
+            "value": 5
+          }
+        ]
+      }
+    },
+    {
+      "id": "library-established",
+      "file": "library-established.md",
+      "when": {
+        "query": "persona_library_count",
+        "op": ">=",
+        "value": 5
+      }
+    },
+    {
+      "id": "single-archetype",
+      "file": "single-archetype.md",
+      "when": {
+        "query": "selected_count",
+        "op": "==",
+        "value": 1
+      }
+    },
+    {
+      "id": "multi-archetype",
+      "file": "multi-archetype.md",
+      "when": {
+        "query": "selected_count",
+        "op": ">=",
+        "value": 2
+      }
+    },
+    {
+      "id": "genre-present",
+      "file": "genre-present.md",
+      "when": {
+        "field": "setup.genre_profile",
+        "not_null": true
+      }
+    },
+    {
+      "id": "genre-null",
+      "file": "genre-null.md",
+      "when": {
+        "field": "setup.genre_profile",
+        "is_null": true
+      }
+    }
+  ],
+  "data_slots": [
+    "selected_archetypes",
+    "archetype_roster",
+    "persona_hints",
+    "project_setup",
+    "persona_fingerprints"
+  ],
+  "divergence": "expansive",
+  "decision_scope": "flag"
 }

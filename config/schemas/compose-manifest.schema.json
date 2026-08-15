@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://novelos.local/schemas/compose-manifest.schema.json",
+  "title": "NovelOS 组装 manifest（v2）",
+  "description": "方法论组装器的技能声明：modules（when 条件路由）+ data_slots（声明式注入槽）+ divergence（发散档位）+ decision_scope（决策权限）。槽位 id 约定：project_setup / persona_full / selected_archetypes / archetype_roster / persona_hints / persona_fingerprints / genre_pack / reference_material / canon_minimal / review_feedback / subject / craft_refs / upstream:<asset_type>",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["modules"],
+  "properties": {
+    "modules": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/module"}
+    },
+    "data_slots": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^[a-z_]+(:[a-z_]+)?$"}
+    },
+    "divergence": {"enum": ["expansive", "balanced", "constrained"]},
+    "decision_scope": {"enum": ["propose_only", "judge", "execute", "flag"]}
+  },
+  "$defs": {
+    "module": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "file"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "file": {"type": "string", "minLength": 1},
+        "when": {"$ref": "#/$defs/when_rule"}
+      }
+    },
+    "when_rule": {
+      "oneOf": [
+        {"$ref": "#/$defs/field_rule"},
+        {"$ref": "#/$defs/query_rule"},
+        {"$ref": "#/$defs/all_rule"}
+      ]
+    },
+    "field_rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["field"],
+      "properties": {
+        "field": {"type": "string", "minLength": 1},
+        "equals": {},
+        "not_null": {"const": true},
+        "is_null": {"const": true},
+        "non_empty": {"const": true}
+      }
+    },
+    "query_rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["query", "op"],
+      "properties": {
+        "query": {"type": "string", "minLength": 1},
+        "op": {"enum": ["==", "!=", "<", "<=", ">", ">="]},
+        "value": {}
+      }
+    },
+    "all_rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["all"],
+      "properties": {
+        "all": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/when_rule"}
+        }
+      }
+    }
+  }
+}

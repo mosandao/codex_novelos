@@ -69,7 +69,7 @@ Task 28（Agent Prompt 增强队列）剩余范围由本任务吸收执行，映
 
 ### P1 组装器通用化（schema + 槽位 + 日志）
 
-- [ ] **P1-1 manifest schema v2**：`config/schemas/compose-manifest.schema.json`——在现有 `when` 上增加 `data_slots`（声明式注入槽：`genre_pack` / `reference_material` / `persona_full` / `canon_minimal` / `upstream:<asset_type>` / `review_feedback` / **`subject`（被审对象全文——审查与改稿组装的必需槽，对应 novel-review 的 subject + 上游原文输入契约）** / **`craft_refs`（审查/写作引用的 craft 方法卡，清单来源 = novel-review SKILL.md 的 craft 引用表）**）、`divergence`（`expansive` / `balanced` / `constrained` 三档）与 **`decision_scope`（决策权限四档，收编现在散落各 prompt 的隐含惯例为显式契约：`propose_only` 只出候选不选择（direction/fusion 现状） / `judge` 出 verdict + 证据但豁免与带病接受归主控（review 现状） / `execute` 照合同执行无重订权（writer 现状） / `flag` 发现冲突必须上报禁止静默调和（fusion 上报裁决协议现状））**。组装器加载 manifest 时先过 jsonschema。模块清单的 `file` 字段允许**跨包引用共享库**——`expansions/`、`craft/` 原位保留为共享模块/方法卡库，不搬家。
+- [x] **P1-1 manifest schema v2**：`config/schemas/compose-manifest.schema.json`——在现有 `when` 上增加 `data_slots`（声明式注入槽：`genre_pack` / `reference_material` / `persona_full` / `canon_minimal` / `upstream:<asset_type>` / `review_feedback` / **`subject`（被审对象全文——审查与改稿组装的必需槽，对应 novel-review 的 subject + 上游原文输入契约）** / **`craft_refs`（审查/写作引用的 craft 方法卡，清单来源 = novel-review SKILL.md 的 craft 引用表）**）、`divergence`（`expansive` / `balanced` / `constrained` 三档）与 **`decision_scope`（决策权限四档，收编现在散落各 prompt 的隐含惯例为显式契约：`propose_only` 只出候选不选择（direction/fusion 现状） / `judge` 出 verdict + 证据但豁免与带病接受归主控（review 现状） / `execute` 照合同执行无重订权（writer 现状） / `flag` 发现冲突必须上报禁止静默调和（fusion 上报裁决协议现状））**。组装器加载 manifest 时先过 jsonschema。模块清单的 `file` 字段允许**跨包引用共享库**——`expansions/`、`craft/` 原位保留为共享模块/方法卡库，不搬家。
   - 发散度档位定义（生成端指令与审查端 rubric 同源）：
     | 档位 | 适用资产 | 生成端要点 | 审查端对应 |
     |---|---|---|---|
@@ -78,7 +78,8 @@ Task 28（Agent Prompt 增强队列）剩余范围由本任务吸收执行，映
     | constrained | chapter-draft, expansions, continuity 提取 | 逐字锚定 style_refs / persona anchors、防指纹禁令 | 逐项清单 + blocking 判据 |
 
     横切审查（cross-consistency / quality / entity-authority）不单独立档，**跟随被审对象的档位**。
-  - 验收：新增 `test_manifest_schema` 校验现有 3 个 manifest 通过；四命令全绿。
+  - 已落地：三个 manifest 补齐顶层声明（direction=expansive/propose_only；direction-review=judge/无 divergence；fusion=expansive/flag）；`load_manifest` 加载即校验；跨包引用经 `file` 相对路径天然支持（P2-9 使用）。
+  - 验收：新增 `test_manifest_schema`（schema 通过 + 顶层声明断言 + 未知字段拒绝）；54 tests OK；四命令全绿。
 - [ ] **P1-2 槽位解析框架**：`_direction_data_sections` / `_fusion_data_sections` 硬编码改为按 manifest `data_slots` 声明解析；实现槽位注册表（slot id → resolver）。**迁移不改行为**。另：fusion 载荷解析与 `novelos_create_project.py` 共用同一 jsonschema 校验（复用 `project-create-request.schema.json` 加载器），防止向导契约漂移时两处解析各自为政。
   - 验收：快照测试证明改造前后组装输出 byte 级一致（同输入）；四命令全绿。
 - [ ] **P1-3 组装日志**：每次组装写 `data/compositions/<scope>/<asset>/<timestamp>.md` + 追加 `index.jsonl`（content_hash、命中模块 id、槽位清单、输入 key 版本）。CLI 加 `--log-dir` / `--no-log`。`.gitignore` 增加 `data/compositions/`。
@@ -175,3 +176,7 @@ P5 依赖 P1-3 且为可选
   - 验证：51 tests OK；hygiene exit 0；manifest exit 0
   - 文档变更：`.agents/skills/novel-project/SKILL.md`（第 2 步改 composer 流，消除与 AGENTS.md 的矛盾）；`.agents/skills/novel-planning/SKILL.md`（第 3 步分流规则）；`.agents/skills/novel-review/SKILL.md`（第 2 步分流规则）；`AGENTS.md`（Agent 角色段通用注入规则分流）
   - 备注：残留 prompt.md 引用均为未模块化资产（P2-7/P2-9 切换）
+
+- **[T29-P1-1] manifest schema v2** — 2026-08-15 / commit 待填
+  - 验证：54 tests OK；hygiene exit 0；manifest exit 0
+  - 文档变更：`config/schemas/compose-manifest.schema.json`（新增）；三个 `modules/manifest.json`（顶层 v2 声明）；`scripts/novelos_compose_prompt.py`（load_manifest 校验门）；`tests/test_compose_prompt.py`（ManifestSchema 三测试）

@@ -31,6 +31,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 DB_PATH = ROOT / "data" / "novelos-v2.db"
 ARCHETYPE_CONFIG = ROOT / "config" / "system_archetypes.json"
+MANIFEST_SCHEMA = ROOT / "config" / "schemas" / "compose-manifest.schema.json"
 
 # asset → skill 目录（prompt.md 所在目录；modules/ 在同目录下）
 ASSET_DIRS = {
@@ -94,16 +95,24 @@ def evaluate_when(rule: dict[str, Any], context: dict[str, Any]) -> bool:
 
 # ---------------------------------------------------------------- 模块选择
 
-def load_manifest(skill_dir: Path) -> list[dict[str, Any]]:
+def load_manifest(skill_dir: Path) -> dict[str, Any]:
+    """加载并校验 manifest（compose-manifest schema v2），返回完整声明。
+
+    结构：modules（when 路由）+ 可选 data_slots / divergence / decision_scope。
+    """
     manifest_path = skill_dir / "modules" / "manifest.json"
     data = json.loads(manifest_path.read_text(encoding="utf-8"))
-    return data["modules"]
+    schema = json.loads(MANIFEST_SCHEMA.read_text(encoding="utf-8"))
+    import jsonschema
+
+    jsonschema.validate(data, schema)
+    return data
 
 
 def select_modules(skill_dir: Path, context: dict[str, Any]) -> list[tuple[str, str]]:
     """按 manifest 触发条件选取模块，返回 (id, 正文) 列表（manifest 声明序）。"""
     picked: list[tuple[str, str]] = []
-    for entry in load_manifest(skill_dir):
+    for entry in load_manifest(skill_dir)["modules"]:
         if not evaluate_when(entry.get("when", {}), context):
             continue
         body = (skill_dir / "modules" / entry["file"]).read_text(encoding="utf-8").strip()
