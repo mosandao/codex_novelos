@@ -7,6 +7,8 @@ description: 为小说规划、续写或审查构建最小且连贯的 Canon 上
 
 通过 SQLite MCP 查询数据库构建上下文。SQL 模板见 `novel-project/sql-reference.md`。
 
+> **单一来源约定**：写作/审查/连续性提取的 canon 最小集**优先消费组装器的 `canon_minimal` 槽位**（`.venv/bin/python scripts/novelos_compose_prompt.py --asset <asset> --project <id>` 自动注入六类账本近端条目 + 近期已接受章节摘要，SQL 与 sql-reference.md 模板同源）。本技能用于组装未覆盖的定制检索（特定人物/时间窗口/线索深挖）——检索时沿用 sql-reference.md 模板，禁止另写一套语义重复的 SQL。
+
 ## 工作流
 
 1. 明确目标资产或章节、人物、地点、剧情线和时间窗口。

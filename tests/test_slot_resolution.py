@@ -62,7 +62,8 @@ class UpstreamAndSubjectSlots(unittest.TestCase):
         conn = _make_db()
         _seed_user_persona(conn)
         _seed_locked_direction(conn)
-        sections = resolve_slots(conn, ASSET_DIRS["architecture"], project_id="project:p1")
+        sections = resolve_slots(conn, ASSET_DIRS["architecture"], project_id="project:p1",
+                                 context={"setup": {}})
         titles = [t for t, _ in sections]
         self.assertEqual(titles[0], "project_setup v2 快照（硬输入）")
         self.assertTrue(titles[2].startswith("上游 direction（scope: book，locked rev 1"))
@@ -153,10 +154,12 @@ class DirectionSlots(unittest.TestCase):
     def test_with_persona_binding(self):
         conn = _make_db()
         _seed_user_persona(conn)
-        sections = resolve_slots(conn, ASSET_DIRS["direction"], project_id="project:p1")
+        sections = resolve_slots(conn, ASSET_DIRS["direction"], project_id="project:p1",
+                                 context={"setup": {"genre_profile": None}})
         self.assertEqual(
             [t for t, _ in sections],
-            ["project_setup v2 快照（硬输入）", "创作者人格签名（第一因，persona 全文）"],
+            ["project_setup v2 快照（硬输入）", "创作者人格签名（第一因，persona 全文）",
+             "题材信息包"],
         )
         self.assertTrue(sections[1][1].startswith("subject_hash: sha256:"))
         self.assertIn("迷恋秩序又怀疑秩序", sections[1][1])
@@ -164,16 +167,18 @@ class DirectionSlots(unittest.TestCase):
     def test_without_binding_placeholder(self):
         conn = _make_db()
         conn.execute("INSERT INTO projects VALUES ('project:p2', '{}')")
-        sections = resolve_slots(conn, ASSET_DIRS["direction"], project_id="project:p2")
+        sections = resolve_slots(conn, ASSET_DIRS["direction"], project_id="project:p2",
+                                 context={"setup": {}})
         self.assertEqual(sections[1][0], "创作者人格签名")
         self.assertIn("禁止无签名生成方向", sections[1][1])
 
     def test_review_slots_match_direction(self):
         conn = _make_db()
         _seed_user_persona(conn)
-        d = resolve_slots(conn, ASSET_DIRS["direction"], project_id="project:p1")
+        d = resolve_slots(conn, ASSET_DIRS["direction"], project_id="project:p1",
+                          context={"setup": {}})
         r = resolve_slots(conn, ASSET_DIRS["direction-review"], project_id="project:p1")
-        self.assertEqual([t for t, _ in d], [t for t, _ in r])
+        self.assertEqual([t for t, _ in d][:2], [t for t, _ in r])
 
     def test_unregistered_slot_rejected(self):
         conn = _make_db()
@@ -181,7 +186,7 @@ class DirectionSlots(unittest.TestCase):
             skill_dir = Path(tmp)
             (skill_dir / "modules").mkdir()
             (skill_dir / "modules" / "manifest.json").write_text(
-                json.dumps({"modules": [], "data_slots": ["genre_pack"]}), encoding="utf-8")
+                json.dumps({"modules": [], "data_slots": ["nonexistent_slot"]}), encoding="utf-8")
             with self.assertRaises(SystemExit):
                 resolve_slots(conn, skill_dir, project_id="project:x")
 
@@ -274,10 +279,11 @@ class FullChainSmoke(unittest.TestCase):
         self.assertTrue(sections[0][0].startswith("被审章节正文"))
         self.assertIn("第一章正文", sections[0][1])
         self.assertGreaterEqual(sum(t.startswith("craft 方法卡") for t, _ in sections), 5)
-        # continuity-extraction：subject 章节 + 主干方法论
+        # continuity-extraction：subject 章节 + canon 最小集六节
         sections = resolve_slots(conn, ASSET_DIRS["continuity-extraction"],
                                  project_id="project:p1", subject_id="chapter:c1")
-        self.assertEqual(len(sections), 1)
+        self.assertEqual(len(sections), 7)
+        self.assertTrue(sections[0][0].startswith("被审章节正文"))
         out = _compose(ASSET_DIRS["continuity-extraction"], {"setup": {}}, sections)
         self.assertIn("判定标准（五条边界）", out)
 

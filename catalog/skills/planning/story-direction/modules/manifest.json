@@ -67,7 +67,8 @@
   ],
   "data_slots": [
     "project_setup",
-    "persona_full"
+    "persona_full",
+    "genre_pack"
   ],
   "divergence": "expansive",
   "decision_scope": "propose_only"

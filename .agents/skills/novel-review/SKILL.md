@@ -39,9 +39,15 @@ description: 独立审查不可变小说资产并生成 Review Receipt。规划�
 锁定或接受前必须通过完整循环，**warning 也必须修复**（不再"记录即放过"）：
 
 1. 审查 candidate → 得到 findings（`blocking` / `warning` / `note`）。
-2. **`blocking` 与 `warning` 都必须修复**：修复产生新 revision（candidate），回到步骤 1 重新审查该 revision。
+2. **`blocking` 与 `warning` 都必须修复**：修复产生新 revision（candidate），回到步骤 1 重新审查该 revision。**修复经组装器受控重试**：`.venv/bin/python scripts/novelos_compose_prompt.py --asset <asset> --project <id> --review-feedback <上轮回执.json> --round <N>`——回执的 blocking+warning 注入 review_feedback 槽（note 不注入），组装日志记录轮次。
 3. **退出条件**：审查结果只剩 `note`（或无 finding）→ 锁定；旧 revision 标 `superseded`。部分唯一索引 `idx_planning_assets_current` 要求同 scope 同时只有一个 `locked`，故**先 supersede 旧版，再 lock 新版**。
 4. `note` 记录备查，不阻断、不必修复。
+
+### 循环边界（防无限打转，必须执行）
+
+- **轮次上限**：同一 subject 默认 **3 轮**未收敛 → 停止循环，升级用户裁决（附各轮 blocking 摘要）。禁止无限重试。
+- **同因复发检测**：本轮 blocking 与上一轮同因（同一问题未解决或换个说法复发）→ **直接升级**，不再重试——修复手段无效的信号，换手段或人工介入。
+- 主控在每次重审前查上轮回执做同因判定；`--round` ≥ 3 时组装器日志已标记轮次，主控须核对升级条件后再组装。
 
 ### 修复产生新 revision 的纪律
 - 每次修复 = 新 revision（candidate），重审该 revision，不直接改已审查的正文。

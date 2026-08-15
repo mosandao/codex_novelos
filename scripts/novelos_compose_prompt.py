@@ -424,6 +424,70 @@ def _slot_upstream(conn: sqlite3.Connection, asset_type: str,
             for scope, (rev, body) in sorted(latest.items())]
 
 
+def _slot_genre_pack(conn: sqlite3.Connection, project_id: str | None,
+                     payload: dict[str, Any] | None,
+                     subject_id: str | None = None,
+                     context: dict[str, Any] | None = None) -> tuple[str, str]:
+    """题材信息包升为一等节：setup.genre_profile 有则展开；无则显式声明缺位（尊重项目选择，不回填）。"""
+    setup = (context or {}).get("setup", {})
+    pack = setup.get("genre_profile")
+    if pack:
+        return ("题材信息包（genre_profile，硬输入）",
+                json.dumps(pack, ensure_ascii=False, indent=1))
+    return ("题材信息包", "（本项目未声明 genre_profile——按 genre-null 模块执行，不从 config 回填）")
+
+
+def _slot_canon_minimal(conn: sqlite3.Connection, project_id: str | None,
+                        subject_id: str | None = None) -> list[tuple[str, str]]:
+    """canon 最小集：六类账本近端条目 + 近期已接受章节摘要（SQL 与 sql-reference.md 模板同源）。"""
+    if project_id is None:
+        raise SystemExit("canon_minimal 槽位需要 --project")
+    queries = [
+        ("facts（近 12 条）",
+         "SELECT cf.fact_type, cf.fact_json FROM chapter_facts cf "
+         "JOIN chapters c ON c.id = cf.chapter_id "
+         "WHERE c.status = 'accepted' ORDER BY c.updated_at DESC LIMIT 12"),
+        ("narrative_promises（未决近 8 条）",
+         "SELECT promise_type, description, status FROM narrative_promises "
+         "WHERE project_id = ? AND status != 'broken' ORDER BY rowid DESC LIMIT 8"),
+        ("expectations（近 6 条）",
+         "SELECT description, status FROM expectations WHERE project_id = ? "
+         "ORDER BY rowid DESC LIMIT 6"),
+        ("relationship_states（近 8 条）",
+         "SELECT character_a, character_b, relationship_type, description "
+         "FROM relationship_states WHERE project_id = ? ORDER BY rowid DESC LIMIT 8"),
+        ("arc_states（近 4 条）",
+         "SELECT arc_id, state_json FROM arc_states WHERE project_id = ? "
+         "ORDER BY rowid DESC LIMIT 4"),
+        ("近期已接受章节（近 5 章）",
+         "SELECT c.number, c.title, c.summary FROM chapters c "
+         "WHERE c.status = 'accepted' ORDER BY c.updated_at DESC LIMIT 5"),
+    ]
+    sections: list[tuple[str, str]] = []
+    for title, sql in queries:
+        params = (project_id,) if "?" in sql else ()
+        try:
+            rows = conn.execute(sql, params).fetchall()
+        except sqlite3.OperationalError:
+            rows = []
+        body = "\n".join(json.dumps(list(r), ensure_ascii=False) for r in rows) or "（空）"
+        sections.append((f"canon 最小集 · {title}", body))
+    return sections
+
+
+def _slot_review_feedback(feedback: dict[str, Any] | None) -> tuple[str, str] | None:
+    """上轮审查回执：仅 blocking + warning 全量注入（note 不进）——修复重组装的受控重试通道。"""
+    if feedback is None:
+        return None
+    findings = [f for f in feedback.get("findings", [])
+                if f.get("severity") in ("blocking", "warning")]
+    lines = [f"[{f.get('severity')}] {f.get('message', '')}"
+             + (f"（证据: {f.get('evidence_refs')}）" if f.get("evidence_refs") else "")
+             for f in findings]
+    return ("上轮审查回执（review_feedback——本轮修复必须逐条回应，未解决项将再次 blocking）",
+            f"verdict: {feedback.get('verdict', '?')}\n" + "\n".join(lines))
+
+
 SLOT_REGISTRY: dict[str, Any] = {
     "project_setup": _slot_project_setup,
     "persona_full": _slot_persona_full,
@@ -432,16 +496,20 @@ SLOT_REGISTRY: dict[str, Any] = {
     "persona_hints": _slot_persona_hints,
     "persona_fingerprints": _slot_persona_fingerprints,
     "subject": _slot_subject,
+    "genre_pack": _slot_genre_pack,
 }
 
 
 def resolve_slots(conn: sqlite3.Connection, skill_dir: Path, *,
                   project_id: str | None = None,
                   payload: dict[str, Any] | None = None,
-                  subject_id: str | None = None) -> list[tuple[str, str]]:
+                  subject_id: str | None = None,
+                  context: dict[str, Any] | None = None,
+                  review_feedback: dict[str, Any] | None = None) -> list[tuple[str, str]]:
     """按 manifest 的 data_slots 声明顺序解析注入槽位。未注册槽位即报错。
 
     upstream:<asset_type> 为前缀族槽位，展开为多节（每 scope 一节）；
+    canon_minimal 同为多节；review_feedback 仅在 CLI 提供回执时注入；
     craft_refs 为 manifest 顶层声明，craft 方法卡逐字注入（数字阈值唯一权威源）。
     """
     manifest = load_manifest(skill_dir)
@@ -450,10 +518,20 @@ def resolve_slots(conn: sqlite3.Connection, skill_dir: Path, *,
         if slot.startswith("upstream:"):
             sections.extend(_slot_upstream(conn, slot[len("upstream:"):], project_id))
             continue
+        if slot == "canon_minimal":
+            sections.extend(_slot_canon_minimal(conn, project_id, subject_id))
+            continue
+        if slot == "review_feedback":
+            feedback = _slot_review_feedback(review_feedback)
+            if feedback is not None:
+                sections.append(feedback)
+            continue
         resolver = SLOT_REGISTRY.get(slot)
         if resolver is None:
             raise SystemExit(f"未注册的槽位: {slot}（{skill_dir.name}）")
-        sections.append(resolver(conn, project_id, payload, subject_id))
+        sections.append(resolver(conn, project_id, payload, subject_id, context)
+                        if slot == "genre_pack"
+                        else resolver(conn, project_id, payload, subject_id))
     for craft in manifest.get("craft_refs", []):
         craft_path = ROOT / "catalog/skills/craft" / craft / "prompt.md"
         if not craft_path.exists():
@@ -489,7 +567,8 @@ def content_hash(text: str) -> str:
 
 def write_composition_log(log_dir: Path, skill_dir: Path, asset: str, scope: str,
                           text: str, context: dict[str, Any],
-                          proposal: dict[str, Any] | None = None) -> Path:
+                          proposal: dict[str, Any] | None = None,
+                          review_round: int | None = None) -> Path:
     """把一次组装的产物与路由事实记入日志目录，返回产物文件路径。"""
     manifest = load_manifest(skill_dir)
     module_ids = [mid for mid, _ in select_modules(skill_dir, context)]
@@ -518,6 +597,7 @@ def write_composition_log(log_dir: Path, skill_dir: Path, asset: str, scope: str
         "divergence": manifest.get("divergence"),
         "decision_scope": manifest.get("decision_scope"),
         "proposal": proposal_modules,
+        "review_round": review_round,
         "file": str(rel),
     }
     index = log_dir / "index.jsonl"
@@ -538,6 +618,9 @@ def main() -> int:
                         help="组装日志目录（default: data/compositions/）")
     parser.add_argument("--no-log", action="store_true", help="不写组装日志")
     parser.add_argument("--proposal", help="模型提议路由 JSON 路径（{modules:[{id,reason}]}），语义条件的第二路由通道")
+    parser.add_argument("--review-feedback", help="上轮审查回执 JSON 路径（修复重组装：blocking+warning 注入 review_feedback 槽）")
+    parser.add_argument("--round", type=int, default=None,
+                        help="审查-修复循环轮次号（记入组装日志；≥3 时主控须核对升级条件）")
     args = parser.parse_args()
 
     skill_dir = ASSET_DIRS[args.asset]
@@ -554,8 +637,12 @@ def main() -> int:
             if not args.project:
                 parser.error(f"--asset {args.asset} 需要 --project")
             context = build_context_direction(conn, args.project)
+            feedback = None
+            if args.review_feedback:
+                feedback = json.loads(Path(args.review_feedback).read_text(encoding="utf-8"))
             data = resolve_slots(conn, skill_dir, project_id=args.project,
-                                 subject_id=args.subject)
+                                 subject_id=args.subject, context=context,
+                                 review_feedback=feedback)
     finally:
         conn.close()
 
@@ -569,7 +656,8 @@ def main() -> int:
     if not args.no_log:
         scope = args.project or "wizard"
         logged = write_composition_log(Path(args.log_dir), skill_dir, args.asset,
-                                       scope, output, context, proposal=proposal)
+                                       scope, output, context, proposal=proposal,
+                                       review_round=args.round)
         print(f"[compose] logged: {logged}", file=sys.stderr)
     sys.stdout.write(output + "\n")
     return 0
