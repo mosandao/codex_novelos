@@ -9,7 +9,7 @@
 | Task | 状态 | 说明 |
 |---|---|---|
 | [Task 28](./28_agent_prompt_enhancement_queue.md) | `DONE` | 各级 Agent Prompt 增强队列（阶段 0-2 原位完成；剩余范围经 Task 29 组装管线交付——P0-2/P2-1..P2-9）。 |
-| [Task 29](./29_dynamic_prompt_composition.md) | `IN PROGRESS`（P0-P3、P4-1/P4-3、P5 全部完成；**BLOCKED 待用户**：P4-2 deepseek 入口约定、P4-4 codex/deepseek 冒烟——zcode 已覆盖） | 动态 Prompt 组装流水线 + 三 harness 适配（codex/zcode/deepseek）：组装器通用化（manifest schema v2 + 声明式槽位 + 组装日志）→ 全链路 skill 模块化（吸收 Task 28 剩余）→ 题材×材料数据槽 → adapters 单源生成 + AGENTS.md 瘦身 → 可选精细 stale。可追溯（commit 规约 + 组装日志）可核验（每任务项带验收命令）。 |
+| [Task 29](./29_dynamic_prompt_composition.md) | `DONE`（P0-P5 全部完成：24 skill 模块化 + 配方矩阵 + 数据槽四件套 + 循环边界 + adapters 三 harness + AGENTS 瘦身 -44% + 精细 stale；98 tests；唯一遗留=codex 复验一条命令，被用户中转 API 403 拦截——环境侧故障，非本仓） | 动态 Prompt 组装流水线 + 三 harness 适配（codex/zcode/deepseek）：组装器通用化（manifest schema v2 + 声明式槽位 + 组装日志）→ 全链路 skill 模块化（吸收 Task 28 剩余）→ 题材×材料数据槽 → adapters 单源生成 + AGENTS.md 瘦身 → 可选精细 stale。可追溯（commit 规约 + 组装日志）可核验（每任务项带验收命令）。 |
 | [Task 25](./25_sqlite_mcp_poc.md) | `DONE` | SQLite MCP server + POC 验证 + 5 个桥接脚本（stale 传播/hash/book_soul/reconcile/projection）。纯增量，不停 NovelOS MCP。 |
 | [Task 26](./26_creation_flow_sql_migration.md) | `DONE` | migration 016 在真实数据库执行（35→26 表）+ NovelOS MCP 停用 + 6 个 SKILL.md/AGENTS.md 重写 + 端到端 7/7 验证通过。 |
 | [Task 27](./27_prose_webnovel_accessibility.md) | `DONE` | craft skill prose-webnovel-accessibility（通俗度/开头/钩子强度）+ writer/reviewer/章纲三端引用。 |

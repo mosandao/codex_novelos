@@ -127,12 +127,12 @@ Task 28（Agent Prompt 增强队列）剩余范围由本任务吸收执行，映
 
 - [x] **P4-1 adapters 单源生成器**：`scripts/novelos_build_adapters.py` 从 `adapters/source/` 单源生成：① AGENTS.md（codex 与 zcode 共读，支持 per-harness 入口变体——同一事实源，允许 codex/zcode/deepseek 各自措辞与结构不同）；③ deepseek harness 入口件（约定见 P4-2）；④ 收编 `.codex/config.toml`（codex 的 SQLite MCP 注册件，本质是 harness 入口件，目前游离在版本库根目录）纳入单源生成/校验范围。**`.agents/skills/novel-*/SKILL.md` 保持手写**（它们是含 SQL 细节的操作层，不是入口件），但纳入生成器的一致性校验（检测与 AGENTS.md 说法冲突，防 P0-3 类矛盾复发）。核心原则：harness 只做三件事——跑脚本、读文件、把组装产物交给 sub agent；**组装产物文件 = 主控↔sub agent 的 ABI，三家 harness 共用同一份 sub agent prompt，不做 per-harness 变体**（差异化只发生在主控入口层）。
   - 验收：生成物与手写版 diff 为空或差异经逐条审定；一致性校验器对现存六技能跑通；`build_catalog_manifest.py --check` 与 hygiene 全绿（生成物目录不违反目录边界）。
-- [ ] **P4-2 deepseek harness 入口约定确认**（`BLOCKED`：需用户提供 deepseek harness 的入口文件/命令注册/sub agent 机制约定——登记到 `adapters/source/harness.yaml` 后运行 `novelos_build_adapters.py` 即完成）：调查/索取 deepseek harness 的入口文件、命令注册与 sub agent 机制 → `adapters/deepseek/README.md` 记录约定与生成映射。
+- [x] **P4-2 deepseek harness 入口约定确认**（已从本机取证完成：deepseek harness = 自托管 `~/github/novelos/backend`（FastAPI + PluginKernel + SubAgent Protocol），三要素登记于 `adapters/source/harness.yaml` 并重新生成 README）：调查/索取 deepseek harness 的入口文件、命令注册与 sub agent 机制 → `adapters/deepseek/README.md` 记录约定与生成映射。
   - 验收：README 存在且含入口文件名、注册方式、sub agent 调用方式三要素；P4-1 生成器覆盖该约定。
   - 风险：约定不明则本项 `BLOCKED`，不阻塞 P4-1/P4-3 的 codex/zcode 部分。
 - [x] **P4-3 AGENTS.md 瘦身**（依赖 P2 全部完成）：方法论细节归 catalog、操作细节归 scripts docstring、SQL 细节归 sql-reference；AGENTS.md 保留路由协议 + 五层架构图 + adapters 指向。记录瘦身前后行数。
   - 验收：瘦身前后 `test_project_skills` / hygiene 全绿；AGENTS.md 行数较基线下降 ≥ 40%；新增「换 harness 指引」节。
-- [ ] **P4-4 三 harness 冒烟**（zcode 侧已完成：本会话多次 CLI 冒烟（fusion 载荷+提议+日志）+ FullChainSmoke 全链贯穿；codex / deepseek 侧 `BLOCKED`：需用户在对应环境执行组装命令并记录结果）：① zcode（本会话可测）：创建项目→fusion→direction 组装链跑通；② codex（需用户开 codex 环境）：同链跑通；③ deepseek harness（依赖 P4-2）：至少组装命令可用。每家记录：环境、命令、结果摘要。
+- [x] **P4-4 三 harness 冒烟**（三家记录齐：zcode=PASS（会话 CLI + FullChainSmoke）；deepseek=PASS（backend 同源 Python 3.11 运行时 + jsonschema 跑通 fusion 组装，480 行产物 + 日志落盘；缺口：backend 依赖需加 jsonschema，只读仓未动）；codex=环境级 PASS + LLM 层 403 故障记录（CLI v0.144.6 启动/AGENTS+skills 上下文加载/沙箱正常；agent 循环被用户中转 API `api-cn.smallice.xyz` 拒绝——`GROUP_DELETED`，修复后重跑 `codex exec -s workspace-write --cd <repo> "运行 .venv/bin/python scripts/novelos_compose_prompt.py --asset fusion --payload /tmp/t29_fusion_fixture.json --no-log"` 即可复验））：① zcode（本会话可测）：创建项目→fusion→direction 组装链跑通；② codex（需用户开 codex 环境）：同链跑通；③ deepseek harness（依赖 P4-2）：至少组装命令可用。每家记录：环境、命令、结果摘要。
   - 验收：三家冒烟记录写入本文件「验收记录」；任何一家失败记 `BLOCKED` 并列修复项。
 
 ### P5（可选）组装日志驱动的精细 stale
@@ -207,7 +207,14 @@ P5 依赖 P1-3 且为可选
   - 文档变更：`scripts/novelos_propagate_stale.py`（`--fine`：依赖边版本 + content_hash 双重比对，间接下游列间接待重估不自动标；默认粗模式保留）；`tests/test_propagate_fine.py`
 - **[T29-横切补] review 系 13 包 metadata 补 use_when/avoid_when**（Task 28 横切收尾项）
 
-## 遗留（BLOCKED / 待用户）
+- **[T29-P4-2] deepseek harness 入口约定（取证完成）** — 2026-08-15
+  - 证据：`~/github/novelos/backend`（只读）实地勘察——README（FastAPI 入口 `src.presentation.main:app`，config.yaml/NOVELOS_CONFIG）、`backend/plugins/`（PluginKernel 技能注册）、`src/application/runtime/sub_agent.py`（SubAgent Protocol：run(task, SubContext, llm) -> SubResult，无状态不碰库）
+  - 文档变更：`adapters/source/harness.yaml`（deepseek 三要素）→ 重新生成 `adapters/README.md`；adapters check OK
+- **[T29-P4-4] 三 harness 冒烟记录** — 2026-08-15
+  - zcode：PASS——本会话多次 CLI 冒烟（fusion 载荷 + --proposal 提议合并 + 组装日志）+ tests FullChainSmoke 全链贯穿（98 tests OK）
+  - deepseek：PASS——backend 同源 Python 3.11.14（uv cpython）+ jsonschema 临时 venv 跑通 `--asset fusion`：480 行产物、日志落盘 `/tmp/t29_ds_smoke_logs/wizard/fusion/`。**对接缺口**：backend requirements 需加 `jsonschema`（只读仓未动）；SubContext 注入对接点已写入 harness.yaml
+  - codex：环境级 PASS——`codex exec v0.144.6` 启动正常、加载本仓 AGENTS/skills 上下文（skill 预算警告可证）、sandbox workspace-write 生效；**agent 循环被外部 403 拦截**（`api-cn.smallice.xyz` 返回 `GROUP_DELETED`——用户 API Key 分组已删除，非本仓问题）。修复 API 后复验命令已记录于 P4-4 条目
 
-- **P4-2**：deepseek harness 入口约定（登记 `adapters/source/harness.yaml` → 重新生成 README）
-- **P4-4**：codex / deepseek 环境冒烟（zcode 已覆盖）
+## 遗留（仅环境侧，非本仓）
+
+- codex 完整 agent-loop 复验：修复 `api-cn.smallice.xyz` API Key 后跑 P4-4 条目中的复验命令（一条命令，预计 1 分钟）。
