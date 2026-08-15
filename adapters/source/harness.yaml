@@ -1,0 +1,26 @@
+# 三 harness 适配事实源（codex / zcode / deepseek）。改这里后运行
+# .venv/bin/python scripts/novelos_build_adapters.py 重新生成 adapters/README.md。
+harnesses:
+  codex:
+    entry_files:
+      - AGENTS.md
+    notes: 读取仓库根 AGENTS.md 作为主控规则；无独立 skill 注册机制，sub agent 由主控按 Agent 工具派发。
+  zcode:
+    entry_files:
+      - AGENTS.md
+      - .agents/skills/novel-*/SKILL.md
+    notes: AGENTS.md 为主控规则；六个 novel-* SKILL.md 是技能入口（含 SQL 细节的操作层，手写维护、非生成物，仅做一致性校验）。
+  deepseek:
+    entry_files: []
+    notes: 入口约定未确认（T29-P4-2 BLOCKED）——确认后在本文件登记 entry_files 与注册方式，重新生成 README。
+core_contract:
+  sub_agent_abi: 组装产物文件（novelos_compose_prompt.py 的 stdout / data/compositions/ 落盘件）——三家用同一份，零变体
+  main_agent_duties:
+    - 跑脚本（.venv/bin/python scripts/*.py）
+    - 读文件（组装产物 / catalog 方法论）
+    - 把组装产物交给 sub agent
+  verify_commands:
+    - .venv/bin/python -m unittest discover -s tests
+    - .venv/bin/python -m compileall -q scripts tests catalog config
+    - .venv/bin/python scripts/check_repository_hygiene.py --check
+    - .venv/bin/python scripts/build_catalog_manifest.py --check
