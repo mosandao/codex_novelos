@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://novelos.local/schemas/creator-derivation-candidate.schema.json",
-  "title": "NovelOS 原型 LLM 融合候选输出",
+  "title": "NovelOS 原型 LLM 融合候选输出（v2：先立人，再落规）",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -9,69 +9,38 @@
     "parent_subject_hash",
     "display_name",
     "signature",
-    "merge_rationale"
+    "parent_rationale"
   ],
   "properties": {
     "parent_version_id": {
       "type": "string",
       "minLength": 1,
-      "description": "LLM 判定的主体 parent 原型 profile_version_id"
+      "description": "LLM 判定的主体 parent 原型 profile_version_id，必须属于向导勾选的原型"
     },
     "parent_subject_hash": {
       "type": "string",
       "pattern": "^sha256:[0-9a-f]{64}$",
-      "description": "parent 原型的 subject_hash，必须与 system_archetypes 配置一致"
+      "description": "parent 原型的 subject_hash，必须与 system_archetypes 配置一致（校验门反查）"
     },
     "display_name": {
       "type": "string",
       "minLength": 1,
       "maxLength": 120,
-      "description": "融合后作者签名的展示名"
+      "description": "一句话人格名（凝聚主轴，不是原型罗列）"
     },
     "signature": {
       "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "schema_version",
-        "sympathies",
-        "distrusts",
-        "recurring_attention",
-        "narrative_principles",
-        "forbidden_conveniences",
-        "expression_preferences",
-        "negative_constraints"
-      ],
+      "required": ["schema_version"],
       "properties": {
-        "schema_version": {"const": 1},
-        "sympathies": {"$ref": "#/$defs/non_empty_text_list"},
-        "distrusts": {"$ref": "#/$defs/non_empty_text_list"},
-        "recurring_attention": {"$ref": "#/$defs/non_empty_text_list"},
-        "narrative_principles": {"$ref": "#/$defs/non_empty_text_list"},
-        "forbidden_conveniences": {"$ref": "#/$defs/non_empty_text_list"},
-        "expression_preferences": {"$ref": "#/$defs/non_empty_text_list"},
-        "negative_constraints": {"$ref": "#/$defs/non_empty_text_list"}
+        "schema_version": {"const": 2}
       },
-      "description": "深度融合后的完整作者签名，必须能通过 creator-signature schema 校验"
+      "description": "v2 派生签名（persona 必填）。信封层只锁版本号；persona 与 7 字段的深层结构由 creator-signature.schema.json 的 v2 分支校验（校验门两步走）"
     },
-    "merge_rationale": {
+    "parent_rationale": {
       "type": "string",
       "minLength": 1,
-      "maxLength": 2000,
-      "description": "LLM 判定 parent 与跨原型约束融合的理由，用于追溯与审查"
-    }
-  },
-  "$defs": {
-    "non_empty_text_list": {
-      "type": "array",
-      "minItems": 1,
-      "maxItems": 24,
-      "uniqueItems": true,
-      "items": {
-        "type": "string",
-        "minLength": 1,
-        "maxLength": 500,
-        "pattern": "\\S"
-      }
+      "maxLength": 3000,
+      "description": "parent 判定理由 + 辅助原型取舍 + 错配警告（基调相斥/频道×人格错配/素材冲突时在此上报）"
     }
   }
 }

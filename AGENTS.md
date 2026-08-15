@@ -14,6 +14,7 @@
 
 | 脚本 | 用途 |
 |---|---|
+| `scripts/novelos_create_project.py` | 项目创建固化管线：入口校验（schema+词表级联+原型三方比对+镜像漂移）→ 候选容错解析 → 校验门（jsonschema+parent 反查+逐字复制检查）→ 单事务落库 |
 | `scripts/novelos_hash.py` | 计算 content_hash（sha256:前缀） |
 | `scripts/novelos_validate_book_soul.py` | 校验 book_soul JSON |
 | `scripts/novelos_render_projection.py` | 渲染项目文件目录 |
@@ -103,7 +104,7 @@ Character 与 World 可以并行生成。每个规划资产存入 `planning_asse
 
 - `catalog/skills/` 目录是创作方法论的唯一来源。每个 skill 的 `prompt.md` 定义了该阶段的方法和约束。
 - **发现 skill**：按上表 asset_type → catalog 目录映射，Read `catalog/skills/<分类>/<目录名>/prompt.md`。
-- Writer 必须遵守 `style_refs`（Creator Profile + Direction）。签名含 `persona`（创作者人格，schema v2）时必须一并注入：narrative 全文 + anchors（目光/五维/内在矛盾/声音样本/盲区）。Writer 写到超出作者经验边界的场景时按 persona 处理——绕开、转喻、有限视角，禁止全知叙述假装在场（`blindspots.cannot_write` 是硬边界）。
+- Writer 必须遵守 `style_refs`（Creator Profile + Direction）。签名含 `persona`（创作者人格，schema v2）时必须一并注入：narrative 全文 + anchors（目光/五维/内在矛盾/声音样本/盲区）。Writer 写到超出作者经验边界的场景时按 persona 处理——执行该盲区条目附带的绕开方式（转喻/侧写/留白/借他人之口），禁止全知叙述假装在场（`blindspots.cannot_write` 是硬边界；正文流畅还原盲区场景而未绕开＝persona 未生效，prose-quality-review 会判 `blocking`）。
 - Direction 智能体的输入必须包含 persona：book_soul 从这个人身上长出来，不从原型标签推导。
 - `book_soul` 属于 Story Direction，包含 central_contradiction、costly_commitments、protected_dignity 等承诺。用 `scripts/novelos_validate_book_soul.py` 校验。
 - 审查标准由 `catalog/skills/review/` 下的 prompt 定义。审查时必须 Read review skill 和它引用的 craft skill。
@@ -116,11 +117,14 @@ Character 与 World 可以并行生成。每个规划资产存入 `planning_asse
 
 1. 用户在 HTML 中填写项目名、频道（男频/女频/全向，决定平台/题材/基调词表）、平台（附平台画像）、规模、一级题材（附题材信息包提示）、二级方向、表里基调（表层外显 1-2 项 + 内核底色 1 项）、美学风格和可选创作资料。页面用 `recommendation_rules` + 原型 `channel_affinity` 在浏览器内算分推荐三个原型。
 2. 用户选择原型、可选填写人格素材后，页面生成 `novelos.project.create.v2` JSON（含 `selected_archetypes` + `user_persona_hints` + setup v2：channel/platform/platform_traits/scale/题材/表里基调/美学/genre_profile/reference_material）。
-3. **原型融合（先立人，再落规）**：主控 Read `catalog/skills/onboarding/creator-signature-fusion/prompt.md` 注入临时 **引导融合智能体（onboarding_agent）** sub agent，输入 = `selected_archetypes` + `user_persona_hints` + `project_setup`（v2）+ `config/system_archetypes.json` 全文。agent 按「先立人，再落规」两步法执行：判定 parent（单原型直接取唯一项，多原型按推荐位次 + 基调契合度，输出 `parent_rationale`）→ 反推式五维生平（世代年龄/教育视野/阶层圈子库存/职业履历/人生轨迹，双向拟合：气质溯因 × 题材资格；人格素材按 prompt 的素材用法织入）→ 化合出 persona（narrative + anchors，含盲区清单 refuses/cannot_write）→ 从 persona 长出带体温的 7 字段，产出 `creator_derivation_candidate`（`parent_version_id` + `parent_subject_hash` + `display_name` + `parent_rationale` + signature v2 含 persona）。
-4. **落库校验门**（主控，agent 产出后）：用 jsonschema（`config/schemas/creator-signature.schema.json`）校验 parent signature（v1）与融合签名（v2，persona 必填且 `blindspots.cannot_write` 非空）；校验 overrides 字段在 7 个签名字段内且无逐字复制父值（语义继承允许，但须从 persona 重新长出）；用 `scripts/novelos_hash.py` 算融合签名 hash。校验失败拒绝落库。
-5. **SQL 落库**：按 sql-reference.md「作者签名链」模板——INSERT resources（签名 JSON）→ resources（派生记录：parent 指向 + rationale）→ creator_profiles → creator_profile_versions（content + derivation 双资源链）→ projects（**metadata_json 写入 setup v2 快照**——频道/平台/规模/题材/表里基调/美学/题材信息包/创作资料的权威存储，后续阶段经 `json_extract(metadata_json,'$.setup')` 读取，不靠会话记忆）→ project_creator_bindings（binding_mode='derive'）。
+3. **入口校验（收到 JSON 后的第一动作）**：`.venv/bin/python scripts/novelos_create_project.py --payload <json>`——jsonschema 结构校验（`config/schemas/project-create-request.schema.json`）+ 词表级联（channel×platform×题材×二级方向×基调池×美学，对照 `ui/project-wizard-data.js`）+ 表里互斥规则 + platform_traits/genre_profile 随行快照核对 + 原型三方比对（payload × config × 向导镜像，含全 18 原型镜像漂移检测）。FAIL 拒绝继续。
+4. **原型融合（先立人，再落规）**：主控 Read `catalog/skills/onboarding/creator-signature-fusion/prompt.md` 注入临时 **引导融合智能体（onboarding_agent）** sub agent，输入 = `selected_archetypes` + `user_persona_hints` + `project_setup`（v2）+ `config/system_archetypes.json` 全文 + `existing_persona_fingerprints`（已派生人格指纹摘要，sql-reference.md「人格库指纹」查询模板，供跨批次去重——道具结构/烙印事件/张力形态/主题×频道组合不得与库中雷同；人格库为空时省略）。agent 按「先立人，再落规」两步法执行：判定 parent（单原型直接取唯一项，多原型按推荐位次 + 基调契合度，输出 `parent_rationale`）→ 反推式五维生平（世代年龄/教育视野/阶层圈子库存/职业履历/人生轨迹，双向拟合：气质溯因 × 题材资格；人格素材按 prompt 的素材用法织入；行业内生视角配额——履历不得全部来自网文行业外转行）→ 化合出 persona（narrative + anchors，含盲区清单 refuses/cannot_write，每条附下游绕开方式）→ 从 persona 长出带体温的 7 字段，产出 `creator_derivation_candidate`（`parent_version_id` + `parent_subject_hash` + `display_name` + `parent_rationale` 含 `cross_batch_check` 小节 + signature v2 含 persona）。
+5. **校验门 + 落库（固化脚本一步完成）**：`.venv/bin/python scripts/novelos_create_project.py --payload <json> --candidate <json>`——候选容错解析（只做安全修复：去 Markdown 围栏、尾部截断补括号；中段缺括号导致字段错位即判解析失败）→ jsonschema 信封（creator-derivation-candidate）+ 签名 v2 深层（creator-signature，persona 必填且 `cannot_write` 非空）→ `parent_subject_hash` 反查 config + parent 属于用户勾选集 + 7 字段无逐字复制父值 → hash 计算 → `BEGIN IMMEDIATE` 单事务六表落库（外键开启，失败整体回滚）：签名资源 + 派生资源（**完整用户输入快照**：selected_archetypes + user_persona_hints + setup 全文）+ creator_profiles + creator_profile_versions（content + derivation 双资源链，parent 指向系统原型）+ projects（**metadata_json 写入 setup v2 快照**，带 `setup_schema_version` 标记——后续阶段经 `json_extract(metadata_json,'$.setup')` 读取，不靠会话记忆）+ project_creator_bindings（binding_mode='derive'）。**禁止手工逐条 INSERT 绕过脚本**。
+6. **上报裁决协议**：`parent_rationale` 含错配警告（基调相斥 / 频道×人格错配 / 素材冲突）时，主控必须把冲突与调和建议**呈报用户裁决，未获裁决不得落库**（脚本检测到警告字样会提示）。无警告则按第 5 步直接落库。候选解析失败或校验门 FAIL 时要求融合智能体重新输出，禁止主控手工改写候选内容（去围栏/尾部补括号等结构性修复除外）。
 
-不再有确定性 reconcile 脚本——原型打分与融合由 onboarding_agent（LLM）承接，落库前 jsonschema 校验门保证签名合规。
+确定性校验与落库全部由 `scripts/novelos_create_project.py` 固化承担；原型打分与融合由 onboarding_agent（LLM）承接。**一书一分身是有意设计**：每次 derive 新建 creator profile，同一用户多本书的人格各自独立长成；跨书共享声线不支持（绑定只允许 derive，无 reuse 模式）。
+
+**setup 变更通路（连载中改频道/平台/基调等）**：setup 快照创建时一次写入，但不是不可改——变更属**上游变更**，必须走两步：① `UPDATE projects SET metadata_json = json_set(metadata_json, '$.setup', json('…')) WHERE id = ?` 落库；② 立即将该项目全部 locked 规划资产标记 stale（`scripts/novelos_propagate_stale.py`，或按依赖逆序手动 UPDATE status='stale'），重走审查/锁定。禁止静默改 setup 后继续用旧规划写作。
 
 ## 用户投影
 
@@ -130,7 +134,7 @@ Character 与 World 可以并行生成。每个规划资产存入 `planning_asse
 .venv/bin/python scripts/novelos_render_projection.py --project project:xxx --output novels/
 ```
 
-目录结构：`规划/`（当前权威规划）、`正文/`（已接受章节）、`档案/`（locked 资产溯源）、`产出/`（全部状态产出）。
+目录结构：`README.md`（项目定位——向导 setup 快照摘要）、`创作约束/`（作者签名含创作者人格与**派生溯源**、本书创作灵魂）、`规划/`（locked 规划，人物契约按人物拆子目录）、`大纲/`（卷纲+章纲）、`正文/`（已接受章节）、`人物/`、`世界/`、`连续性/`（六类账本）、`manifest.json`。
 
 投影是单向派生——直接编辑其中 Markdown 不会回写权威存储。日常创作不需要每次都刷新投影；需要查看文件目录视图时运行即可。
 

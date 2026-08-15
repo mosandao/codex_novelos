@@ -20,19 +20,29 @@ SELECT content FROM resources WHERE id = 'resource:xxx';
 ## 项目 / 书 / 卷 / 章节（CRUD）
 
 ```sql
--- 项目（新建项目必须把向导 setup v2 快照写进 metadata_json.setup——它是频道/平台/规模/
--- 题材/表里基调/美学/题材信息包/创作资料的权威存储，后续所有阶段经 SQL 读取，不靠会话记忆）
+-- 项目（新建项目由 scripts/novelos_create_project.py 单事务落库，禁止手工逐条 INSERT；
+-- 此模板仅示意 metadata_json 结构。setup v2 快照是频道/平台/规模/题材/表里基调/美学/
+-- 题材信息包/创作资料的权威存储；setup_schema_version 标记快照契约版本，后续阶段经 SQL 读取，不靠会话记忆）
 INSERT INTO projects (id, name, description, version, metadata_json)
 VALUES ('project:xxx', '书名', '一句话定位', 1,
-    json('{"setup": {"channel": "女频", "platform": "晋江", "platform_traits": {...},
-        "scale": "...", "primary_genre": "...", "secondary_directions": [...],
-        "emotional_surface": [...], "emotional_core": "...", "tonal_contrast": null,
-        "aesthetic_styles": [...], "genre_profile": {...}, "reference_material": "..."}}'));
+    json('{"setup_schema_version": 2, "setup": {"channel": "女频", "platform": "晋江",
+        "platform_traits": {...}, "scale": "...", "primary_genre": "...",
+        "secondary_directions": [...], "emotional_surface": [...], "emotional_core": "...",
+        "tonal_contrast": null, "aesthetic_styles": [...], "genre_profile": {...},
+        "reference_material": "..."}}'));
 SELECT * FROM projects;
 UPDATE projects SET description = ? WHERE id = 'project:xxx';
 
 -- 读项目 setup 快照（方向/策略/世界观/写作等阶段的标准输入）
 SELECT json_extract(metadata_json, '$.setup') AS setup FROM projects WHERE id = 'project:xxx';
+
+-- setup 变更（连载中改频道/平台/基调等——属上游变更：改后必须把全部 locked 规划资产
+-- 标 stale（scripts/novelos_propagate_stale.py 或手动 UPDATE status='stale'）并重走审查/锁定，
+-- 见 AGENTS.md「setup 变更通路」。禁止静默改 setup 后继续用旧规划写作）
+UPDATE projects
+SET metadata_json = json_set(metadata_json, '$.setup', json('{"channel": ..., ...}')),
+    updated_at = CURRENT_TIMESTAMP
+WHERE id = 'project:xxx';
 
 -- 书
 INSERT INTO books (id, project_id, title, version, metadata_json)
@@ -61,9 +71,9 @@ WHERE c.status = 'accepted' AND c.volume_id = 'volume:xxx'
 ORDER BY c.number;
 ```
 
-## 作者签名链（项目创建落库）
+## 作者签名链（项目创建落库——固化脚本执行）
 
-onboarding_agent 产出 `creator_derivation_candidate` 后，主控按以下顺序落库。签名 JSON（schema v2，含 persona）存 resources，派生记录（parent 指向 + rationale）存 derivation_resource_id 指向的第二个 resource。
+onboarding_agent 产出 `creator_derivation_candidate` 后，主控运行 `scripts/novelos_create_project.py --payload <向导JSON> --candidate <候选JSON>` 一步完成校验门与落库，**不手工逐条执行以下 SQL**（模板仅作结构说明与排查参照）。落库在单事务内执行（`BEGIN IMMEDIATE` + `PRAGMA foreign_keys=ON`，任一步失败整体回滚——六表写入没有孤儿）。签名 JSON（schema v2，含 persona）存 resources；派生记录存第二个 resource，内容固定为：`parent_version_id` + `parent_display_name` + `parent_subject_hash` + `auxiliary_archetypes` + `rationale` + `user_input_snapshot`（**完整用户输入快照** = selected_archetypes + user_persona_hints + setup 全文，不得缩略——它是用户原始意图的唯一持久化副本）。
 
 ```sql
 -- 1. 签名内容（含 persona 的完整签名 JSON）
@@ -86,9 +96,9 @@ VALUES ('creator-profile-version:xxx', 'creator-profile:xxx', 1,
     'creator-profile-version:system-xxx:1', -- parent = 选定系统原型（单/多原型均为判定出的 parent）
     'resource:deriv');
 
--- 5. 项目 + 绑定
+-- 5. 项目 + 绑定（metadata_json 写 setup 快照，结构见上方项目模板）
 INSERT INTO projects (id, name, description, version, metadata_json)
-VALUES ('project:xxx', '书名', '描述', 1, '{}');
+VALUES ('project:xxx', '书名', '描述', 1, json('{"setup_schema_version": 2, "setup": {...}}'));
 INSERT INTO project_creator_bindings (project_id, profile_id, profile_version_id,
     profile_revision, subject_hash, binding_mode)
 VALUES ('project:xxx', 'creator-profile:xxx', 'creator-profile-version:xxx', 1,
@@ -106,6 +116,26 @@ WHERE b.project_id = 'project:xxx';
 - `config/schemas/creator-signature.schema.json` 校验签名（v2 必须含 persona，`blindspots.cannot_write` 非空）
 - overrides 字段在 7 个签名字段内且无逐字复制父值（语义继承允许，须从 persona 重新长出）
 - `parent_version_id` / `parent_subject_hash` 与 `config/system_archetypes.json` 中的原型一致
+
+## 人格库指纹（融合前跨批次去重注入）
+
+注入 onboarding_agent 前查询已派生人格的指纹摘要（`existing_persona_fingerprints`），供 prompt 的 1.2.1 跨批次去重校验——道具结构/烙印事件/张力形态/主题×频道组合不得与库中雷同。人格库为空（查询无结果）时省略此输入。
+
+```sql
+SELECT cp.display_name,
+       json_extract(cast(r.content as text), '$.persona.anchors.five_dimensions.life_trajectory') AS life_trajectory,
+       json_extract(cast(r.content as text), '$.persona.anchors.five_dimensions.career_track')    AS career_track,
+       json_extract(cast(r.content as text), '$.persona.anchors.trait_profile')                  AS trait_profile,
+       json_extract(cast(r.content as text), '$.persona.anchors.inner_tension')                  AS inner_tension,
+       json_extract(cast(r.content as text), '$.persona.anchors.theme_orientation.dominant')     AS theme_dominant
+FROM creator_profile_versions v
+JOIN creator_profiles cp ON cp.id = v.profile_id
+JOIN resources r ON r.id = v.content_resource_id
+WHERE v.parent_version_id IS NOT NULL
+ORDER BY v.created_at;
+```
+
+trait_profile / inner_tension / life_trajectory 原文注入即可（agent 按结构指纹比对，不需要主控预摘要）。注入时称其为「跨批次比对基准人格」——指纹清单包含**全部历史派生人格**（含已被 rebind 换下但保留在库的），它们都是比对基准；不要说「待替换的旧人格」（会误导 agent 与下游把历史人格理解为已废弃）。
 
 ## 规划资产（planning_assets）
 

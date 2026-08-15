@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://novelos.local/schemas/project-create-request.schema.json",
+  "title": "NovelOS 项目创建请求（novelos.project.create.v2）",
+  "description": "向导产出的提交 JSON 的结构契约。只锁结构与格式；词表级联（channel×platform×题材×基调×美学）与原型 hash 三方比对由 scripts/novelos_create_project.py 在 schema 之上追加校验。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["request_type", "setup"],
+  "properties": {
+    "request_type": {"const": "novelos.project.create.v2"},
+    "setup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "title",
+        "creator",
+        "channel",
+        "platform",
+        "platform_traits",
+        "scale",
+        "primary_genre",
+        "secondary_directions",
+        "emotional_surface",
+        "emotional_core",
+        "tonal_contrast",
+        "aesthetic_styles",
+        "genre_profile",
+        "reference_material"
+      ],
+      "properties": {
+        "title": {"type": "string", "minLength": 1, "maxLength": 120},
+        "creator": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["mode", "selected_archetypes", "user_persona_hints"],
+          "properties": {
+            "mode": {"const": "derive"},
+            "selected_archetypes": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 6,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["profile_version_id", "subject_hash", "display_name"],
+                "properties": {
+                  "profile_version_id": {
+                    "type": "string",
+                    "pattern": "^creator-profile-version:system-[a-z][a-z0-9-]*:[0-9]+$"
+                  },
+                  "subject_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+                  "display_name": {"type": "string", "minLength": 1, "maxLength": 60}
+                }
+              }
+            },
+            "user_persona_hints": {
+              "type": "object",
+              "additionalProperties": false,
+              "maxProperties": 4,
+              "properties": {
+                "taste_anchors": {"$ref": "#/$defs/line_list"},
+                "people_and_scenes": {"$ref": "#/$defs/line_list"},
+                "hard_nos": {"$ref": "#/$defs/line_list"},
+                "obsessions": {"$ref": "#/$defs/line_list"}
+              }
+            }
+          }
+        },
+        "channel": {"enum": ["男频", "女频", "全向"]},
+        "platform": {"type": "string", "minLength": 1, "maxLength": 20},
+        "platform_traits": {
+          "type": ["object", "null"],
+          "additionalProperties": false,
+          "properties": {
+            "model": {"type": "string", "minLength": 1},
+            "patience": {"type": "string", "minLength": 1},
+            "reader_profile": {"type": "string", "minLength": 1}
+          }
+        },
+        "scale": {
+          "enum": [
+            "短篇（30万字以下）",
+            "中篇（30-100万字）",
+            "长篇（100-300万字）",
+            "超长篇（300万字以上）"
+          ]
+        },
+        "primary_genre": {"type": "string", "minLength": 1, "maxLength": 30},
+        "secondary_directions": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1, "maxLength": 30},
+          "maxItems": 16,
+          "uniqueItems": true
+        },
+        "emotional_surface": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1, "maxLength": 30},
+          "minItems": 1,
+          "maxItems": 2,
+          "uniqueItems": true
+        },
+        "emotional_core": {"type": "string", "minLength": 1, "maxLength": 30},
+        "tonal_contrast": {"type": ["string", "null"], "maxLength": 300},
+        "aesthetic_styles": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1, "maxLength": 30},
+          "minItems": 1,
+          "maxItems": 2,
+          "uniqueItems": true
+        },
+        "genre_profile": {"type": ["object", "null"]},
+        "reference_material": {"type": ["string", "null"], "maxLength": 10000}
+      }
+    }
+  },
+  "$defs": {
+    "line_list": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1, "maxLength": 200},
+      "maxItems": 20
+    }
+  }
+}

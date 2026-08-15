@@ -24,3 +24,4 @@ tasks/experiments/agent_quality/results/work/
 *.key
 *.p12
 *.pfx
+data/*.db.bak

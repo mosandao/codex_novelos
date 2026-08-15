@@ -27,7 +27,7 @@ from pathlib import Path
 from typing import Any
 
 PROJECTION_FORMAT_VERSION = 1
-GENERATOR_VERSION = "2.0.0"
+GENERATOR_VERSION = "2.1.0"
 
 _ILLEGAL_CHAR = re.compile(r'[\x00-\x1f\x7f\\/:*?"<>|]')
 _CN_DIGITS = "零一二三四五六七八九"
@@ -119,9 +119,10 @@ def load_snapshot(conn: sqlite3.Connection, project_id: str) -> dict[str, Any]:
         elif r["asset_type"] == "chapter_plan":
             chapter_plans.append(r)
 
-    # creator 签名（binding → profile_version → resource）
+    # creator 签名（binding → profile_version → resource）+ 派生溯源（derivation resource）
     binding = _row(conn, "SELECT * FROM project_creator_bindings WHERE project_id=?", (project_id,))
     creator_signature: dict[str, Any] | None = None
+    creator_derivation: dict[str, Any] | None = None
     if binding is not None:
         pv = _row(conn, "SELECT * FROM creator_profile_versions WHERE id=?", (binding["profile_version_id"],))
         profile = _row(conn, "SELECT * FROM creator_profiles WHERE id=?", (binding["profile_id"],))
@@ -136,6 +137,17 @@ def load_snapshot(conn: sqlite3.Connection, project_id: str) -> dict[str, Any]:
                 "binding_mode": binding["binding_mode"],
                 "signature": signature,
             }
+            if pv.get("derivation_resource_id"):
+                try:
+                    creator_derivation = json.loads(
+                        _read_resource(conn, pv["derivation_resource_id"])
+                    )
+                except (json.JSONDecodeError, SystemExit):
+                    creator_derivation = None
+
+    # 向导 setup 快照（projects.metadata_json.$.setup——项目定位的权威存储）
+    metadata_obj = json.loads(project["metadata_json"]) if project.get("metadata_json") else {}
+    project_setup = metadata_obj.get("setup") if isinstance(metadata_obj, dict) else None
 
     # book_soul 从 locked direction 的 metadata 提取
     book_soul: dict[str, Any] | None = None
@@ -221,6 +233,8 @@ def load_snapshot(conn: sqlite3.Connection, project_id: str) -> dict[str, Any]:
     return {
         "project": project,
         "creator_signature": creator_signature,
+        "creator_derivation": creator_derivation,
+        "project_setup": project_setup,
         "book_soul": book_soul,
         "planning": planning,
         "volume_outlines": volume_outlines,
@@ -383,7 +397,7 @@ def render(snapshot: dict[str, Any], project_id: str, output_root: str) -> dict[
             }
         )
 
-    # A. README
+    # A. README（含向导 setup 定位摘要——频道/平台/规模/题材/表里基调/美学）
     readme_body = (
         f"此文件夹为 NovelOS 项目《{project_title}》派生的用户只读投影。\n\n"
         "> [!IMPORTANT]\n"
@@ -393,6 +407,31 @@ def render(snapshot: dict[str, Any], project_id: str, output_root: str) -> dict[
         f"- **项目版本**：`v{project_version}`\n"
         f"- **权威快照 Hash**：`{authority_hash}`\n"
     )
+    setup = snapshot.get("project_setup")
+    if isinstance(setup, dict):
+        traits = setup.get("platform_traits") or {}
+        setup_lines = ["", "## 项目定位（向导 setup 快照）", ""]
+        setup_lines.append(
+            f"- **频道×平台**：{setup.get('channel', '?')} · {setup.get('platform', '?')}"
+            + (f"（{traits.get('model', '')}）" if traits.get("model") else "")
+        )
+        if traits.get("patience"):
+            setup_lines.append(f"- **平台耐心**：{traits['patience']}")
+        setup_lines.append(f"- **规模**：{setup.get('scale', '?')}")
+        setup_lines.append(f"- **题材**：{setup.get('primary_genre', '?')}")
+        if setup.get("secondary_directions"):
+            setup_lines.append(f"- **二级方向**：{'、'.join(setup['secondary_directions'])}")
+        surface = setup.get("emotional_surface") or []
+        core = setup.get("emotional_core")
+        if surface or core:
+            setup_lines.append(
+                f"- **表里基调**：表层 {'、'.join(surface) or '—'} / 内核 {core or '—'}"
+            )
+        if setup.get("tonal_contrast"):
+            setup_lines.append(f"- **表里声明**：{setup['tonal_contrast']}")
+        if setup.get("aesthetic_styles"):
+            setup_lines.append(f"- **美学风格**：{'、'.join(setup['aesthetic_styles'])}")
+        readme_body += "\n".join(setup_lines) + "\n"
     write_markdown("README.md", f"《{project_title}》项目展示视图", readme_body,
                    {"source_type": "project_readme", "source_id": project_id})
 
@@ -448,6 +487,23 @@ def render(snapshot: dict[str, Any], project_id: str, output_root: str) -> dict[
         for field, label in _SIGNATURE_LABELS.items():
             lines.extend(["", f"## {label}"])
             lines.extend(f"- {item}" for item in sig.get(field, []))
+        derivation = snapshot.get("creator_derivation")
+        if isinstance(derivation, dict):
+            lines.extend(["", "## 派生溯源", ""])
+            lines.append(
+                f"- **Parent**：{derivation.get('parent_display_name', '?')}"
+                f"（`{derivation.get('parent_version_id', '?')}`）"
+            )
+            aux = derivation.get("auxiliary_archetypes") or []
+            if aux:
+                lines.append(f"- **辅助原型**：{len(aux)} 个")
+            snapshot_in = derivation.get("user_input_snapshot") or {}
+            hints = snapshot_in.get("user_persona_hints") or {}
+            hint_desc = "、".join(f"{k}×{len(v)}" for k, v in hints.items()) or "未填写"
+            lines.append(f"- **用户人格素材**：{hint_desc}")
+            rationale = derivation.get("rationale")
+            if rationale:
+                lines.extend(["", "### parent 判定理由与取舍", "", rationale])
         body = "\n".join(lines)
         src = {"source_type": "creator_signature", "source_id": creator["profile_version_id"],
                "source_version": creator["profile_revision"], "source_hash": creator["subject_hash"]}
