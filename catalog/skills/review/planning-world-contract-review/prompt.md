@@ -7,6 +7,7 @@
 - 精确上游：已锁定的 `architecture` 与 `strategy`
 
 ## 检查清单
+0. **术语语域表**：语域表四件套存在且完整（lexicon / banned_categories 四类分禁 / measure_system / exceptions）——缺失任件 = blocking；lexicon 与机制命名脱节 = warning。
 1. **底层规则**：世界观物理与超自然法则是否严密自洽。
 2. **资源与成本**：能力与力量的获取是否建立在资源争夺与明确代价之上。
 3. **制度与势力**：势力结构与社会制度是否合理反映了力量与资源的掌控关系。

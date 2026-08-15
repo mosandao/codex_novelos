@@ -1,0 +1,17 @@
+name: worldview-lexicon
+description: 术语语域纪律——正文遵守 world_contract 语域表，无语域表时的保底纪律与认知边界
+stage: writing
+asset: scene
+capability: constraint
+lifecycle: active
+version: 1.0.0
+genres: []
+risk: P2
+output_contract: document
+priority: 25
+tags: [world, lexicon, discipline, prose]
+use_when:
+- 起草正文时消费 world_contract 的术语语域表（lexicon / banned_categories / measure_system / exceptions）
+- world_contract 无语域表时的保底纪律（非现代题材默认禁科学术语类 + 现代计量类）
+avoid_when:
+- 现代题材且 world_contract 显式豁免现代词汇

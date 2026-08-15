@@ -27,7 +27,7 @@
 | strategy-review（review/planning-strategy-review） | subject, upstream:direction, upstream:architecture | 跟随被审对象 | judge | Review Receipt | 修复循环 |
 | character_contract（planning/character-contract） | persona_full, upstream:architecture, upstream:strategy | balanced | propose_only | 人物契约候选（契约维度按 skill 定义） | 修复循环；与上游矛盾 → change proposal 不隐式改上游 |
 | character-contract-review（review/planning-character-contract-review） | subject, upstream:architecture, upstream:strategy | 跟随被审对象 | judge | Review Receipt | 修复循环 |
-| world_contract（planning/world-contract） | upstream:architecture, upstream:strategy | balanced | propose_only | 世界契约候选 | 修复循环；规则自洽缺陷 blocking |
+| world_contract（planning/world-contract） | project_setup, upstream:architecture, upstream:strategy | balanced | propose_only | 世界契约候选 | 修复循环；规则自洽缺陷 blocking |
 | world-contract-review（review/planning-world-contract-review） | subject, upstream:architecture, upstream:strategy | 跟随被审对象 | judge | Review Receipt | 修复循环 |
 | story_arc（planning/story-arc） | upstream:strategy, upstream:character_contract, upstream:world_contract | balanced | propose_only | 跨卷弧线候选（recurring_tests 分配到卷） | 修复循环 |
 | story-arc-review（review/planning-story-arc-review） | subject, upstream:strategy | 跟随被审对象 | judge | Review Receipt | 修复循环 |

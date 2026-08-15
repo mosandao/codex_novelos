@@ -1,0 +1,11 @@
+{
+  "modules": [
+    {"id": "genre-present", "file": "genre-present.md",
+     "when": {"field": "setup.genre_profile", "not_null": true}},
+    {"id": "genre-null", "file": "genre-null.md",
+     "when": {"field": "setup.genre_profile", "is_null": true}}
+  ],
+  "data_slots": ["project_setup", "upstream:architecture", "upstream:strategy"],
+  "divergence": "balanced",
+  "decision_scope": "propose_only"
+}

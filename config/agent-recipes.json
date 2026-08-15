@@ -130,7 +130,7 @@
     },
     {
       "asset": "character_contract",
-      "composer_key": null,
+      "composer_key": "character-contract",
       "skill": "planning/character-contract",
       "slots": [
         "persona_full",
@@ -144,7 +144,7 @@
     },
     {
       "asset": "character-contract-review",
-      "composer_key": null,
+      "composer_key": "character-contract-review",
       "skill": "review/planning-character-contract-review",
       "slots": [
         "subject",
@@ -158,9 +158,10 @@
     },
     {
       "asset": "world_contract",
-      "composer_key": null,
+      "composer_key": "world-contract",
       "skill": "planning/world-contract",
       "slots": [
+        "project_setup",
         "upstream:architecture",
         "upstream:strategy"
       ],
@@ -171,7 +172,7 @@
     },
     {
       "asset": "world-contract-review",
-      "composer_key": null,
+      "composer_key": "world-contract-review",
       "skill": "review/planning-world-contract-review",
       "slots": [
         "subject",

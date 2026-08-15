@@ -24,6 +24,10 @@ SIZE_BUDGET = {
     "architecture-review": 60,
     "strategy": 110,
     "strategy-review": 60,
+    "world-contract": 150,
+    "world-contract-review": 70,
+    "character-contract": 130,
+    "character-contract-review": 70,
 }
 
 # 频道/模式标记行：用于断言「装了 A 就不能装 B」的路由正确性。
@@ -250,6 +254,10 @@ class SizeBudget(unittest.TestCase):
             ("architecture-review", _ctx_direction(channel="女频")),
             ("strategy", worst_direction),
             ("strategy-review", _ctx_direction(channel="女频")),
+            ("world-contract", worst_direction),
+            ("world-contract-review", worst_direction),
+            ("character-contract", _ctx_direction(channel="女频")),
+            ("character-contract-review", _ctx_direction(channel="女频")),
         ):
             out = compose(ASSET_DIRS[asset], ctx, [])
             lines = len(out.splitlines())
@@ -305,6 +313,31 @@ class StrategyRouting(unittest.TestCase):
         rev = compose(ASSET_DIRS["strategy-review"], _ctx_direction(channel="女频"), [])
         self.assertIn("频道轴审查：女频", rev)
         self.assertIn("上游机制消费完整", rev)
+
+
+class P2RoutingBatch(unittest.TestCase):
+    """world / character 双端路由与主干增强断言。"""
+
+    def test_world_genre_modules_and_lexicon(self):
+        present = compose(ASSET_DIRS["world-contract"], _ctx_direction(), [])
+        self.assertIn("语域取材：题材信息包非空", present)
+        self.assertIn("术语语域表（必产节，正文执行端消费）", present)
+        absent = compose(ASSET_DIRS["world-contract"],
+                         _ctx_direction(genre_null=True), [])
+        self.assertIn("语域取材：题材信息包缺位", absent)
+        rev = compose(ASSET_DIRS["world-contract-review"], _ctx_direction(), [])
+        self.assertIn("术语语域表", rev)
+
+    def test_character_channel_modules_and_handover(self):
+        female = compose(ASSET_DIRS["character-contract"], _ctx_direction(channel="女频"), [])
+        self.assertIn("频道轴的人物层：女频（道德债权账户）", female)
+        self.assertIn("架构移交清单消费", female)
+        male = compose(ASSET_DIRS["character-contract"], _ctx_direction(), [])
+        self.assertIn("频道轴的人物层：男频（力量兑现载体）", male)
+        self.assertNotIn("道德债权账户）", male)
+        rev = compose(ASSET_DIRS["character-contract-review"], _ctx_direction(channel="女频"), [])
+        self.assertIn("频道轴审查：女频", rev)
+        self.assertIn("移交清单消费完整", rev)
 
 
 class ComposeDeterminism(unittest.TestCase):

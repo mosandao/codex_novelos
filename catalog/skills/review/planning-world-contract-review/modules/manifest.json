@@ -1,0 +1,10 @@
+{
+  "modules": [
+    {"id": "check-genre-present", "file": "check-genre-present.md",
+     "when": {"field": "setup.genre_profile", "not_null": true}},
+    {"id": "check-genre-null", "file": "check-genre-null.md",
+     "when": {"field": "setup.genre_profile", "is_null": true}}
+  ],
+  "data_slots": ["subject", "upstream:architecture", "upstream:strategy"],
+  "decision_scope": "judge"
+}

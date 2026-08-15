@@ -1,0 +1,7 @@
+origin: target-native
+source_repository: null
+source_path: null
+source_commit: null
+source_hash: null
+license: NovelOS-project
+migration_note: 依据 Task 28 阶段 4a 术语语域纪律规格独立编写。
