@@ -295,7 +295,7 @@
     },
     {
       "asset": "continuity-extraction",
-      "composer_key": null,
+      "composer_key": "continuity-extraction",
       "skill": "continuity/continuity-candidate-extraction",
       "slots": [
         "subject",
@@ -308,7 +308,7 @@
     },
     {
       "asset": "continuity-quality-review",
-      "composer_key": null,
+      "composer_key": "continuity-review",
       "skill": "review/continuity-quality-review",
       "slots": [
         "subject",

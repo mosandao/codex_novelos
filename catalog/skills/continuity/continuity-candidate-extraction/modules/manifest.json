@@ -1,0 +1,6 @@
+{
+  "modules": [],
+  "data_slots": ["subject"],
+  "divergence": "constrained",
+  "decision_scope": "execute"
+}

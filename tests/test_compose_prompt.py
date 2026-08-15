@@ -36,6 +36,8 @@ SIZE_BUDGET = {
     "chapter-plan-review": 70,
     "chapter-draft": 60,
     "prose-review": 65,
+    "continuity-extraction": 35,
+    "continuity-review": 30,
 }
 
 # 频道/模式标记行：用于断言「装了 A 就不能装 B」的路由正确性。
@@ -274,6 +276,8 @@ class SizeBudget(unittest.TestCase):
             ("chapter-plan-review", _ctx_direction(channel="女频")),
             ("chapter-draft", _ctx_direction(channel="女频")),
             ("prose-review", _ctx_direction(channel="女频")),
+            ("continuity-extraction", worst_direction),
+            ("continuity-review", worst_direction),
         ):
             out = compose(ASSET_DIRS[asset], ctx, [])
             lines = len(out.splitlines())
