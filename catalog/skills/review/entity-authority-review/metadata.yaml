@@ -10,3 +10,7 @@ risk: P1
 output_contract: typed_result
 priority: 10
 tags: [entity, review, receipt]
+use_when:
+- 实体属性/命名/势力范围修订与 Canon 快照一致性审查
+avoid_when:
+- 全新规划资产候选的结构审查

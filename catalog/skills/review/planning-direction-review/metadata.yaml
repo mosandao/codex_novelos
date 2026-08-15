@@ -13,3 +13,7 @@ tags:
 - review
 - planning
 - direction
+use_when:
+- direction 候选审查（book_soul/频道轴/力量货币/代价质量）
+avoid_when:
+- 下游任何资产审查

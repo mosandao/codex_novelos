@@ -13,3 +13,7 @@ tags:
 - review
 - planning
 - strategy
+use_when:
+- strategy 候选审查（上游翻译五表/体量/收益配比）
+avoid_when:
+- architecture 或卷纲审查

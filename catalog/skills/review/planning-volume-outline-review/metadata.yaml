@@ -13,3 +13,7 @@ tags:
 - review
 - planning
 - volume_outline
+use_when:
+- volume_outline 候选审查（节奏量化/四段结构）
+avoid_when:
+- 章纲或正文审查

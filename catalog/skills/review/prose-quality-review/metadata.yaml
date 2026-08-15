@@ -10,3 +10,7 @@ risk: P1
 output_contract: typed_result
 priority: 10
 tags: [chapter, review, receipt]
+use_when:
+- 章节接受前的正文质量审查（形式/指纹/语域/频道轴）
+avoid_when:
+- 规划资产候选审查

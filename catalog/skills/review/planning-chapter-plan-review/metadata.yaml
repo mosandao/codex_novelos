@@ -13,3 +13,7 @@ tags:
 - review
 - planning
 - chapter_plan
+use_when:
+- chapter_plan 候选审查（三拍/钩子强度/灵魂职责）
+avoid_when:
+- 正文草稿审查

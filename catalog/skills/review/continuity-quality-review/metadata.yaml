@@ -10,3 +10,7 @@ risk: P1
 output_contract: typed_result
 priority: 10
 tags: [continuity, review, receipt]
+use_when:
+- 连续性候选晋升前审查提取条目与正文/Canon 匹配度
+avoid_when:
+- 非连续性类资产的候选审查

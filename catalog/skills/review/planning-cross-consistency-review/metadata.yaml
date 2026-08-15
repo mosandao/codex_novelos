@@ -10,3 +10,7 @@ risk: P1
 output_contract: typed_result
 priority: 10
 tags: [planning, cross-consistency, review, receipt]
+use_when:
+- character 与 world 交叉审查（能力vs规则/势力vs动机/角色vs制度）
+avoid_when:
+- 单资产内部质量审查

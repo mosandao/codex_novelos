@@ -13,3 +13,7 @@ tags:
 - review
 - planning
 - world_contract
+use_when:
+- world_contract 候选审查（语域表/消费绑定）
+avoid_when:
+- character_contract 审查

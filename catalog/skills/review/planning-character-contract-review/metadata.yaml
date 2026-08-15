@@ -13,3 +13,7 @@ tags:
 - review
 - planning
 - character_contract
+use_when:
+- character_contract 候选审查（移交消费/道德账户）
+avoid_when:
+- world_contract 或正文审查

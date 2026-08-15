@@ -10,3 +10,7 @@ risk: P1
 output_contract: typed_result
 priority: 10
 tags: [planning, review, receipt]
+use_when:
+- 无专属 review skill 的规划资产兜底审查
+avoid_when:
+- 存在专属 review skill 的资产（优先专属）

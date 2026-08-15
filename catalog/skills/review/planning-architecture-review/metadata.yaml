@@ -13,3 +13,7 @@ tags:
 - review
 - planning
 - architecture
+use_when:
+- architecture 候选锁定前的双引擎/翻译完整度审查
+avoid_when:
+- direction 或下游资产审查

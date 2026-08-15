@@ -13,3 +13,7 @@ tags:
 - review
 - planning
 - story_arc
+use_when:
+- story_arc 候选审查（弧卷映射/种收台账/变奏）
+avoid_when:
+- 单卷卷纲审查
