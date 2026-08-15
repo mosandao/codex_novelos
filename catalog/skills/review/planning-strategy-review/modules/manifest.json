@@ -1,0 +1,16 @@
+{
+  "modules": [
+    {"id": "check-channel-male", "file": "check-channel-male.md",
+     "when": {"field": "setup.channel", "equals": "男频"}},
+    {"id": "check-channel-female", "file": "check-channel-female.md",
+     "when": {"field": "setup.channel", "equals": "女频"}},
+    {"id": "check-channel-omni", "file": "check-channel-omni.md",
+     "when": {"field": "setup.channel", "equals": "全向"}},
+    {"id": "check-platform-free", "file": "check-platform-free.md",
+     "when": {"field": "setup.platform_traits.model", "equals": "免费算法"}},
+    {"id": "check-platform-paid", "file": "check-platform-paid.md",
+     "when": {"field": "setup.platform_traits.model", "equals": "付费订阅"}}
+  ],
+  "data_slots": ["subject", "upstream:direction", "upstream:architecture"],
+  "decision_scope": "judge"
+}

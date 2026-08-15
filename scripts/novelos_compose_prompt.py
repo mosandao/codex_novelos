@@ -44,6 +44,8 @@ ASSET_DIRS = {
     "fusion": ROOT / "catalog/skills/onboarding/creator-signature-fusion",
     "architecture": ROOT / "catalog/skills/planning/story-architecture",
     "architecture-review": ROOT / "catalog/skills/review/planning-architecture-review",
+    "strategy": ROOT / "catalog/skills/planning/story-strategy",
+    "strategy-review": ROOT / "catalog/skills/review/planning-strategy-review",
 }
 
 # 主干自检节标题（匹配行首；该节被剪切到输出尾部，模块附加自检附于其后）

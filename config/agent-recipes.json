@@ -102,7 +102,7 @@
     },
     {
       "asset": "strategy",
-      "composer_key": null,
+      "composer_key": "strategy",
       "skill": "planning/story-strategy",
       "slots": [
         "project_setup",
@@ -116,7 +116,7 @@
     },
     {
       "asset": "strategy-review",
-      "composer_key": null,
+      "composer_key": "strategy-review",
       "skill": "review/planning-strategy-review",
       "slots": [
         "subject",

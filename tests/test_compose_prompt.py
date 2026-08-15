@@ -22,6 +22,8 @@ SIZE_BUDGET = {
     "fusion": 280,
     "architecture": 130,
     "architecture-review": 60,
+    "strategy": 110,
+    "strategy-review": 60,
 }
 
 # 频道/模式标记行：用于断言「装了 A 就不能装 B」的路由正确性。
@@ -246,6 +248,8 @@ class SizeBudget(unittest.TestCase):
             ("fusion", worst_fusion),
             ("architecture", worst_direction),
             ("architecture-review", _ctx_direction(channel="女频")),
+            ("strategy", worst_direction),
+            ("strategy-review", _ctx_direction(channel="女频")),
         ):
             out = compose(ASSET_DIRS[asset], ctx, [])
             lines = len(out.splitlines())
@@ -283,6 +287,24 @@ class ArchitectureRouting(unittest.TestCase):
             axis = {"男频": "男频", "女频": "女频", "全向": "全向"}[channel]
             self.assertIn(f"频道轴的架构翻译：{axis}", gen)
             self.assertIn(f"频道轴审查：{axis}", rev)
+
+
+class StrategyRouting(unittest.TestCase):
+    """strategy 双端：模块互斥 + 审查对偶 + 主干增强断言。"""
+
+    def test_channel_and_platform_routing(self):
+        ctx = _ctx_direction()  # 男频 + 免费
+        out = compose(ASSET_DIRS["strategy"], ctx, [])
+        self.assertIn("频道轴的阶段收益：男频", out)
+        self.assertIn("平台节奏：免费算法", out)
+        self.assertNotIn("频道轴的阶段收益：女频", out)
+        self.assertIn("每阶段平均 ≥ 20 万字", out)  # 体量指引落地
+        self.assertIn("晋升-收费配对表", out)
+
+    def test_review_dual(self):
+        rev = compose(ASSET_DIRS["strategy-review"], _ctx_direction(channel="女频"), [])
+        self.assertIn("频道轴审查：女频", rev)
+        self.assertIn("上游机制消费完整", rev)
 
 
 class ComposeDeterminism(unittest.TestCase):
