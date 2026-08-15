@@ -28,6 +28,10 @@ SIZE_BUDGET = {
     "world-contract-review": 70,
     "character-contract": 130,
     "character-contract-review": 70,
+    "story-arc": 100,
+    "story-arc-review": 70,
+    "volume-outline": 100,
+    "volume-outline-review": 70,
 }
 
 # 频道/模式标记行：用于断言「装了 A 就不能装 B」的路由正确性。
@@ -258,6 +262,10 @@ class SizeBudget(unittest.TestCase):
             ("world-contract-review", worst_direction),
             ("character-contract", _ctx_direction(channel="女频")),
             ("character-contract-review", _ctx_direction(channel="女频")),
+            ("story-arc", worst_direction),
+            ("story-arc-review", worst_direction),
+            ("volume-outline", worst_direction),
+            ("volume-outline-review", worst_direction),
         ):
             out = compose(ASSET_DIRS[asset], ctx, [])
             lines = len(out.splitlines())
@@ -338,6 +346,21 @@ class P2RoutingBatch(unittest.TestCase):
         rev = compose(ASSET_DIRS["character-contract-review"], _ctx_direction(channel="女频"), [])
         self.assertIn("频道轴审查：女频", rev)
         self.assertIn("移交清单消费完整", rev)
+
+
+    def test_arc_and_volume_enhancements(self):
+        arc = compose(ASSET_DIRS["story-arc"], _ctx_direction(), [])
+        self.assertIn("弧↔卷映射方法", arc)
+        self.assertIn("种收台账", arc)
+        vol = compose(ASSET_DIRS["volume-outline"], _ctx_direction(), [])
+        self.assertIn("每 20-30 万字一个副高潮", vol)
+        self.assertIn("四段结构", vol)
+        arc_rev = compose(ASSET_DIRS["story-arc-review"], _ctx_direction(channel="女频"), [])
+        self.assertIn("弧↔卷映射表", arc_rev)
+        self.assertIn("频道轴审查：女频", arc_rev)
+        vol_rev = compose(ASSET_DIRS["volume-outline-review"], _ctx_direction(channel="女频"), [])
+        self.assertIn("卷内节奏量化", vol_rev)
+        self.assertIn("频道轴审查：女频", vol_rev)
 
 
 class ComposeDeterminism(unittest.TestCase):

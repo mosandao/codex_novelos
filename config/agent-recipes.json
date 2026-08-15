@@ -186,7 +186,7 @@
     },
     {
       "asset": "story_arc",
-      "composer_key": null,
+      "composer_key": "story-arc",
       "skill": "planning/story-arc",
       "slots": [
         "upstream:strategy",
@@ -200,7 +200,7 @@
     },
     {
       "asset": "story-arc-review",
-      "composer_key": null,
+      "composer_key": "story-arc-review",
       "skill": "review/planning-story-arc-review",
       "slots": [
         "subject",
@@ -213,7 +213,7 @@
     },
     {
       "asset": "volume_outline",
-      "composer_key": null,
+      "composer_key": "volume-outline",
       "skill": "planning/volume-outline",
       "slots": [
         "upstream:story_arc"
@@ -225,7 +225,7 @@
     },
     {
       "asset": "volume-outline-review",
-      "composer_key": null,
+      "composer_key": "volume-outline-review",
       "skill": "review/planning-volume-outline-review",
       "slots": [
         "subject",

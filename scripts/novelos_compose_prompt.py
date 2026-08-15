@@ -50,6 +50,10 @@ ASSET_DIRS = {
     "world-contract-review": ROOT / "catalog/skills/review/planning-world-contract-review",
     "character-contract": ROOT / "catalog/skills/planning/character-contract",
     "character-contract-review": ROOT / "catalog/skills/review/planning-character-contract-review",
+    "story-arc": ROOT / "catalog/skills/planning/story-arc",
+    "story-arc-review": ROOT / "catalog/skills/review/planning-story-arc-review",
+    "volume-outline": ROOT / "catalog/skills/planning/volume-outline",
+    "volume-outline-review": ROOT / "catalog/skills/review/planning-volume-outline-review",
 }
 
 # 主干自检节标题（匹配行首；该节被剪切到输出尾部，模块附加自检附于其后）
