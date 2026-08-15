@@ -278,6 +278,7 @@ _SOUL_LABELS = {
     "unresolved_claims": "未决追问",
     "central_contradiction": "核心矛盾",
     "promise_cadence": "承诺兑现节奏",
+    "power_currency": "力量货币",
     "costly_commitments": "有代价的承诺",
     "protected_dignity": "受保护的尊严",
     "forbidden_resolutions": "禁止的解决方式",

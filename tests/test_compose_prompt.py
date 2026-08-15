@@ -171,7 +171,7 @@ class OutputContract(unittest.TestCase):
     def test_direction_contract_and_tail_checklist(self):
         out = compose(ASSET_DIRS["direction"], _ctx_direction(), [])
         self.assertIn("# 故事方向", out)
-        self.assertIn("## book_soul 十二字段", out)
+        self.assertIn("## book_soul 十三字段", out)
         self.assertIn("交付前自检", out)
         # 男频附加自检（力量/秩序代价面）必须出现在输出里
         self.assertIn("力量/秩序代价面", out)

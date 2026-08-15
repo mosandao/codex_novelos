@@ -51,7 +51,7 @@ description: 识别小说规划层级并准备对应权威资产的最小输入�
 
 ## book_soul 字段速查表
 
-Direction 候选的 `metadata.book_soul` 必须符合 `config/schemas/book-soul.schema.json`（v2，十二字段）：
+Direction 候选的 `metadata.book_soul` 必须符合 `config/schemas/book-soul.schema.json`（v2，十三字段）：
 
 | 字段 | 类型 | 约束 |
 |---|---|---|

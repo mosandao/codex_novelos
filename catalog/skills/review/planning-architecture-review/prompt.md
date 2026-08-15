@@ -4,10 +4,10 @@
 
 ## 输入边界
 - 目标资产：`architecture`
-- 精确上游：已锁定的 `direction`（含 book_soul v2 十二字段）；创作者 persona（来自项目绑定签名）
+- 精确上游：已锁定的 `direction`（含 book_soul v2 十三字段）；创作者 persona（来自项目绑定签名）
 
 ## 检查清单
-1. **翻译完整度**：book_soul 十二字段（含 `organizing_principle` 与 `promise_cadence`）是否每个都有机制形态，或附显式豁免声明；组织原则是否被翻译成支撑机制而非复述。
+1. **翻译完整度**：book_soul 十三字段（含 `organizing_principle`、`promise_cadence` 与 `power_currency`）是否每个都有机制形态，或附显式豁免声明；组织原则是否被翻译成支撑机制而非复述。
 2. **双引擎**：章级单元机器与卷级主线引擎是否都有实体设计（输入→运转→产出）；只有主线无单元机器（中段塌方风险）或反之（爽而无根）均为缺陷。
 3. **咬合闭环**：施压机制之间是否声明咬合关系并构成闭环；独立并列的机制清单（孤岛）不合格。
 4. **四段式**：每个机制是否具备 引用（direction 血缘）→ 机制（运转方式）→ 节奏（施压/兑现频次）→ 下游影响（strategy/character/world 各拿什么）；节奏段是否可被 strategy 直接使用。

@@ -15,13 +15,14 @@
 6. **作者签名与 persona 继承**：是否精确继承 `creator_signature_ref`；persona 是否被消费（矛盾→两难种子、目光→组织原则、盲区→负面清单）；没有绕开 persona 的人口属性刻板推导，没有具体作者模仿目标。
 7. **书级创作灵魂**：`book_soul` schema v2 字段完整；承诺确实牺牲便利；recurring_tests 声明「改变处境/答案/代价」；仁慈与残酷同时存在。
 8. **项目独立性**：是否针对本项目形成独有追问，而非机械复制作者签名或另一项目的 `book_soul`。
+9. **力量货币与代价质量**：`power_currency` 已定义、带对价（获取付出什么、买不到什么），且 `central_contradiction` 至少一端锚在货币上；代价形态非对称——纯「得到1失去2」等价交换记账或代价可被读者提前预算 = warning。
 
 ## Blocking 条件
 - 缺失明确的核心冲突或主角处于完全被动无动机状态。
 - 组织原则泛化（任何书都成立）或承诺无兑现节奏声明。
 - 故事方向泛化无看点或无法支撑后续卷级展开。
 - 缺失或错绑 `creator_signature_ref`，人口属性刻板推导，具体作者模仿，或静默改写 Creator Profile。
-- `book_soul` 字段不完整（v2 含 organizing_principle / promise_cadence）、核心矛盾单向口号、承诺不承担任何叙事代价，或照抄作者签名而没有本书独有追问。
+- `book_soul` 字段不完整（v2 含 organizing_principle / promise_cadence / power_currency）、核心矛盾单向口号、力量货币未定义或未被矛盾锚定、承诺不承担任何叙事代价，或照抄作者签名而没有本书独有追问。
 
 ## 条件审查模块（按项目组装）
 
