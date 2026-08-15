@@ -56,6 +56,8 @@ ASSET_DIRS = {
     "volume-outline-review": ROOT / "catalog/skills/review/planning-volume-outline-review",
     "chapter-plan": ROOT / "catalog/skills/planning/chapter-plan-execution-card",
     "chapter-plan-review": ROOT / "catalog/skills/review/planning-chapter-plan-review",
+    "chapter-draft": ROOT / "catalog/skills/writing/chapter-draft-generation",
+    "prose-review": ROOT / "catalog/skills/review/prose-quality-review",
 }
 
 # 主干自检节标题（匹配行首；该节被剪切到输出尾部，模块附加自检附于其后）
@@ -377,13 +379,24 @@ def _slot_subject(conn: sqlite3.Connection, project_id: str | None,
         "WHERE pa.id = ?",
         (subject_id,),
     ).fetchone()
-    if row is None:
-        raise SystemExit(f"被审对象不存在: {subject_id}")
-    header = (f"asset_type: {row[0]} | scope: {row[1]} | revision: {row[2]} | "
-              f"status: {row[3]}")
-    meta = row[5] or "{}"
-    return (f"被审对象全文（subject: {subject_id}）",
-            f"{header}\n\n{row[4]}\n\n--- metadata ---\n{meta}")
+    if row is not None:
+        header = (f"asset_type: {row[0]} | scope: {row[1]} | revision: {row[2]} | "
+                  f"status: {row[3]}")
+        meta = row[5] or "{}"
+        return (f"被审对象全文（subject: {subject_id}）",
+                f"{header}\n\n{row[4]}\n\n--- metadata ---\n{meta}")
+    # 章节正文（chapter:xxx）——prose 审查的对象
+    row = conn.execute(
+        "SELECT c.number, c.title, c.status, c.version, CAST(r.content AS TEXT) AS body, "
+        "       c.metadata_json FROM chapters c JOIN resources r ON r.id = c.content_resource_id "
+        "WHERE c.id = ?",
+        (subject_id,),
+    ).fetchone()
+    if row is not None:
+        header = f"chapter no.{row[0]}《{row[1]}》 | status: {row[2]} | version: {row[3]}"
+        return (f"被审章节正文（subject: {subject_id}）",
+                f"{header}\n\n{row[4]}\n\n--- metadata ---\n{row[5] or '{}'}")
+    raise SystemExit(f"被审对象不存在（planning_assets 与 chapters 均未命中）: {subject_id}")
 
 
 def _slot_upstream(conn: sqlite3.Connection, asset_type: str,
@@ -423,7 +436,8 @@ def resolve_slots(conn: sqlite3.Connection, skill_dir: Path, *,
                   subject_id: str | None = None) -> list[tuple[str, str]]:
     """按 manifest 的 data_slots 声明顺序解析注入槽位。未注册槽位即报错。
 
-    upstream:<asset_type> 为前缀族槽位，展开为多节（每 scope 一节）。
+    upstream:<asset_type> 为前缀族槽位，展开为多节（每 scope 一节）；
+    craft_refs 为 manifest 顶层声明，craft 方法卡逐字注入（数字阈值唯一权威源）。
     """
     manifest = load_manifest(skill_dir)
     sections: list[tuple[str, str]] = []
@@ -435,6 +449,12 @@ def resolve_slots(conn: sqlite3.Connection, skill_dir: Path, *,
         if resolver is None:
             raise SystemExit(f"未注册的槽位: {slot}（{skill_dir.name}）")
         sections.append(resolver(conn, project_id, payload, subject_id))
+    for craft in manifest.get("craft_refs", []):
+        craft_path = ROOT / "catalog/skills/craft" / craft / "prompt.md"
+        if not craft_path.exists():
+            raise SystemExit(f"craft_refs 引用不存在的 craft 卡: {craft}（{skill_dir.name}）")
+        sections.append((f"craft 方法卡（{craft}，逐字注入——数字阈值唯一权威源）",
+                         craft_path.read_text(encoding="utf-8").strip()))
     return sections
 
 

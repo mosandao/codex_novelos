@@ -34,6 +34,8 @@ SIZE_BUDGET = {
     "volume-outline-review": 70,
     "chapter-plan": 110,
     "chapter-plan-review": 70,
+    "chapter-draft": 60,
+    "prose-review": 65,
 }
 
 # 频道/模式标记行：用于断言「装了 A 就不能装 B」的路由正确性。
@@ -270,6 +272,8 @@ class SizeBudget(unittest.TestCase):
             ("volume-outline-review", worst_direction),
             ("chapter-plan", _ctx_direction(channel="女频")),
             ("chapter-plan-review", _ctx_direction(channel="女频")),
+            ("chapter-draft", _ctx_direction(channel="女频")),
+            ("prose-review", _ctx_direction(channel="女频")),
         ):
             out = compose(ASSET_DIRS[asset], ctx, [])
             lines = len(out.splitlines())
@@ -375,6 +379,21 @@ class P2RoutingBatch(unittest.TestCase):
         self.assertIn("三拍完整", rev)
         self.assertIn("唯一权威源", rev)
         self.assertIn("频道轴审查：女频", rev)
+
+
+    def test_writing_threshold_collapse_and_lexicon(self):
+        from scripts.novelos_compose_prompt import load_manifest
+        draft = compose(ASSET_DIRS["chapter-draft"], _ctx_direction(channel="女频"), [])
+        self.assertIn("persona 四项执行纪律", draft)
+        self.assertIn("唯一权威源", draft)
+        self.assertNotIn("≤110 字", draft)  # 数字阈值已收口到 craft 卡
+        self.assertIn("频道轴的正文笔触：女频", draft)
+        rev = compose(ASSET_DIRS["prose-review"], _ctx_direction(channel="女频"), [])
+        self.assertIn("计量穿越", rev)  # 术语语域检查落地
+        self.assertIn("频道轴与力量货币依据", rev)
+        self.assertIn("频道轴审查：女频", rev)
+        crafts = load_manifest(ASSET_DIRS["prose-review"])["craft_refs"]
+        self.assertIn("worldview-lexicon", crafts)
 
 
 class ComposeDeterminism(unittest.TestCase):

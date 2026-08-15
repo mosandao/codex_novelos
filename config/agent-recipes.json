@@ -265,7 +265,7 @@
     },
     {
       "asset": "chapter_draft",
-      "composer_key": null,
+      "composer_key": "chapter-draft",
       "skill": "writing/chapter-draft-generation",
       "slots": [
         "upstream:chapter_plan",
@@ -281,7 +281,7 @@
     },
     {
       "asset": "prose-quality-review",
-      "composer_key": null,
+      "composer_key": "prose-review",
       "skill": "review/prose-quality-review",
       "slots": [
         "subject",

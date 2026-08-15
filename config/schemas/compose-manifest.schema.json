@@ -16,7 +16,12 @@
       "items": {"type": "string", "pattern": "^[a-z_]+(:[a-z_]+)?$"}
     },
     "divergence": {"enum": ["expansive", "balanced", "constrained"]},
-    "decision_scope": {"enum": ["propose_only", "judge", "execute", "flag"]}
+    "decision_scope": {"enum": ["propose_only", "judge", "execute", "flag"]},
+    "craft_refs": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"},
+      "description": "注入的 craft 方法卡名（catalog/skills/craft/<name>/prompt.md 逐字注入）——数字阈值的唯一权威源"
+    }
   },
   "$defs": {
     "module": {

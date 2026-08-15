@@ -1,0 +1,15 @@
+{
+  "modules": [
+    {"id": "check-channel-male", "file": "check-channel-male.md",
+     "when": {"field": "setup.channel", "equals": "男频"}},
+    {"id": "check-channel-female", "file": "check-channel-female.md",
+     "when": {"field": "setup.channel", "equals": "女频"}},
+    {"id": "check-channel-omni", "file": "check-channel-omni.md",
+     "when": {"field": "setup.channel", "equals": "全向"}}
+  ],
+  "data_slots": ["subject", "upstream:chapter_plan"],
+  "craft_refs": ["scene-pacing", "dash-ellipsis-guide", "mobile-formatting",
+                  "prose-anti-ai-fingerprint", "prose-format-hardrules",
+                  "prose-webnovel-accessibility", "worldview-lexicon"],
+  "decision_scope": "judge"
+}
