@@ -97,14 +97,14 @@ Task 28（Agent Prompt 增强队列）剩余范围由本任务吸收执行，映
 - [ ] **P2-0 阶段配方矩阵（设计基线）**：在 `documentation/agent-recipes.md` 落一张全资产矩阵——每个资产/审查场景一行，列 = **消费槽位配方（加载什么）× 发散档位（怎么想）× 决策权限（能定什么）× 输出契约（JSON schema 或文本形态）× 失败行为（进修复循环 / 上报裁决 / 组装重试）**。P2-1..P2-9 照矩阵实现；manifest 与矩阵不一致即测试失败。
   - 验收：矩阵覆盖 P2 全部资产 + 已模块化三个资产；新增 `test_recipe_matrix` 校验各 manifest 的 data_slots/divergence/decision_scope 与矩阵一致；四命令全绿。
 - [x] **P2-1 story-architecture + planning-architecture-review**（含 28 阶段 2 小补丁：power_currency 进翻译表、代价条款引用五种形态、十三字段措辞同步；新增五模块×2：频道轴架构翻译（男/女/全向）+ 平台节奏适配（免费/付费），审查端 check-* 对偶）+ **核心使能件**：upstream:&lt;type&gt; 槽位（locked 上游原文按 scope 分节、缺失即停）、subject 槽位（被审对象全文+metadata）、CLI `--subject`、项目域资产通用分流。路由改为「以 ASSET_DIRS 注册表为准」（后续 P2 各项自动生效）。矩阵回填 architecture / architecture-review composer_key。
-- [ ] **P2-2 story-strategy + planning-strategy-review**（28 阶段 3）— balanced
-- [ ] **P2-3 world-contract + planning-world-contract-review ‖ character-contract + planning-character-contract-review**（28 阶段 4，两项可并行）— balanced
-- [ ] **P2-4 story-arc + planning-story-arc-review**（28 阶段 5）— balanced
-- [ ] **P2-5 volume-outline + planning-volume-outline-review**（28 阶段 6）— balanced
-- [ ] **P2-6 chapter-plan-execution-card + planning-chapter-plan-review**（28 阶段 7）— balanced
-- [ ] **P2-7 writing/chapter-draft-generation + prose-quality-review**（28 阶段 8 + 9 的正文部分；style_refs / persona anchors / craft 引用经槽位注入；composer CLI 扩展 `--chapter` / `--subject` 选择器——写作/审查的对象是章节与资源，不是 planning_assets）— constrained
-- [ ] **P2-8 continuity/continuity-candidate-extraction + continuity-quality-review**（28 阶段 10）— constrained
-- [ ] **P2-9 横切审查模块化 + expansions/craft 定位收口 + 28 横切收尾**：① planning-cross-consistency-review / planning-quality-review / entity-authority-review 三者补方法论并模块化（档位跟随被审对象）；② **expansion 方法卡改造为资产 manifest 可声明的可选模块**（替代 novel-planning SKILL.md 里「按需 Read expansion/prompt.md」的散装注入——expansion 天然就是条件模块）；③ craft 卡保持原位，统一经 `craft_refs` 槽注入（引用表以 novel-review SKILL.md 的表为准收编进 manifest）；④ 完成 28 横切收尾清单。
+- [x] **P2-2 story-strategy + planning-strategy-review**（28 阶段 3）— balanced
+- [x] **P2-3 world-contract + planning-world-contract-review ‖ character-contract + planning-character-contract-review**（28 阶段 4，两项可并行）— balanced
+- [x] **P2-4 story-arc + planning-story-arc-review**（28 阶段 5）— balanced
+- [x] **P2-5 volume-outline + planning-volume-outline-review**（28 阶段 6）— balanced
+- [x] **P2-6 chapter-plan-execution-card + planning-chapter-plan-review**（28 阶段 7）— balanced
+- [x] **P2-7 writing/chapter-draft-generation + prose-quality-review**（28 阶段 8 + 9 的正文部分；style_refs / persona anchors / craft 引用经槽位注入；composer CLI 扩展 `--chapter` / `--subject` 选择器——写作/审查的对象是章节与资源，不是 planning_assets）— constrained
+- [x] **P2-8 continuity/continuity-candidate-extraction + continuity-quality-review**（28 阶段 10）— constrained
+- [x] **P2-9 横切审查模块化 + expansions/craft 定位收口 + 28 横切收尾**：① planning-cross-consistency-review / planning-quality-review / entity-authority-review 三者补方法论并模块化（档位跟随被审对象）；② **expansion 方法卡改造为资产 manifest 可声明的可选模块**（替代 novel-planning SKILL.md 里「按需 Read expansion/prompt.md」的散装注入——expansion 天然就是条件模块）；③ craft 卡保持原位，统一经 `craft_refs` 槽注入（引用表以 novel-review SKILL.md 的表为准收编进 manifest）；④ 完成 28 横切收尾清单。
 - **P2 总验收**：全部资产类型经 composer 出厂；同一合成项目贯穿 fusion → direction → … → draft 全链组装，组装日志按序可查；四命令全绿；Task 28 关 `DONE`。
 
 ### P3 数据槽扩展（题材 × 材料）
@@ -186,3 +186,8 @@ P5 依赖 P1-3 且为可选
 - **[T29-P1-2] 槽位解析框架** — 2026-08-15 / commit 待填
   - 验证：62 tests OK；hygiene exit 0；manifest exit 0
   - 文档变更：`scripts/novelos_compose_prompt.py`（SLOT_REGISTRY + resolve_slots + validate_fusion_payload，删除两个硬编码数据区函数，修复 selected_archetypes 嵌套读取 bug）；`tests/test_slot_resolution.py`（新增，8 测试）
+
+- **[T29-P2-1..P2-9] 全链路 skill 模块化（含 Task 28 阶段 2-10 吸收）** — 2026-08-15 / commits 6f880be..48d57cb
+  - 验证：87 tests OK（每资产：互斥断言 + SIZE_BUDGET + 主干增强断言 + 全链贯穿冒烟 FullChainSmoke）；hygiene/manifest exit 0
+  - 文档变更：11 个生成端 skill + 13 个审查 skill 全部模块化（modules/ + manifest v2 + ASSET_DIRS 注册）；story-architecture（力量货币翻译行+代价形态）、story-strategy（v2 上游翻译五表/阶段量化/decision_points 死链清理）、world-contract（术语语域表必产节+中英混杂修复+死链清理）、character-contract（好坏对照/移交清单消费/道德债权账户）、story-arc（弧卷映射/种收台账）、volume-outline（节奏量化/四段结构）、chapter-plan（三拍序列/债权兑付/钩子权威源）、chapter-draft（persona 四纪律/craft_refs 阈值收口/死链清零）、continuity-candidate-extraction（五条边界判定标准）、横切三审查（能力vs规则等方法论补全）；新建 craft worldview-lexicon；novel-planning/novel-review/AGENTS.md 路由改「以 ASSET_DIRS 注册表为准」
+  - 备注：Task 28 剩余范围全部交付 → 关 DONE
