@@ -82,12 +82,13 @@ Task 28（Agent Prompt 增强队列）剩余范围由本任务吸收执行，映
   - 验收：新增 `test_manifest_schema`（schema 通过 + 顶层声明断言 + 未知字段拒绝）；54 tests OK；四命令全绿。
 - [x] **P1-2 槽位解析框架**：`_direction_data_sections` / `_fusion_data_sections` 硬编码改为按 manifest `data_slots` 声明解析；实现槽位注册表（slot id → resolver）。**迁移不改行为**（槽位标题/顺序/占位与旧实现逐字一致，`tests/test_slot_resolution.py` 以种子库断言）。另：fusion 载荷与 `novelos_create_project.py` 共用 `project-create-request.schema.json` 校验——顺带修复真实 bug：旧代码读顶层 `selected_archetypes`，而向导契约里它在 `setup.creator` 内（真实载荷下 single/multi 模块永不命中）。
   - 验收：62 tests OK（新增 8 个槽位测试：方向槽序/占位/审查对齐/未注册拒绝 + 融合槽序/空库占位/非法载荷拒绝/嵌套读取）；四命令全绿。
-- [ ] **P1-3 组装日志**：每次组装写 `data/compositions/<scope>/<asset>/<timestamp>.md` + 追加 `index.jsonl`（content_hash、命中模块 id、槽位清单、输入 key 版本）。CLI 加 `--log-dir` / `--no-log`。`.gitignore` 增加 `data/compositions/`。
+- [x] **P1-3 组装日志**：每次组装写 `data/compositions/<scope>/<asset>/<timestamp>.md` + 追加 `index.jsonl`（content_hash、命中模块 id、槽位清单、divergence、decision_scope、proposal）。CLI 加 `--log-dir` / `--no-log`（日志路径打 stderr，stdout 保持纯净产物）。`.gitignore` 增加 `data/compositions/`。
+  - 验收：同输入两次 hash 一致、index 两条；输入变 hash 变；scope 净化入路径（`tests/test_composition_log.py` 三测试）。
   - 验收：同输入组装两次 hash 一致；输入变更后 hash 变化；日志文件含注入清单可读。
-- [ ] **P1-4 测试扩充**：路由确定性（同 context 两次组装 byte-identical）、互斥模块、SIZE_BUDGET 维持、日志一致性。
-  - 验收：四命令全绿，新增测试计入总数。
-- [ ] **P1-5 模型提议路由通道（语义条件的第二路由通道）**：结构化枚举维度（channel/platform/genre/aesthetic）保持规则路由——枚举相等判断交给模型是浪费且徒增失败面；语义条件（reference_material / 材料 / canon 内容暗示的相关模块）规则表达不了，开**提议通道**：composer 加 `--proposal <json>`，主控或模型输出结构化提议（追加哪些模块 + 各自理由），composer 校验提议（模块必须在 manifest 注册、与规则命中不冲突）后**仍由代码确定性组装**，提议原文与理由进组装日志。**边界（写死）**：模块正文、数据槽内容、自检清单、U 型布局永远逐字拼接，不经模型改写——合规关键文本（防指纹禁令、persona anchors）一旦允许转述，审查即失去「当时注入了什么」的依据。路由大脑可插拔（规则 → 规则+提议 → 未来更强模型），manifest / 模块库 / 日志 / 测试零改动。
-  - 验收：提议引用未注册模块 → 拒绝并报错；合法提议 → 组装含该模块且日志记录提议与理由；无提议时输出与现状 byte 级一致。
+- [x] **P1-4 测试扩充**：路由确定性（同 context 两次组装 byte-identical）、互斥模块、SIZE_BUDGET 维持、日志一致性。
+  - 验收：`ComposeDeterminism`（三资产 × 枚举边界 byte 级一致）+ 既有互斥/预算 + 日志一致性测试；66 tests OK。
+- [x] **P1-5 模型提议路由通道（语义条件的第二路由通道）**：结构化枚举维度（channel/platform/genre/aesthetic）保持规则路由——枚举相等判断交给模型是浪费且徒增失败面；语义条件（reference_material / 材料 / canon 内容暗示的相关模块）规则表达不了，开**提议通道**：composer 加 `--proposal <json>`，主控或模型输出结构化提议（追加哪些模块 + 各自理由），composer 校验提议（模块必须在 manifest 注册、与规则命中不冲突）后**仍由代码确定性组装**，提议原文与理由进组装日志。**边界（写死）**：模块正文、数据槽内容、自检清单、U 型布局永远逐字拼接，不经模型改写——合规关键文本（防指纹禁令、persona anchors）一旦允许转述，审查即失去「当时注入了什么」的依据。路由大脑可插拔（规则 → 规则+提议 → 未来更强模型），manifest / 模块库 / 日志 / 测试零改动。
+  - 已验收：`ProposalChannel` 三测试（未注册拒绝 / 合法并入+去重 / 无提议输出不变）+ CLI 端到端冒烟（fusion 载荷 + --proposal → 日志 proposal 字段记录 merged/reason）；69 tests OK；四命令全绿。
 
 ### P2 全链路 skill 模块化（吸收 Task 28 阶段 3-10）
 

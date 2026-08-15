@@ -270,6 +270,35 @@ class ComposeDeterminism(unittest.TestCase):
                 self.assertEqual(a, b)
 
 
+class ProposalChannel(unittest.TestCase):
+    """模型提议路由：结构校验（未注册即拒）、合法并入、无提议输出不变。"""
+
+    def test_unknown_module_rejected(self):
+        from scripts.novelos_compose_prompt import resolve_proposal
+        with self.assertRaises(SystemExit):
+            resolve_proposal(ASSET_DIRS["direction"], {"modules": [{"id": "no-such"}]})
+
+    def test_legal_proposal_merges_and_dedupes(self):
+        from scripts.novelos_compose_prompt import resolve_proposal
+        ctx = _ctx_direction()  # 男频/免费/genre_null=False → genre-present 已规则命中
+        modules = resolve_proposal(ASSET_DIRS["direction"], {"modules": [
+            {"id": "channel-omni", "reason": "材料含双频道桥段"},
+            {"id": "genre-present", "reason": "重复项应被去重"},
+        ]})
+        base = compose(ASSET_DIRS["direction"], ctx, [])
+        out = compose(ASSET_DIRS["direction"], ctx, [], proposal_modules=modules)
+        # channel-omni 未被规则命中 → 提议并入（全向模块标志出现）
+        self.assertIn("频道语法：全向", out)
+        self.assertNotIn("频道语法：全向", base)
+        # genre-present 已命中 → 不重复出现（标题只出现一次）
+        self.assertEqual(out.count("## 题材信息包消费"), 1)
+
+    def test_no_proposal_output_unchanged(self):
+        ctx = _ctx_direction()
+        self.assertEqual(compose(ASSET_DIRS["direction"], ctx, [], proposal_modules=[]),
+                         compose(ASSET_DIRS["direction"], ctx, []))
+
+
 class WhenEvaluator(unittest.TestCase):
     """when 求值器：is_null / not_null / non_empty / all 组合。"""
 

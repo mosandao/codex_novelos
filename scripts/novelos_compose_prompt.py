@@ -149,8 +149,26 @@ def _extract_module_checklist(module_body: str) -> tuple[str, str]:
     return remainder, checklist_body
 
 
+def resolve_proposal(skill_dir: Path, proposal: dict[str, Any]) -> list[tuple[str, str]]:
+    """校验并解析模型提议模块：id 必须在 manifest 注册（结构性门槛），返回 (id, 正文)。
+
+    提议是模型路由智能进入系统的唯一形态——数据工件，可校验、进日志；
+    与规则命中重复的项由 compose 去重。正文永远逐字拼接，不经模型改写。
+    """
+    entries = {m["id"]: m for m in load_manifest(skill_dir)["modules"]}
+    picked: list[tuple[str, str]] = []
+    for item in proposal.get("modules", []):
+        mid = item.get("id")
+        if mid not in entries:
+            raise SystemExit(f"提议引用未注册模块: {mid!r}（{skill_dir.name}）——manifest 未注册即拒绝")
+        body = (skill_dir / "modules" / entries[mid]["file"]).read_text(encoding="utf-8").strip()
+        picked.append((mid, body))
+    return picked
+
+
 def compose(skill_dir: Path, context: dict[str, Any],
-            data_sections: list[tuple[str, str]]) -> str:
+            data_sections: list[tuple[str, str]],
+            proposal_modules: list[tuple[str, str]] | None = None) -> str:
     """组装完整注入文本（U 型：主干 → 数据区 → 条件模块 → 自检汇总）。"""
     main_prompt = (skill_dir / "prompt.md").read_text(encoding="utf-8").strip()
     main_body, main_checklist = _extract_checklist(main_prompt)
@@ -161,8 +179,13 @@ def compose(skill_dir: Path, context: dict[str, Any],
         block = "\n\n".join(f"### {title}\n{body.strip()}" for title, body in data_sections)
         parts.append("## 输入数据（权威源，正文引用以此为准）\n\n" + block)
 
+    picked = select_modules(skill_dir, context)
+    if proposal_modules:
+        rule_ids = {mid for mid, _ in picked}
+        picked = picked + [(mid, body) for mid, body in proposal_modules if mid not in rule_ids]
+
     extra_checklists: list[str] = []
-    for module_id, body in select_modules(skill_dir, context):
+    for module_id, body in picked:
         body_rest, checklist = _extract_module_checklist(body)
         parts.append(body_rest)
         if checklist:
@@ -368,10 +391,19 @@ def content_hash(text: str) -> str:
 
 
 def write_composition_log(log_dir: Path, skill_dir: Path, asset: str, scope: str,
-                          text: str, context: dict[str, Any]) -> Path:
+                          text: str, context: dict[str, Any],
+                          proposal: dict[str, Any] | None = None) -> Path:
     """把一次组装的产物与路由事实记入日志目录，返回产物文件路径。"""
     manifest = load_manifest(skill_dir)
     module_ids = [mid for mid, _ in select_modules(skill_dir, context)]
+    proposal_modules = []
+    if proposal:
+        for item in proposal.get("modules", []):
+            mid = item["id"]
+            proposal_modules.append({"id": mid, "reason": item.get("reason", ""),
+                                     "merged": mid in module_ids})
+            if mid not in module_ids:
+                module_ids.append(mid)
     digest = content_hash(text)
     ts = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
     safe_scope = re.sub(r"[^A-Za-z0-9._-]", "_", scope)
@@ -388,6 +420,7 @@ def write_composition_log(log_dir: Path, skill_dir: Path, asset: str, scope: str
         "data_slots": manifest.get("data_slots", []),
         "divergence": manifest.get("divergence"),
         "decision_scope": manifest.get("decision_scope"),
+        "proposal": proposal_modules,
         "file": str(rel),
     }
     index = log_dir / "index.jsonl"
@@ -406,6 +439,7 @@ def main() -> int:
     parser.add_argument("--log-dir", default=str(COMPOSITIONS_DIR),
                         help="组装日志目录（default: data/compositions/）")
     parser.add_argument("--no-log", action="store_true", help="不写组装日志")
+    parser.add_argument("--proposal", help="模型提议路由 JSON 路径（{modules:[{id,reason}]}），语义条件的第二路由通道")
     args = parser.parse_args()
 
     skill_dir = ASSET_DIRS[args.asset]
@@ -426,11 +460,17 @@ def main() -> int:
     finally:
         conn.close()
 
-    output = compose(skill_dir, context, data)
+    proposal = None
+    proposal_modules: list[tuple[str, str]] = []
+    if args.proposal:
+        proposal = json.loads(Path(args.proposal).read_text(encoding="utf-8"))
+        proposal_modules = resolve_proposal(skill_dir, proposal)
+
+    output = compose(skill_dir, context, data, proposal_modules)
     if not args.no_log:
         scope = args.project or "wizard"
         logged = write_composition_log(Path(args.log_dir), skill_dir, args.asset,
-                                       scope, output, context)
+                                       scope, output, context, proposal=proposal)
         print(f"[compose] logged: {logged}", file=sys.stderr)
     sys.stdout.write(output + "\n")
     return 0
