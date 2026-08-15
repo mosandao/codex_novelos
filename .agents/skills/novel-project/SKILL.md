@@ -10,7 +10,7 @@ description: 管理 NovelOS 小说项目、书、卷和章节容器。创建或�
 ## 工作流
 
 1. **查询项目层级**：`SELECT * FROM projects` → `SELECT * FROM books WHERE project_id=?` → `SELECT * FROM volumes WHERE book_id=?` → `SELECT * FROM chapters WHERE volume_id=?`。
-2. **创建项目**：向导 HTML（`ui/project-wizard.html`）产出 JSON → 主控 Read `catalog/skills/onboarding/creator-signature-fusion/prompt.md` 注入引导融合智能体（onboarding_agent）sub agent（输入 = `selected_archetypes` + `user_persona_hints` + `project_setup`（v2）+ `config/system_archetypes.json` 全文），产出 `creator_derivation_candidate`（schema v2，含 persona）→ 主控 jsonschema 校验签名 + hash → 按 sql-reference.md「作者签名链」模板 SQL INSERT。
+2. **创建项目**：向导 HTML（`ui/project-wizard.html`）产出 JSON → 主控运行 `.venv/bin/python scripts/novelos_compose_prompt.py --asset fusion --payload <json>` 产出完整注入文本（方法论主干 + 按项目条件路由的模块 + 输入数据区：选中原型条目全文 / 全库一行式清单 / `user_persona_hints` / `project_setup`（v2）/ 按量化范围取数的 `existing_persona_fingerprints`），整段注入引导融合智能体（onboarding_agent）sub agent，产出 `creator_derivation_candidate`（schema v2，含 persona）→ 主控运行 `scripts/novelos_create_project.py` 校验门 + 单事务落库。**不再手工 Read prompt.md 拼注入**（详见 AGENTS.md「项目创建向导」第 4-5 步）。
 3. **创建章节容器**：INSERT resources（存内容）→ INSERT chapters。
 4. **判断操作类型**：容器管理（项目/书/卷/章节的 CRUD）用 SQL 直接操作；小说语义规划（方向/架构/策略/人物/世界/卷纲/章纲）加载 `$novel-planning`。
 

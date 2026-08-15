@@ -61,8 +61,8 @@ Task 28（Agent Prompt 增强队列）剩余范围由本任务吸收执行，映
 - [x] **P0-2 Task 28 交接盘点**：`2c9c6f0` 已覆盖——频道语法（三频道模块）、平台耐心结构（platform-free/paid 三字段消费）、力量货币生成端主体（候选池+兑现语义）、道德债权的债权来源条款（channel-female）。**未覆盖项已补齐（本次一并实现）**：① 代价形态菜单（五形非对称 + 禁等价记账 + 三件套其二 + 四检验）→ direction 主干新节；② 力量货币对价与锚定（对价定义、锚进 central_contradiction）→ 十三字段表 power_currency 行；③ 道德债务显性化 + 双莲花禁令 + 选择性道德 → channel-female 模块；④ `book-soul.schema.json` 加 `power_currency`（required）+ 投影 `_SOUL_LABELS`；⑤ 审查端加检查项 9（力量货币锚定 + 代价质量 warning）与 blocking 条款；⑥ 全库「十二字段」→「十三字段」（7 处）。
   - 产出：本节清单 + 上述文件改动；novel-planning SKILL.md 的 Direction 输入清单补 channel/platform 并入 P0-3。
   - 验收：51 tests OK（含 book_soul 十三字段断言）；四命令全绿。
-- [ ] **P0-3 消除现存文档矛盾 + 接通已交付路由**：① `.agents/skills/novel-project/SKILL.md` 第 2 步仍指挥旧融合流程（Read prompt.md + 注入原型全库），与 `AGENTS.md` 第 4 步（调 composer）**互相矛盾**——改为 composer 流；② `novel-planning` / `novel-review` / `novel-writing` 三个 SKILL.md 中涉及 direction / direction-review / fusion 的条目改为「调 composer 取组装产物注入」；③ AGENTS.md「Agent 角色」段通用注入规则补一句「已模块化资产经 composer 出厂」。
-  - 验收：`grep -rn 'prompt\.md' .agents/skills/*/SKILL.md` 中不再有指向已模块化三个资产的旧式注入指令；四命令全绿。
+- [x] **P0-3 消除现存文档矛盾 + 接通已交付路由**：① `novel-project/SKILL.md` 第 2 步改为 composer 流（消除与 AGENTS.md 第 4 步的互相矛盾，删去「注入原型全库」旧指令）；② `novel-planning` 第 3 步 / `novel-review` 第 2 步改为「已模块化资产走组装器、未模块化暂 Read prompt.md」的分流规则（direction / direction-review 路由接通；novel-writing 的 chapter-draft-generation 留待 P2-7）；③ AGENTS.md「Agent 角色」段通用注入规则同步为分流规则。
+  - 验收：`.agents/skills` 中不再有指向已模块化资产的旧式注入指令；`system_archetypes.json 全文` 注入指令零残留；51 tests OK。
 - [ ] **P0-4 目录结构清理（低风险删减）**：① 删除 `config/agents.yaml`——全库零引用（scripts/tests/catalog/.agents 均不读它），AGENTS.md 已声明其为历史留档，git 历史可查；同步删除 AGENTS.md「config/agents.yaml（历史留档）」段；② 根目录 `readme.md` 改名 `README.md`（大小写一致性）。
   - 验收：`grep -rn 'agents.yaml' scripts/ tests/ catalog/ .agents/ AGENTS.md` 零命中；四命令全绿。
   - 说明：`db/migrations/`（留档承诺）、`tasks/` 各证据子目录（`07_prompt_catalog/fixtures` 是 `test_prompt_catalog_boundaries` 的活依赖，migration/cutover/experiments 是追溯证据）**明确不动**。
@@ -170,3 +170,8 @@ P5 依赖 P1-3 且为可选
   - 验证：51 tests OK；hygiene exit 0；manifest exit 0
   - 文档变更：`catalog/skills/planning/story-direction/prompt.md`（主干加代价形态菜单节 + power_currency 字段行 + 骨架/自检措辞）；`modules/channel-female.md`（道德债务/双莲花/选择性道德）；`config/schemas/book-soul.schema.json`（power_currency required，十三字段）；`scripts/novelos_render_projection.py`（_SOUL_LABELS）；`catalog/skills/review/planning-direction-review/prompt.md`（检查项 9 + blocking）；`planning-architecture-review/prompt.md`、`story-architecture/prompt.md`、`.agents/skills/novel-planning/SKILL.md`、`tests/test_compose_prompt.py`（十二→十三字段同步）
   - 备注：阶段 1 补丁至此全部落地；Task 28 剩余 = 阶段 2 小补丁（P2-1）+ 阶段 3-10（P2-2..P2-9）+ 横切
+
+- **[T29-P0-3] 消除文档矛盾 + 接通已交付路由** — 2026-08-15 / commit 待填
+  - 验证：51 tests OK；hygiene exit 0；manifest exit 0
+  - 文档变更：`.agents/skills/novel-project/SKILL.md`（第 2 步改 composer 流，消除与 AGENTS.md 的矛盾）；`.agents/skills/novel-planning/SKILL.md`（第 3 步分流规则）；`.agents/skills/novel-review/SKILL.md`（第 2 步分流规则）；`AGENTS.md`（Agent 角色段通用注入规则分流）
+  - 备注：残留 prompt.md 引用均为未模块化资产（P2-7/P2-9 切换）

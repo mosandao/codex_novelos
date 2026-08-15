@@ -10,7 +10,7 @@ description: 独立审查不可变小说资产并生成 Review Receipt。规划�
 ## 工作流
 
 1. 接收审查目标（资产或章节的 ID）和审查维度（Review Profile 对应的方法论）。
-2. Read `catalog/skills/review/<对应 review skill>/prompt.md` 获取审查标准。
+2. 审查标准获取（按资产分流）：**已模块化审查**（direction）用组装器 `.venv/bin/python scripts/novelos_compose_prompt.py --asset direction-review --project <project_id>`——检查清单 + 随项目路由的条件审查模块（频道语法/平台画像/题材信息包专项）一步产出，与生成端对称；**未模块化审查**暂仍 Read `catalog/skills/review/<对应 review skill>/prompt.md`，Task 29 P2 完成后逐一切换。
 3. 审查 sub agent 需要**完整的审查依据**：候选正文全文 + 全部已锁定上游原文。直接从数据库 SELECT resources 读取，注入 sub agent prompt。禁止让 sub agent 自行读文件。
 4. 按 review prompt 的检查维度逐项审查。每个 finding 只使用 `blocking`、`warning` 或 `note`，给出最小直接证据和原文片段。
 5. 只要有 `blocking`，verdict 必须是 `rejected`。
