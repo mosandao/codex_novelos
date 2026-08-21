@@ -1,6 +1,6 @@
 # Task 30: 作者内核双层架构 + 创作链深度参与 + 人物全量设计与生命周期
 
-**状态**: `IN PROGRESS`
+**状态**: `DONE`
 
 **范围**: 本任务把《作者内核、心理运作与作品设计指导规范》（外部规范，研究对照报告见会话记录）中仓库缺失的四层方法论制度化：①作者内核层（跨书持久内核 + 成长记录 + 修正归因）②心理与知识层（心理运作八维 + 知识生态）③作品世界层（规则六角色 / 三类规则分层 / 力量-规则循环 / 开局无敌冲突转移）④叙事对象层（角色死亡 / 退场七型 / 人物状态账本 / 全量主要人物设计）。四根柱子（权威 SQLite、依赖有序规划资产、方法论即 skill、审查门）不动。
 
@@ -104,7 +104,7 @@
 - [x] **P5-1 AGENTS.md**：分层图 L0 注内核、创建向导 v3 流程、Agent 角色表增 kernel-fusion、「一书一分身」条款改写为「内核跨书共享+每书派生独一分身」。
 - [x] **P5-2 documentation/flows.md + agent-recipes.md 表格再生成 + adapters 校验**。
 - [x] **P5-3 用户实时打断协议**：AGENTS.md 小说工作流增条款（setup 级→UPDATE+propagate_stale；资产级→change proposal；章内→受控重组装；用户打断优先于进行中生成，主控先停手上报影响面）+ novel-writing/novel-planning SKILL 呼应。
-- [ ] **P5-4 验收记录收尾，四命令全绿**。
+- [x] **P5-4 验收记录收尾，四命令全绿**。
 
 ## 依赖与并行
 
@@ -119,6 +119,11 @@
 - 内核取代原型后 26 原型退出创建链：config 保留为参考资料库，test_wizard_data 相应调整。
 
 ## 验收记录
+
+- **[T30-P5-4] 端到端冒烟 + 收尾** — 2026-08-21
+  - 验证：在真实数据库的临时副本上走完整 v3 生产路径——①向导 v3 载荷入口校验（词表快照全等通过）；②`--asset kernel-fusion` CLI 组装 329 行注入（内核素材/基底占位/mode-create 模块齐）；③内核候选过两步校验门落库 + `--emit-payload` 缝合 select 形态；④`--asset fusion` CLI 组装（create 载荷占位路径；内核态组装由单测 test_v3_kernel_derive_sections_and_marker 覆盖——composer CLI 固定连生产库，冒烟内核在副本故走占位，非缺陷）；⑤分身候选过校验门（parent=内核反查 + kernel_origin 一致 + 逐字复制 + 条数）落库——binding=`kernel_derive`、分身 parent=内核版本、内核 profile ownership=`author_kernel` 全部断言通过；⑥`novelos_register_characters.py --roster` 双人物落注册表；⑦canon 人物状态节实际注入 `["林昭","main","active",null]`。生产库零污染（内核数 0），冒烟目录已清理。最终 119 tests + 四命令 + adapters check 全绿。
+  - 文档变更：本验收记录；`tasks/README.md` Task 30 状态 `DONE`。
+  - 遗留（非阻塞）：①向导 kernel-roster.js 为空名册（0 内核）——首次真实建核后由导出脚本刷新，已写明流程；②70-case 质量实验仍按 deferral 延期，与本期无关；③novel-project SKILL 的内核两步查询指引在 P1-7 已入 sql-reference（单一来源），SKILL 未复制模板。
 
 - **[T30-P5-1] AGENTS.md 更新** — 2026-08-21
   - 验证：119 tests OK；四命令 + adapters check 全绿。
