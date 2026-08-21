@@ -20,6 +20,15 @@ def _make_db(path: Path) -> None:
     conn.executescript("""
         CREATE TABLE projects (id TEXT PRIMARY KEY);
         CREATE TABLE chapters (id TEXT PRIMARY KEY);
+        CREATE TABLE resources (id TEXT PRIMARY KEY, media_type TEXT, content BLOB, content_hash TEXT);
+        CREATE TABLE continuity_candidate_sets (
+            id TEXT PRIMARY KEY, project_id TEXT NOT NULL, chapter_id TEXT NOT NULL,
+            source_content_hash TEXT NOT NULL, authority_snapshot_json TEXT NOT NULL,
+            candidate_resource_id TEXT NOT NULL, subject_hash TEXT NOT NULL,
+            owners_json TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'working',
+            version INTEGER NOT NULL DEFAULT 1,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
         CREATE TABLE characters (
             id TEXT PRIMARY KEY, project_id TEXT NOT NULL, name TEXT NOT NULL,
             role_class TEXT NOT NULL DEFAULT 'secondary'
@@ -36,6 +45,26 @@ def _make_db(path: Path) -> None:
             UNIQUE (project_id, name));
     """)
     conn.execute("INSERT INTO projects VALUES ('project:p1')")
+    conn.commit()
+    conn.close()
+
+
+def _promoted_set(db: Path, set_id: str, candidates: list[dict],
+                  created_at: str = "2026-01-01 00:00:00") -> None:
+    conn = sqlite3.connect(db)
+    res_id = f"resource:{set_id}"
+    cand_json = json.dumps({"owners": ["character"], "candidates": candidates},
+                           ensure_ascii=False)
+    conn.execute(
+        "INSERT INTO resources VALUES (?, 'application/json', CAST(? AS BLOB), 'sha256:x')",
+        (res_id, cand_json))
+    conn.execute(
+        "INSERT INTO continuity_candidate_sets (id, project_id, chapter_id, "
+        " source_content_hash, authority_snapshot_json, candidate_resource_id, "
+        " subject_hash, owners_json, status, created_at, updated_at) "
+        "VALUES (?, 'project:p1', 'chapter:c1', 'sha256:y', '{}', ?, 'sha256:z', "
+        " '[\"character\"]', 'promoted', ?, ?)",
+        (set_id, res_id, created_at, created_at))
     conn.commit()
     conn.close()
 
@@ -113,6 +142,158 @@ class RegisterCharacters(unittest.TestCase):
         rows = self._rows()
         self.assertEqual(rows["路人甲"]["role_class"], "minor")  # 补登
         self.assertEqual(rows["路人甲"]["status"], "departed")
+
+
+class StatusArrayHistoryRevival(unittest.TestCase):
+    """T31-2：status-update 数组化 / 状态史审计 / 复活清退场痕迹。"""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.db = Path(self.tmp.name) / "test.db"
+        _make_db(self.db)
+        reg.run(self.db, "project:p1", _roster(), None, None)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def _rows(self):
+        conn = sqlite3.connect(self.db)
+        conn.row_factory = sqlite3.Row
+        rows = {r["name"]: dict(r) for r in conn.execute(
+            "SELECT * FROM characters WHERE project_id='project:p1'")}
+        conn.close()
+        return rows
+
+    def test_array_updates_single_transaction(self):
+        updates = [
+            {"name": "沈青梧", "status": "dead", "exit_type": "死亡型",
+             "exit_chapter_id": "chapter:c47"},
+            {"name": "林昭", "status": "peripheral"},
+        ]
+        self.assertEqual(reg.run(self.db, "project:p1", None, None, updates), 0)
+        rows = self._rows()
+        self.assertEqual(rows["沈青梧"]["status"], "dead")
+        self.assertEqual(rows["沈青梧"]["exit_chapter_id"], "chapter:c47")
+        self.assertEqual(rows["林昭"]["status"], "peripheral")
+
+    def test_status_history_appended(self):
+        updates = [
+            {"name": "沈青梧", "status": "dead", "exit_type": "死亡型",
+             "exit_chapter_id": "chapter:c47"},
+            {"name": "沈青梧", "status": "active"},  # 假死复活
+        ]
+        self.assertEqual(reg.run(self.db, "project:p1", None, None, updates), 0)
+        state = json.loads(self._rows()["沈青梧"]["state_json"])
+        history = state["状态史"]
+        self.assertEqual(len(history), 2)
+        self.assertEqual(history[0], {"from": "active", "to": "dead",
+                                      "exit_type": "死亡型",
+                                      "chapter_id": "chapter:c47",
+                                      "at": history[0]["at"]})
+        self.assertEqual(history[1]["from"], "dead")
+        self.assertEqual(history[1]["to"], "active")
+
+    def test_revival_clears_exit_traces(self):
+        reg.run(self.db, "project:p1", None, None,
+                {"name": "沈青梧", "status": "dead", "exit_type": "死亡型",
+                 "exit_chapter_id": "chapter:c47"})
+        self.assertEqual(
+            reg.run(self.db, "project:p1", None, None, {"name": "沈青梧", "status": "active"}), 0)
+        row = self._rows()["沈青梧"]
+        self.assertEqual(row["status"], "active")
+        self.assertIsNone(row["exit_type"])       # 退场类型清空
+        self.assertIsNone(row["exit_chapter_id"])  # 且不留半截退场章节
+
+    def test_nonexit_with_exit_type_rejected(self):
+        bad = {"name": "林昭", "status": "peripheral", "exit_type": "完成型"}
+        self.assertEqual(reg.run(self.db, "project:p1", None, None, bad), 1)
+
+
+class RosterRelockWarning(unittest.TestCase):
+    """T31-2：roster 重锁对账——契约删掉的人物 WARN 而不静默残留。"""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.db = Path(self.tmp.name) / "test.db"
+        _make_db(self.db)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_dropped_character_warns_but_not_auto_retired(self):
+        import contextlib
+        import io
+        reg.run(self.db, "project:p1", _roster(), None, None)
+        new_roster = [r for r in _roster() if r["name"] == "林昭"]  # 沈青梧被契约删除
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            code = reg.run(self.db, "project:p1", new_roster, None, None)
+        self.assertEqual(code, 0)
+        self.assertIn("沈青梧", out.getvalue())
+        self.assertIn("WARN", out.getvalue())
+        conn = sqlite3.connect(self.db)
+        status = conn.execute(
+            "SELECT status FROM characters WHERE project_id='project:p1' AND name='沈青梧'"
+        ).fetchone()[0]
+        conn.close()
+        self.assertEqual(status, "active")  # 不自动改状态，交人裁决
+
+
+class PendingStatusReconciliation(unittest.TestCase):
+    """T31-2：--pending-status 账本↔注册表对账。"""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.db = Path(self.tmp.name) / "test.db"
+        _make_db(self.db)
+        reg.run(self.db, "project:p1", _roster(), None, None)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_no_candidates_passes(self):
+        self.assertEqual(reg.check_pending_status(self.db, "project:p1"), 0)
+
+    def test_status_mismatch_drifts_then_resolves(self):
+        _promoted_set(self.db, "set:1", [
+            {"type": "character_status", "name": "沈青梧", "status": "dead",
+             "exit_type": "死亡型", "description": "第 47 章确认"}])
+        import contextlib
+        import io
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            code = reg.check_pending_status(self.db, "project:p1")
+        self.assertEqual(code, 1)
+        self.assertIn("DRIFT 沈青梧", out.getvalue())
+        # 补跑迁移后对账通过
+        self.assertEqual(reg.run(self.db, "project:p1", None, None,
+                                 {"name": "沈青梧", "status": "dead",
+                                  "exit_type": "死亡型"}), 0)
+        self.assertEqual(reg.check_pending_status(self.db, "project:p1"), 0)
+
+    def test_unregistered_candidate_drifts(self):
+        _promoted_set(self.db, "set:1", [
+            {"type": "character_status", "name": "神秘人", "status": "departed",
+             "description": "雨夜离城"}])
+        import contextlib
+        import io
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            code = reg.check_pending_status(self.db, "project:p1")
+        self.assertEqual(code, 1)
+        self.assertIn("未登记", out.getvalue())
+
+    def test_latest_candidate_wins_no_false_positive(self):
+        # ch1 候选 departed、ch2 候选 active（复活），注册表 active = 一致
+        _promoted_set(self.db, "set:1", [
+            {"type": "character_status", "name": "沈青梧", "status": "departed",
+             "exit_type": "迁移型", "description": "南迁"}],
+            created_at="2026-01-01 00:00:00")
+        _promoted_set(self.db, "set:2", [
+            {"type": "character_status", "name": "沈青梧", "status": "active",
+             "description": "归来"}],
+            created_at="2026-01-02 00:00:00")
+        self.assertEqual(reg.check_pending_status(self.db, "project:p1"), 0)
 
 
 class ContinuityCharacterStatusSchema(unittest.TestCase):

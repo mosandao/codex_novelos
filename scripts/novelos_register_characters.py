@@ -1,16 +1,25 @@
 #!/usr/bin/env python
-"""人物注册表幂等登记：契约 roster 落库 + 动态配角登记。
+"""人物注册表幂等登记：契约 roster 落库 + 动态配角登记 + 状态对账。
 
 人物注册表（characters 表，migration 018 重建）是人物状态的唯一锚点：
 主要人物全量设计的 roster、章纲执行卡预登记的次要角色、连续性提取的
 状态迁移（active/peripheral/dormant/departed/transformed/dead）都在这里合流。
 
-两个入口（可同用，单事务）：
+入口（可同用，单事务）：
 - `--roster <json>`：character_contract 锁定时传入 metadata.character_roster
   数组（schema 见 planning-candidate.schema.json 的 $defs/character_roster）。
   落库为 role_class=main/secondary，arc_role 与预期退场写 state_json。
+  重锁对账：曾在旧 roster（有 arc_role）但不在新 roster 的人物会 WARN，
+  提示用 --status-update 退役或补回。
 - `--entry <json>`：动态配角登记（执行卡微档案），单对象或数组：
   {name, role_class: minor|secondary, first_chapter_id?, notes?}。
+- `--status-update <json>`：连续性状态迁移（character_status 晋升后），
+  单对象或数组（一章多个迁移一次提交）。dead 必须带 死亡型 exit_type；
+  非退场状态不得携带 exit_type，且会清空遗留退场痕迹（复活不留半截
+  exit_chapter_id）；每次迁移在 state_json.状态史 追加一条审计记录。
+- `--pending-status`：账本↔注册表对账——比对已 promoted 候选集中每个
+  人物的最新 character_status 候选与注册表现状，漂移即逐条列出并以
+  非零码退出（novel-continuity 收尾必跑）。
 
 幂等：同名（project_id+name 唯一）已存在时更新 role_class 与 state_json
 补充字段，**不覆盖** status/exit 字段（状态迁移只走连续性提取路径）。
@@ -23,9 +32,12 @@
     # 执行卡微档案 / 章节接受后补登记
     python scripts/novelos_register_characters.py --project project:xxx --entry entry.json
 
-    # 连续性状态迁移（character_status 晋升后）
+    # 连续性状态迁移（character_status 晋升后，支持数组）
     python scripts/novelos_register_characters.py --project project:xxx \\
-        --status-update '{"name": "沈青梧", "status": "departed", "exit_type": "迁移型", "exit_chapter_id": "chapter:xxx"}'
+        --status-update '[{"name": "沈青梧", "status": "departed", "exit_type": "迁移型", "exit_chapter_id": "chapter:xxx"}]'
+
+    # 账本↔注册表对账（连续性收尾）
+    python scripts/novelos_register_characters.py --project project:xxx --pending-status
 """
 
 from __future__ import annotations
@@ -35,6 +47,7 @@ import json
 import sqlite3
 import sys
 import uuid
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -44,6 +57,7 @@ SCHEMA_PATH = REPO_ROOT / "config" / "schemas" / "planning-candidate.schema.json
 
 STATUS_VALUES = ("active", "peripheral", "dormant", "departed", "transformed", "dead")
 EXIT_TYPES = ("完成型", "迁移型", "转化型", "关系型", "功能转移型", "休眠型", "死亡型")
+EXIT_STATUSES = ("departed", "transformed", "dormant", "dead")
 
 
 def _load(path: Path) -> Any:
@@ -85,11 +99,17 @@ def _validate_status_update(update: dict[str, Any]) -> list[str]:
         errors.append("status-update: name 非空必填")
     if update.get("status") not in STATUS_VALUES:
         errors.append(f"status-update: status 非法 {update.get('status')!r}（{STATUS_VALUES}）")
+        return errors
     et = update.get("exit_type")
     if et is not None and et not in EXIT_TYPES:
         errors.append(f"status-update: exit_type 非法 {et!r}（{EXIT_TYPES}）")
-    if update.get("status") == "dead" and update.get("exit_type") != "死亡型":
+    if update.get("status") == "dead" and et != "死亡型":
         errors.append("status-update: status=dead 时 exit_type 必须为 死亡型")
+    if update.get("status") not in EXIT_STATUSES and et is not None:
+        errors.append(
+            f"status-update: status={update['status']!r} 是非退场状态，不应携带 exit_type"
+            "（复活/回归会整体清空退场痕迹）"
+        )
     return errors
 
 
@@ -119,9 +139,120 @@ def _upsert(conn: sqlite3.Connection, project_id: str, name: str, role_class: st
     return existing[0]
 
 
+def _apply_status_update(conn: sqlite3.Connection, project_id: str,
+                         upd: dict[str, Any]) -> str:
+    """单条状态迁移：状态史审计 + 退场痕迹对称（非退场状态清空 exit 字段）。"""
+    row = conn.execute(
+        "SELECT id, status, exit_type, state_json FROM characters "
+        "WHERE project_id = ? AND name = ?",
+        (project_id, upd["name"]),
+    ).fetchone()
+    if row is None:
+        # 连续性提名的状态人物可能尚未登记（动态配角漏登记）——按 minor 补建
+        char_id = _upsert(
+            conn, project_id, upd["name"], "minor",
+            {"补登": "连续性状态迁移先于登记"}, upd.get("exit_chapter_id"),
+        )
+        old_status, state = "active", {"补登": "连续性状态迁移先于登记"}
+    else:
+        char_id, old_status, state = (
+            row["id"], row["status"], json.loads(row["state_json"] or "{}"))
+    state.setdefault("状态史", []).append({
+        "from": old_status,
+        "to": upd["status"],
+        "exit_type": upd.get("exit_type"),
+        "chapter_id": upd.get("exit_chapter_id"),
+        "at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    })
+    state_json = json.dumps(state, ensure_ascii=False)
+    if upd["status"] in EXIT_STATUSES:
+        conn.execute(
+            "UPDATE characters SET status = ?, exit_type = ?, "
+            "exit_chapter_id = COALESCE(?, exit_chapter_id), state_json = ?, "
+            "updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+            (upd["status"], upd.get("exit_type"), upd.get("exit_chapter_id"),
+             state_json, char_id),
+        )
+    else:
+        # 复活/回归：退场痕迹整体清空，不留有 exit_chapter_id 无 exit_type 的半截记录
+        conn.execute(
+            "UPDATE characters SET status = ?, exit_type = NULL, "
+            "exit_chapter_id = NULL, state_json = ?, "
+            "updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+            (upd["status"], state_json, char_id),
+        )
+    return f"status {upd['name']} {old_status} -> {upd['status']}"
+
+
+def check_pending_status(db_path: Path, project_id: str) -> int:
+    """账本↔注册表对账：promoted 候选集中每人物最新 character_status
+    候选 vs 注册表现状。漂移逐条列出，非零退出；无漂移输出对账通过。
+
+    只比对每人物**最新**一条候选（按候选集 created_at 序）——历史迁移被
+    后续迁移超越是正常状态机推进，不算漂移。
+    """
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    try:
+        proj = conn.execute("SELECT id FROM projects WHERE id = ?", (project_id,)).fetchone()
+        if proj is None:
+            print(f"项目不存在: {project_id}")
+            return 2
+        try:
+            sets = conn.execute(
+                "SELECT s.id, CAST(r.content AS TEXT) AS cand_json "
+                "FROM continuity_candidate_sets s "
+                "JOIN resources r ON r.id = s.candidate_resource_id "
+                "WHERE s.project_id = ? AND s.status = 'promoted' "
+                "ORDER BY s.created_at, s.id",
+                (project_id,),
+            ).fetchall()
+        except sqlite3.OperationalError:
+            print("对账跳过：库中无 continuity_candidate_sets 表。")
+            return 0
+        latest: dict[str, dict[str, str]] = {}
+        for set_id, cand_json in sets:
+            try:
+                candidates = json.loads(cand_json).get("candidates", [])
+            except (json.JSONDecodeError, AttributeError):
+                continue
+            for c in candidates:
+                if c.get("type") == "character_status" and c.get("name"):
+                    latest[c["name"]] = {"status": c.get("status", ""), "set": set_id}
+        if not latest:
+            print("对账通过：promoted 候选集中无 character_status 候选。")
+            return 0
+        drift: list[str] = []
+        for name, want in sorted(latest.items()):
+            row = conn.execute(
+                "SELECT status FROM characters WHERE project_id = ? AND name = ?",
+                (project_id, name),
+            ).fetchone()
+            if row is None:
+                drift.append(f"DRIFT {name}：候选 {want['status']}（{want['set']}）但注册表未登记")
+            elif row["status"] != want["status"]:
+                drift.append(
+                    f"DRIFT {name}：候选 {want['status']}（{want['set']}）"
+                    f"≠ 注册表 {row['status']}"
+                )
+        if drift:
+            for d in drift:
+                print(d)
+            print(f"\n对账发现 {len(drift)} 处漂移——漏跑 --status-update 或迁移被回滚，"
+                  "处理完再继续后续章节。")
+            return 1
+        print(f"对账通过：{len(latest)} 个人物状态与注册表一致。")
+        return 0
+    finally:
+        conn.close()
+
+
 def run(db_path: Path, project_id: str, roster: list[dict[str, Any]] | None,
         entries: list[dict[str, Any]] | None,
-        status_update: dict[str, Any] | None) -> int:
+        status_update: dict[str, Any] | list[dict[str, Any]] | None) -> int:
+    updates = None
+    if status_update is not None:
+        updates = [status_update] if isinstance(status_update, dict) else list(status_update)
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     try:
@@ -131,12 +262,28 @@ def run(db_path: Path, project_id: str, roster: list[dict[str, Any]] | None,
             return 2
 
         errors: list[str] = []
+        roster_warns: list[str] = []
         if roster is not None:
             errors += _validate_roster(roster)
+            # 重锁对账：曾在旧 roster（state_json 带 arc_role）但不在新 roster 的人物
+            roster_names = {item["name"] for item in roster}
+            was_rostered = {
+                r["name"] for r in conn.execute(
+                    "SELECT name, state_json FROM characters WHERE project_id = ?",
+                    (project_id,),
+                ).fetchall()
+                if "arc_role" in json.loads(r["state_json"] or "{}")
+            }
+            for name in sorted(was_rostered - roster_names):
+                roster_warns.append(
+                    f"WARN 人物「{name}」曾在旧契约 roster 但不在新 roster——若契约修订"
+                    "删除了该人物，用 --status-update 退役（休眠型/迁移型）；若误删请补回"
+                )
         if entries is not None:
             errors += _validate_entries(entries)
-        if status_update is not None:
-            errors += _validate_status_update(status_update)
+        if updates is not None:
+            for upd in updates:
+                errors += _validate_status_update(upd)
         if errors:
             for e in errors:
                 print(f"FAIL {e}")
@@ -160,33 +307,16 @@ def run(db_path: Path, project_id: str, roster: list[dict[str, Any]] | None,
                     patch, item.get("first_chapter_id"),
                 )
                 results.append(f"entry {item['name']} -> {char_id}")
-            if status_update is not None:
-                row = conn.execute(
-                    "SELECT id FROM characters WHERE project_id = ? AND name = ?",
-                    (project_id, status_update["name"]),
-                ).fetchone()
-                if row is None:
-                    # 连续性提名的状态人物可能尚未登记（动态配角漏登记）——按 minor 补建
-                    char_id = _upsert(
-                        conn, project_id, status_update["name"], "minor",
-                        {"补登": "连续性状态迁移先于登记"}, status_update.get("chapter_id"),
-                    )
-                else:
-                    char_id = row[0]
-                conn.execute(
-                    "UPDATE characters SET status = ?, exit_type = ?, "
-                    "exit_chapter_id = COALESCE(?, exit_chapter_id), "
-                    "updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-                    (status_update["status"], status_update.get("exit_type"),
-                     status_update.get("exit_chapter_id"), char_id),
-                )
-                results.append(f"status {status_update['name']} -> {status_update['status']}")
+            for upd in updates or []:
+                results.append(_apply_status_update(conn, project_id, upd))
             conn.commit()
         except Exception:
             conn.rollback()
             raise
         for line in results:
             print(line)
+        for w in roster_warns:
+            print(w)
         print(f"完成（{len(results)} 项，单事务提交）。")
         return 0
     finally:
@@ -198,21 +328,30 @@ def main() -> int:
     parser.add_argument("--project", required=True, help="项目 ID（project:xxx）")
     parser.add_argument("--roster", type=Path, help="character_roster JSON 路径（契约锁定时）")
     parser.add_argument("--entry", type=Path, help="动态配角登记 JSON（单对象或数组）")
-    parser.add_argument("--status-update", help="状态迁移 JSON 路径或内联 JSON（character_status 晋升后）")
+    parser.add_argument("--status-update", help="状态迁移 JSON 路径或内联 JSON（单对象或数组，character_status 晋升后）")
+    parser.add_argument("--pending-status", action="store_true",
+                        help="账本↔注册表对账：promoted character_status 候选 vs 注册表现状，漂移非零退出")
     parser.add_argument("--db", default=str(DEFAULT_DB))
     args = parser.parse_args()
 
+    if args.pending_status:
+        db_path = Path(args.db)
+        if not db_path.exists():
+            print(f"数据库不存在: {db_path}")
+            return 2
+        return check_pending_status(db_path, args.project)
+
     if not args.roster and not args.entry and not args.status_update:
-        parser.error("至少提供 --roster / --entry / --status-update 之一")
+        parser.error("至少提供 --roster / --entry / --status-update / --pending-status 之一")
 
     roster = _load(args.roster) if args.roster else None
     entries = _load(args.entry) if args.entry else None
     if isinstance(entries, dict):
         entries = [entries]
-    status_update = None
+    status_update: Any = None
     if args.status_update:
         status_update = (json.loads(args.status_update)
-                         if args.status_update.lstrip().startswith("{")
+                         if args.status_update.lstrip().startswith(("[", "{"))
                          else _load(Path(args.status_update)))
 
     db_path = Path(args.db)
