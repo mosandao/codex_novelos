@@ -1,0 +1,12 @@
+origin: target-native
+source_repository: null
+source_path: null
+source_commit: null
+source_hash: null
+license: NovelOS-project
+migration_note: |
+  Task 30 新增。设计来源：外部规范《作者内核、心理运作与作品设计指导规范》
+  研究对照后用户裁决的四层补全——作者内核层（跨书持久 + 成长记录 + 四归因
+  修正决策树）与心理知识层（八维五段式 + 有限知识生态）制度化。内核取代
+  系统原型直连（原型降为参考资料库）；每书分身由 creator-signature-fusion
+  以内核版本为 parent 派生。

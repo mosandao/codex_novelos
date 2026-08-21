@@ -19,6 +19,7 @@
 | 资产 | 槽位配方 | 发散档位 | 决策权限 | 输出契约 | 失败行为 |
 |---|---|---|---|---|---|
 | fusion（onboarding/creator-signature-fusion） | selected_archetypes, archetype_roster, persona_hints, project_setup, persona_fingerprints | expansive | flag | creator_derivation_candidate（jsonschema 信封 + 签名 v2 深层校验） | 错配警告 → 呈报用户裁决，未获裁决不落库；候选解析失败要求融合智能体重出，主控禁手工改写 |
+| kernel_fusion（onboarding/author-kernel-fusion） | kernel_hints, project_setup, kernel_subject, persona_fingerprints, archetype_roster | expansive | flag | novelos.kernel.candidate.v1（信封 schema + author-kernel 深层两步校验；revise 带 base_version） | 内核撞车/单线创伤链/题目语域渗入 → 退回重做；表达层反馈误归因 kernel → 上报主控裁决 |
 | direction（planning/story-direction） | project_setup, persona_full, genre_pack | expansive | propose_only | 候选正文（七节骨架）+ book_soul v2 十三字段（jsonschema） | 审查-修复循环；表里失联/假多样性自检不过即重做 |
 | direction-review（review/planning-direction-review） | project_setup, persona_full, subject | 跟随被审对象 | judge | Review Receipt（findings: blocking/warning/note + evidence_refs） | blocking → 修复循环；对称可预算代价 → warning；同因复发/3 轮未收敛 → 升级用户 |
 | architecture（planning/story-architecture） | project_setup, persona_full, upstream:direction, genre_pack | expansive | propose_only | planning-candidate 正文 + metadata（双引擎/四段式/防火墙） | 审查-修复循环；翻译完整度缺陷（字段无机制形态无豁免）blocking |

@@ -42,6 +42,7 @@ ASSET_DIRS = {
     "direction": ROOT / "catalog/skills/planning/story-direction",
     "direction-review": ROOT / "catalog/skills/review/planning-direction-review",
     "fusion": ROOT / "catalog/skills/onboarding/creator-signature-fusion",
+    "kernel-fusion": ROOT / "catalog/skills/onboarding/author-kernel-fusion",
     "architecture": ROOT / "catalog/skills/planning/story-architecture",
     "architecture-review": ROOT / "catalog/skills/review/planning-architecture-review",
     "strategy": ROOT / "catalog/skills/planning/story-strategy",
@@ -290,6 +291,35 @@ def build_context_fusion(conn: sqlite3.Connection, payload: dict[str, Any]) -> d
     }
 
 
+def build_context_kernel_fusion(conn: sqlite3.Connection, payload: dict[str, Any]) -> dict[str, Any]:
+    mode = "revise" if payload.get("request_type") == "novelos.kernel.revise.v1" else "create"
+    return {
+        "setup": payload.get("setup", {}),
+        "mode": mode,
+        "persona_library_count": _persona_library_count(conn),
+    }
+
+
+def validate_kernel_fusion_payload(payload: dict[str, Any]) -> None:
+    """内核融合载荷结构门：create = v3 向导载荷；revise = novelos.kernel.revise.v1 信封。
+
+    create 的完整 schema 校验在落库脚本（novelos_create_project.py）入口执行；
+    组装侧只锁 request_type 与内核素材路径，保证槽位可解析。
+    """
+    request_type = payload.get("request_type")
+    if request_type == "novelos.kernel.revise.v1":
+        base = payload.get("base_version")
+        if not isinstance(base, str) or not base:
+            raise SystemExit("revise 载荷缺 base_version（格式权威在 kernel-candidate schema，存在性由库反查）")
+        return
+    if request_type in ("novelos.project.create.v2", "novelos.project.create.v3"):
+        kernel = (payload.get("setup") or {}).get("author_kernel")
+        if not isinstance(kernel, dict):
+            raise SystemExit("create 载荷缺 setup.author_kernel（内核取代原型的 v3 结构）")
+        return
+    raise SystemExit(f"kernel-fusion 载荷 request_type 不认识: {request_type!r}")
+
+
 # ---------------------------------------------------------------- 槽位注册表
 # slot id → resolver(conn, project_id, payload) -> (title, body)。
 # 项目域槽位（direction 系）用 project_id；融合域槽位（fusion）用 payload（已过
@@ -310,7 +340,10 @@ def _slot_project_setup(conn: sqlite3.Connection, project_id: str | None,
             raise SystemExit(f"项目不存在: {project_id}")
         setup = json.loads(row[0]).get("setup", {})
         return ("project_setup v2 快照（硬输入）", json.dumps(setup, ensure_ascii=False, indent=1))
-    return ("project_setup v2 快照", json.dumps(payload["setup"], ensure_ascii=False, indent=1))
+    setup = (payload or {}).get("setup")
+    if setup is None:
+        return ("project_setup v2 快照", "（无 setup——内核修订独立于项目语境时合法，题材词禁入内核）")
+    return ("project_setup v2 快照", json.dumps(setup, ensure_ascii=False, indent=1))
 
 
 def _slot_persona_full(conn: sqlite3.Connection, project_id: str | None,
@@ -361,10 +394,47 @@ def _slot_persona_hints(conn: sqlite3.Connection, project_id: str | None,
     return ("user_persona_hints（人格素材）", json.dumps(hints, ensure_ascii=False, indent=1))
 
 
+def _slot_kernel_hints(conn: sqlite3.Connection, project_id: str | None,
+                       payload: dict[str, Any] | None,
+                       subject_id: str | None = None) -> tuple[str, str]:
+    """内核素材：create 取 setup.author_kernel.kernel_hints；revise 取顶层 kernel_hints。"""
+    hints: Any = None
+    if payload.get("request_type") == "novelos.kernel.revise.v1":
+        hints = payload.get("kernel_hints")
+    else:
+        hints = (payload.get("setup") or {}).get("author_kernel", {}).get("kernel_hints")
+    if hints:
+        return ("kernel_hints（内核素材——间接养料，不是照抄的答案）",
+                json.dumps(hints, ensure_ascii=False, indent=1))
+    return ("kernel_hints（内核素材）", "（无内核素材——完全由生活基底反推，rationale 须标注反推字段）")
+
+
+def _slot_kernel_subject(conn: sqlite3.Connection, project_id: str | None,
+                         payload: dict[str, Any] | None,
+                         subject_id: str | None = None) -> tuple[str, str]:
+    """修订基底：按 payload.base_version 直读内核版本全文（内核独立于项目存在）。"""
+    base = payload.get("base_version") if payload else None
+    if not base:
+        return ("kernel_subject（修订基底内核全文）", "（新建内核——无基底版本，按 mode-create 模块执行）")
+    row = conn.execute(
+        "SELECT CAST(r.content AS TEXT), v.subject_hash FROM creator_profile_versions v "
+        "JOIN resources r ON r.id = v.content_resource_id WHERE v.id = ?",
+        (base,),
+    ).fetchone()
+    if row is None:
+        raise SystemExit(f"base_version 在库中不存在: {base}")
+    return ("kernel_subject（修订基底内核全文——演化的起点，不整体重写）",
+            f"subject_hash: {row[1]}\n" + row[0])
+
+
 def _slot_persona_fingerprints(conn: sqlite3.Connection, project_id: str | None,
                                payload: dict[str, Any] | None,
                                subject_id: str | None = None) -> tuple[str, str]:
-    fingerprints = _persona_fingerprints_query(conn, _fusion_selected_ids(payload))
+    parent_ids: list[str] = []
+    creator = ((payload or {}).get("setup") or {}).get("creator")
+    if isinstance(creator, dict) and isinstance(creator.get("selected_archetypes"), list):
+        parent_ids = _fusion_selected_ids(payload)
+    fingerprints = _persona_fingerprints_query(conn, parent_ids)
     if fingerprints:
         return ("跨批次比对基准人格（existing_persona_fingerprints，按量化范围取数）",
                 json.dumps(fingerprints, ensure_ascii=False, indent=1))
@@ -506,6 +576,8 @@ SLOT_REGISTRY: dict[str, Any] = {
     "archetype_roster": _slot_archetype_roster,
     "persona_hints": _slot_persona_hints,
     "persona_fingerprints": _slot_persona_fingerprints,
+    "kernel_hints": _slot_kernel_hints,
+    "kernel_subject": _slot_kernel_subject,
     "subject": _slot_subject,
     "genre_pack": _slot_genre_pack,
 }
@@ -637,12 +709,16 @@ def main() -> int:
     skill_dir = ASSET_DIRS[args.asset]
     conn = sqlite3.connect(DB_PATH)
     try:
-        if args.asset == "fusion":
+        if args.asset in ("fusion", "kernel-fusion"):
             if not args.payload:
-                parser.error("--asset fusion 需要 --payload")
+                parser.error(f"--asset {args.asset} 需要 --payload")
             payload = json.loads(Path(args.payload).read_text(encoding="utf-8"))
-            validate_fusion_payload(payload)
-            context = build_context_fusion(conn, payload)
+            if args.asset == "fusion":
+                validate_fusion_payload(payload)
+                context = build_context_fusion(conn, payload)
+            else:
+                validate_kernel_fusion_payload(payload)
+                context = build_context_kernel_fusion(conn, payload)
             data = resolve_slots(conn, skill_dir, payload=payload)
         else:
             if not args.project:

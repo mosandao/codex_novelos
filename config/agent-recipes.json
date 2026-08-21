@@ -8,6 +8,9 @@
     "archetype_roster",
     "persona_hints",
     "persona_fingerprints",
+    "kernel_hints",
+    "kernel_subject",
+    "kernel_full",
     "genre_pack",
     "reference_material",
     "canon_minimal",
@@ -43,6 +46,22 @@
       "decision_scope": "flag",
       "output": "creator_derivation_candidate（jsonschema 信封 + 签名 v2 深层校验）",
       "failure": "错配警告 → 呈报用户裁决，未获裁决不落库；候选解析失败要求融合智能体重出，主控禁手工改写"
+    },
+    {
+      "asset": "kernel_fusion",
+      "composer_key": "kernel-fusion",
+      "skill": "onboarding/author-kernel-fusion",
+      "slots": [
+        "kernel_hints",
+        "project_setup",
+        "kernel_subject",
+        "persona_fingerprints",
+        "archetype_roster"
+      ],
+      "divergence": "expansive",
+      "decision_scope": "flag",
+      "output": "novelos.kernel.candidate.v1（信封 schema + author-kernel 深层两步校验；revise 带 base_version）",
+      "failure": "内核撞车/单线创伤链/题目语域渗入 → 退回重做；表达层反馈误归因 kernel → 上报主控裁决"
     },
     {
       "asset": "direction",

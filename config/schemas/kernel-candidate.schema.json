@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://novelos.local/schemas/kernel-candidate.schema.json",
+  "title": "NovelOS 作者内核候选（novelos.kernel.candidate.v1）",
+  "description": "作者内核融合智能体的输出信封。kernel 字段的深层结构由 scripts/novelos_create_project.py 校验门按 author-kernel.schema.json 二步校验（与 creator-derivation-candidate 两步校验同构）。revise 模式必须携带 base_version 指向基底内核版本。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["request_type", "mode", "display_name", "kernel", "rationale"],
+  "properties": {
+    "request_type": {"const": "novelos.kernel.candidate.v1"},
+    "mode": {"enum": ["create", "revise"]},
+    "display_name": {"type": "string", "minLength": 1, "maxLength": 60},
+    "base_version": {
+      "type": "string",
+      "pattern": "^creator-profile-version:[a-z0-9][a-z0-9-]*:[0-9]+$"
+    },
+    "kernel": {"type": "object", "minProperties": 1},
+    "rationale": {"type": "string", "minLength": 1, "maxLength": 3000}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"mode": {"const": "revise"}}, "required": ["mode"]},
+      "then": {"required": ["base_version"]}
+    }
+  ]
+}

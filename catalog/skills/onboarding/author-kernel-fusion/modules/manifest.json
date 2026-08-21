@@ -1,0 +1,23 @@
+{
+  "modules": [
+    {
+      "id": "mode-create",
+      "file": "mode-create.md",
+      "when": {"field": "mode", "equals": "create"}
+    },
+    {
+      "id": "mode-revise",
+      "file": "mode-revise.md",
+      "when": {"field": "mode", "equals": "revise"}
+    }
+  ],
+  "data_slots": [
+    "kernel_hints",
+    "project_setup",
+    "kernel_subject",
+    "persona_fingerprints",
+    "archetype_roster"
+  ],
+  "divergence": "expansive",
+  "decision_scope": "flag"
+}

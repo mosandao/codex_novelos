@@ -1,0 +1,14 @@
+name: author-kernel-fusion
+description: 从用户素材反推跨书持久的作者内核（identity 八字段 + 心理运作八维五段式 + 有限知识生态），或按四归因修订既有内核
+stage: onboarding
+asset: author_kernel
+capability: generate
+lifecycle: active
+version: 1.0.0
+genres: []
+risk: P1
+output_contract: typed_result
+priority: 10
+tags: [onboarding, author-kernel, kernel-fusion, psychology]
+use_when: 项目创建选择「新建作者内核」，或内核需要按读者反馈/作品复盘修订（revise 模式带四归因 growth_log）时
+avoid_when: 生成某本书的分身（走 creator-signature-fusion，parent=内核版本）；表达/插槽/设定层问题误升级为内核修订
