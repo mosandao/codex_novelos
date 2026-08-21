@@ -15,8 +15,6 @@ create_mod = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(create_mod)
 
 WIZARD = create_mod.load_wizard_data()
-CFG_LIST = create_mod.load_config_archetypes()
-CFG = {f"creator-profile-version:{a['id']}:{a['revision']}": a for a in CFG_LIST}
 
 
 def _make_db(path: Path) -> sqlite3.Connection:
@@ -180,7 +178,7 @@ class KernelPipeline(unittest.TestCase):
 
     def test_full_v3_create_flow(self):
         payload = _v3_payload("create")
-        errors, warns = create_mod.validate_request(payload, WIZARD, CFG, self.conn)
+        errors, warns = create_mod.validate_request(payload, WIZARD, self.conn)
         self.assertEqual(errors, [])
 
         # 内核候选校验 + 落库
@@ -194,12 +192,12 @@ class KernelPipeline(unittest.TestCase):
         create_mod._emit_bound_payload(payload, kernel, bound_path)
         bound = json.loads(bound_path.read_text(encoding="utf-8"))
         self.assertEqual(bound["setup"]["author_kernel"]["mode"], "select")
-        errors, _ = create_mod.validate_request(bound, WIZARD, CFG, self.conn)
+        errors, _ = create_mod.validate_request(bound, WIZARD, self.conn)
         self.assertEqual(errors, [])
 
         # 分身候选校验门 + 项目落库
         persona = _persona_candidate(kernel["kernel_version"], kernel["subject_hash"])
-        g_errors, sig_hash = create_mod.validate_candidate(persona, bound, CFG, self.conn)
+        g_errors, sig_hash = create_mod.validate_candidate(persona, bound, self.conn)
         self.assertEqual(g_errors, [])
         ids = create_mod.persist(self.db_path, bound, persona, sig_hash)
 
@@ -221,7 +219,7 @@ class KernelPipeline(unittest.TestCase):
         payload = _v3_payload("select")
         payload["setup"]["author_kernel"]["kernel_version_id"] = "creator-profile-version:ghost:1"
         payload["setup"]["author_kernel"]["subject_hash"] = "sha256:" + "a" * 64
-        errors, _ = create_mod.validate_request(payload, WIZARD, CFG, self.conn)
+        errors, _ = create_mod.validate_request(payload, WIZARD, self.conn)
         self.assertTrue(any("库中不存在" in e for e in errors))
 
     def test_select_non_kernel_profile_rejected(self):
@@ -232,7 +230,7 @@ class KernelPipeline(unittest.TestCase):
         payload = _v3_payload("select")
         payload["setup"]["author_kernel"]["kernel_version_id"] = "cpv:user"
         payload["setup"]["author_kernel"]["subject_hash"] = "sha256:" + "b" * 64
-        errors, _ = create_mod.validate_request(payload, WIZARD, CFG, self.conn)
+        errors, _ = create_mod.validate_request(payload, WIZARD, self.conn)
         self.assertTrue(any("author_kernel" in e for e in errors))
 
     def test_kernel_revise_requires_growth_and_name_continuity(self):
@@ -273,7 +271,7 @@ class KernelPipeline(unittest.TestCase):
         payload["setup"]["author_kernel"]["subject_hash"] = kernel["subject_hash"]
         persona = _persona_candidate(kernel["kernel_version"], kernel["subject_hash"])
         persona["signature"]["narrative_principles"] = ["失败比成功更值得写", "主原则样本二"]
-        errors, _ = create_mod.validate_candidate(persona, payload, CFG, self.conn)
+        errors, _ = create_mod.validate_candidate(persona, payload, self.conn)
         self.assertTrue(any("逐字复制父值" in e for e in errors))
 
     def test_kernel_candidate_shape_gate(self):

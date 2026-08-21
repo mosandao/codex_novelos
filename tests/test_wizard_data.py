@@ -15,53 +15,31 @@ def _load_wizard_data() -> dict:
     return json.loads(raw[raw.index("{"): raw.rindex("}") + 1])
 
 
-class WizardMirrorConsistency(unittest.TestCase):
-    """向导原型镜像必须与 config/system_archetypes.json 逐项一致（防漂移守护）。
+class ArchetypeReferenceLibrary(unittest.TestCase):
+    """原型退出创建链后的参考资料库完整性（Task 30 决策 2：内核完全取代原型）。
 
-    向导用镜像里的 subject_hash 生成提交 JSON；config 是落库反查的权威。
-    两者漂移 = 血缘链从创建第一天就是歪的。
+    config/system_archetypes.json 不再被向导镜像或创建管线消费，只作
+    author-kernel-fusion / creator-signature-fusion 的气质参考。守护它的
+    结构完整（条目数/字段/hash 格式），防止参考资料库慢慢烂掉。
     """
 
     @classmethod
     def setUpClass(cls):
-        cls.wizard = _load_wizard_data()
-        cls.mirror = {a["profile_version_id"]: a for a in cls.wizard["system_archetypes"]}
-        cls.cfg = {
-            f"creator-profile-version:{a['id']}:{a['revision']}": a
-            for a in json.loads(ARCHETYPE_CONFIG.read_text(encoding="utf-8"))
-        }
+        cls.cfg = json.loads(ARCHETYPE_CONFIG.read_text(encoding="utf-8"))
 
-    def test_mirror_covers_all_config_archetypes(self):
-        self.assertEqual(
-            set(self.mirror), set(self.cfg),
-            "镜像与 config 的原型集合不一致（增删原型后忘记同步镜像）",
-        )
+    def test_reference_library_shape(self):
+        self.assertEqual(len(self.cfg), 26, "参考资料库条目数变化——确认是否有意增删原型")
+        for a in self.cfg:
+            for field in ("id", "display_name", "reader_promise", "subject_hash",
+                          "signature", "revision"):
+                self.assertIn(field, a, f"{a.get('id')} 缺 {field}")
+            self.assertRegex(a["subject_hash"], r"^sha256:[0-9a-f]{64}$")
+            self.assertRegex(a["id"], r"^system-[a-z][a-z0-9-]*$")
 
-    def test_mirror_subject_hash_no_drift(self):
-        drift = [
-            pvid for pvid, m in self.mirror.items()
-            if pvid in self.cfg and m["subject_hash"] != self.cfg[pvid]["subject_hash"]
-        ]
-        self.assertEqual(drift, [], f"镜像 subject_hash 漂移: {drift}")
-
-    def test_mirror_display_name_and_channel_affinity(self):
-        for pvid, m in self.mirror.items():
-            a = self.cfg.get(pvid)
-            if a is None:
-                continue
-            self.assertEqual(m["display_name"], a["display_name"], f"{pvid} display_name 漂移")
-            self.assertEqual(
-                m.get("channel_affinity"), a.get("channel_affinity"),
-                f"{pvid} channel_affinity 漂移",
-            )
-            self.assertIn(m.get("channel_affinity"), ("男频", "女频", "通吃"))
-
-    def test_mirror_signature_matches_config(self):
-        for pvid, m in self.mirror.items():
-            a = self.cfg.get(pvid)
-            if a is None:
-                continue
-            self.assertEqual(m.get("signature"), a.get("signature"), f"{pvid} signature 漂移")
+    def test_wizard_data_no_archetype_mirror(self):
+        wizard = _load_wizard_data()
+        self.assertNotIn("system_archetypes", wizard, "向导数据不得残留原型镜像（已由内核名册取代）")
+        self.assertNotIn("recommendation_rules", wizard, "向导数据不得残留原型打分规则")
 
 
 class WizardWordTables(unittest.TestCase):
@@ -121,28 +99,22 @@ class WizardWordTables(unittest.TestCase):
         self.assertGreaterEqual(len(styles), 10)
         self.assertEqual(len(styles), len(set(styles)))
 
-    def test_recommendation_rules_present(self):
-        rules = self.wizard["recommendation_rules"]
-        self.assertIsInstance(rules, dict)
-        self.assertTrue(rules, "recommendation_rules 为空")
-
-
 class RequestSchemaIntegrity(unittest.TestCase):
     def test_schema_json_loadable_with_expected_anchor(self):
         schema = json.loads(REQUEST_SCHEMA.read_text(encoding="utf-8"))
-        # v2/v3 双分支过渡期（Task 30）：v3 author_kernel 取代 v2 creator，向导切换后移除 v2
         self.assertEqual(
-            schema["properties"]["request_type"]["enum"],
-            ["novelos.project.create.v2", "novelos.project.create.v3"],
+            schema["properties"]["request_type"]["const"],
+            "novelos.project.create.v3",
         )
         setup_props = schema["properties"]["setup"]["properties"]
         for field in (
-            "title", "creator", "author_kernel", "channel", "platform",
+            "title", "author_kernel", "channel", "platform",
             "platform_traits", "scale", "primary_genre", "secondary_directions",
             "emotional_surface", "emotional_core", "tonal_contrast",
             "aesthetic_styles", "genre_profile", "reference_material",
         ):
             self.assertIn(field, setup_props)
+        self.assertNotIn("creator", setup_props, "v2 creator 段必须移除（内核完全取代原型）")
 
 
 if __name__ == "__main__":

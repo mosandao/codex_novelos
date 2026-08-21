@@ -283,11 +283,8 @@ def build_context_direction(conn: sqlite3.Connection, project_id: str) -> dict[s
 
 
 def build_context_fusion(conn: sqlite3.Connection, payload: dict[str, Any]) -> dict[str, Any]:
-    creator = (payload.get("setup") or {}).get("creator") or {}
-    selected = creator.get("selected_archetypes") or []
     return {
         "setup": payload["setup"],
-        "selected_count": len(selected),
         "persona_library_count": _persona_library_count(conn),
     }
 
@@ -313,7 +310,7 @@ def validate_kernel_fusion_payload(payload: dict[str, Any]) -> None:
         if not isinstance(base, str) or not base:
             raise SystemExit("revise 载荷缺 base_version（格式权威在 kernel-candidate schema，存在性由库反查）")
         return
-    if request_type in ("novelos.project.create.v2", "novelos.project.create.v3"):
+    if request_type == "novelos.project.create.v3":
         kernel = (payload.get("setup") or {}).get("author_kernel")
         if not isinstance(kernel, dict):
             raise SystemExit("create 载荷缺 setup.author_kernel（内核取代原型的 v3 结构）")
@@ -324,7 +321,7 @@ def validate_kernel_fusion_payload(payload: dict[str, Any]) -> None:
 # ---------------------------------------------------------------- 槽位注册表
 # slot id → resolver(conn, project_id, payload) -> (title, body)。
 # 项目域槽位（direction 系）用 project_id；融合域槽位（fusion）用 payload（已过
-# project-create-request schema 校验，selected_archetypes 等在 setup.creator 内）。
+# project-create-request schema（v3，author_kernel 结构）校验）。
 
 def _load_archetypes() -> list[dict[str, Any]]:
     return json.loads(ARCHETYPE_CONFIG.read_text(encoding="utf-8"))
@@ -396,44 +393,11 @@ def _slot_kernel_full(conn: sqlite3.Connection, project_id: str | None,
             f"subject_hash: {row[1]}\n" + row[0])
 
 
-def _fusion_selected_ids(payload: dict[str, Any]) -> list[str]:
-    return [a["profile_version_id"] for a in payload["setup"]["creator"]["selected_archetypes"]]
-
-
-def _slot_selected_archetypes(conn: sqlite3.Connection, project_id: str | None,
-                              payload: dict[str, Any] | None,
-                              subject_id: str | None = None) -> tuple[str, str]:
-    creator = ((payload or {}).get("setup") or {}).get("creator")
-    if not (isinstance(creator, dict) and creator.get("selected_archetypes")):
-        return ("selected_archetypes（选中条目全文）",
-                "（v3 内核派生路径——原型退出创建链，参考资料库不作 parent 取材）")
-    archetypes = _load_archetypes()
-    by_key = {f"creator-profile-version:{a['id']}:{a['revision']}": a for a in archetypes}
-    selected_ids = _fusion_selected_ids(payload)
-    chosen = [by_key[i] for i in selected_ids if i in by_key]
-    missing = [i for i in selected_ids if i not in by_key]
-    if missing:
-        raise SystemExit(f"选中原型不在 config/system_archetypes.json: {missing}")
-    return ("selected_archetypes（选中条目全文——parent 判定与气质溯因只用这些）",
-            json.dumps(chosen, ensure_ascii=False, indent=1))
-
-
 def _slot_archetype_roster(conn: sqlite3.Connection, project_id: str | None,
                            payload: dict[str, Any] | None,
                            subject_id: str | None = None) -> tuple[str, str]:
     roster = "\n".join(f"- {a['id']}：{a['display_name']}" for a in _load_archetypes())
     return ("系统原型全库一行式清单（仅作语境：库里还有什么；禁止从清单外原型取材）", roster)
-
-
-def _slot_persona_hints(conn: sqlite3.Connection, project_id: str | None,
-                        payload: dict[str, Any] | None,
-                        subject_id: str | None = None) -> tuple[str, str]:
-    creator = ((payload or {}).get("setup") or {}).get("creator")
-    if not (isinstance(creator, dict) and "user_persona_hints" in creator):
-        return ("user_persona_hints（人格素材）",
-                "（v3 路径——素材已在建核时消费，分身由内核+setup 派生，无额外素材）")
-    hints = creator["user_persona_hints"]
-    return ("user_persona_hints（人格素材）", json.dumps(hints, ensure_ascii=False, indent=1))
 
 
 def _slot_kernel_hints(conn: sqlite3.Connection, project_id: str | None,
@@ -472,11 +436,7 @@ def _slot_kernel_subject(conn: sqlite3.Connection, project_id: str | None,
 def _slot_persona_fingerprints(conn: sqlite3.Connection, project_id: str | None,
                                payload: dict[str, Any] | None,
                                subject_id: str | None = None) -> tuple[str, str]:
-    parent_ids: list[str] = []
-    creator = ((payload or {}).get("setup") or {}).get("creator")
-    if isinstance(creator, dict) and isinstance(creator.get("selected_archetypes"), list):
-        parent_ids = _fusion_selected_ids(payload)
-    fingerprints = _persona_fingerprints_query(conn, parent_ids)
+    fingerprints = _persona_fingerprints_query(conn, [])
     if fingerprints:
         return ("跨批次比对基准人格（existing_persona_fingerprints，按量化范围取数）",
                 json.dumps(fingerprints, ensure_ascii=False, indent=1))
@@ -614,9 +574,7 @@ def _slot_review_feedback(feedback: dict[str, Any] | None) -> tuple[str, str] | 
 SLOT_REGISTRY: dict[str, Any] = {
     "project_setup": _slot_project_setup,
     "persona_full": _slot_persona_full,
-    "selected_archetypes": _slot_selected_archetypes,
     "archetype_roster": _slot_archetype_roster,
-    "persona_hints": _slot_persona_hints,
     "persona_fingerprints": _slot_persona_fingerprints,
     "kernel_hints": _slot_kernel_hints,
     "kernel_subject": _slot_kernel_subject,

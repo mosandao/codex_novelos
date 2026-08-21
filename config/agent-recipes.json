@@ -4,9 +4,7 @@
   "slot_vocabulary": [
     "project_setup",
     "persona_full",
-    "selected_archetypes",
     "archetype_roster",
-    "persona_hints",
     "persona_fingerprints",
     "kernel_hints",
     "kernel_subject",
@@ -37,9 +35,7 @@
       "skill": "onboarding/creator-signature-fusion",
       "slots": [
         "kernel_full",
-        "selected_archetypes",
         "archetype_roster",
-        "persona_hints",
         "project_setup",
         "persona_fingerprints"
       ],

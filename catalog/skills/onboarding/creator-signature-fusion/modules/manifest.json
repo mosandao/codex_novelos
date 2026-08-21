@@ -61,24 +61,6 @@
       }
     },
     {
-      "id": "single-archetype",
-      "file": "single-archetype.md",
-      "when": {
-        "query": "selected_count",
-        "op": "==",
-        "value": 1
-      }
-    },
-    {
-      "id": "multi-archetype",
-      "file": "multi-archetype.md",
-      "when": {
-        "query": "selected_count",
-        "op": ">=",
-        "value": 2
-      }
-    },
-    {
       "id": "genre-present",
       "file": "genre-present.md",
       "when": {
@@ -105,9 +87,7 @@
   ],
   "data_slots": [
     "kernel_full",
-    "selected_archetypes",
     "archetype_roster",
-    "persona_hints",
     "project_setup",
     "persona_fingerprints"
   ],

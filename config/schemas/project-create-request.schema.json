@@ -2,17 +2,23 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://novelos.local/schemas/project-create-request.schema.json",
   "title": "NovelOS 项目创建请求（novelos.project.create.v3）",
-  "description": "向导产出的提交 JSON 的结构契约。v3：creator 段（原型直连派生）被 author_kernel 取代——作者内核完全取代原型（Task 30 决策 2）。mode=create 首次建核（kernel_hints 六字段）；mode=select 绑定既有内核版本（库内反查）。v2 分支为向导切换期的过渡兼容，向导 v3 上线后移除。词表级联（channel×platform×题材×基调×美学）与内核反查由 scripts/novelos_create_project.py 在 schema 之上追加校验。",
+  "description": "向导产出的提交 JSON 的结构契约。v3：creator 段（原型直连派生）已被 author_kernel 完全取代（Task 30 决策 2）。mode=create 首次建核（kernel_hints 六字段）；mode=select 绑定既有内核版本（库内反查）。词表级联与内核反查由 scripts/novelos_create_project.py 在 schema 之上追加校验。",
   "type": "object",
   "additionalProperties": false,
-  "required": ["request_type", "setup"],
+  "required": [
+    "request_type",
+    "setup"
+  ],
   "properties": {
-    "request_type": {"enum": ["novelos.project.create.v2", "novelos.project.create.v3"]},
+    "request_type": {
+      "const": "novelos.project.create.v3"
+    },
     "setup": {
       "type": "object",
       "additionalProperties": false,
       "required": [
         "title",
+        "author_kernel",
         "channel",
         "platform",
         "platform_traits",
@@ -27,86 +33,112 @@
         "reference_material"
       ],
       "properties": {
-        "title": {"type": "string", "minLength": 1, "maxLength": 120},
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
         "author_kernel": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["mode", "kernel_hints"],
+          "required": [
+            "mode",
+            "kernel_hints"
+          ],
           "properties": {
-            "mode": {"enum": ["select", "create"]},
+            "mode": {
+              "enum": [
+                "select",
+                "create"
+              ]
+            },
             "kernel_version_id": {
               "type": "string",
               "pattern": "^creator-profile-version:[a-z0-9][a-z0-9-]*(:[0-9]+)?$"
             },
-            "subject_hash": {"$ref": "#/$defs/hash"},
-            "display_name": {"type": "string", "minLength": 1, "maxLength": 60},
+            "subject_hash": {
+              "$ref": "#/$defs/hash"
+            },
+            "display_name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 60
+            },
             "kernel_hints": {
               "type": "object",
               "additionalProperties": false,
               "maxProperties": 6,
               "properties": {
-                "taste_anchors": {"$ref": "#/$defs/line_list"},
-                "people_and_scenes": {"$ref": "#/$defs/line_list"},
-                "hard_nos": {"$ref": "#/$defs/line_list"},
-                "obsessions": {"$ref": "#/$defs/line_list"},
-                "core_questions": {"$ref": "#/$defs/line_list"},
-                "knowledge_domains": {"$ref": "#/$defs/line_list"}
+                "taste_anchors": {
+                  "$ref": "#/$defs/line_list"
+                },
+                "people_and_scenes": {
+                  "$ref": "#/$defs/line_list"
+                },
+                "hard_nos": {
+                  "$ref": "#/$defs/line_list"
+                },
+                "obsessions": {
+                  "$ref": "#/$defs/line_list"
+                },
+                "core_questions": {
+                  "$ref": "#/$defs/line_list"
+                },
+                "knowledge_domains": {
+                  "$ref": "#/$defs/line_list"
+                }
               }
             }
           },
           "allOf": [
             {
-              "if": {"properties": {"mode": {"const": "select"}}},
-              "then": {"required": ["kernel_version_id", "subject_hash"]}
+              "if": {
+                "properties": {
+                  "mode": {
+                    "const": "select"
+                  }
+                }
+              },
+              "then": {
+                "required": [
+                  "kernel_version_id",
+                  "subject_hash"
+                ]
+              }
             }
           ]
         },
-        "creator": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["mode", "selected_archetypes", "user_persona_hints"],
-          "properties": {
-            "mode": {"const": "derive"},
-            "selected_archetypes": {
-              "type": "array",
-              "minItems": 1,
-              "maxItems": 6,
-              "items": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": ["profile_version_id", "subject_hash", "display_name"],
-                "properties": {
-                  "profile_version_id": {
-                    "type": "string",
-                    "pattern": "^creator-profile-version:system-[a-z][a-z0-9-]*:[0-9]+$"
-                  },
-                  "subject_hash": {"$ref": "#/$defs/hash"},
-                  "display_name": {"type": "string", "minLength": 1, "maxLength": 60}
-                }
-              }
-            },
-            "user_persona_hints": {
-              "type": "object",
-              "additionalProperties": false,
-              "maxProperties": 4,
-              "properties": {
-                "taste_anchors": {"$ref": "#/$defs/line_list"},
-                "people_and_scenes": {"$ref": "#/$defs/line_list"},
-                "hard_nos": {"$ref": "#/$defs/line_list"},
-                "obsessions": {"$ref": "#/$defs/line_list"}
-              }
-            }
-          }
+        "channel": {
+          "enum": [
+            "男频",
+            "女频",
+            "全向"
+          ]
         },
-        "channel": {"enum": ["男频", "女频", "全向"]},
-        "platform": {"type": "string", "minLength": 1, "maxLength": 20},
+        "platform": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20
+        },
         "platform_traits": {
-          "type": ["object", "null"],
+          "type": [
+            "object",
+            "null"
+          ],
           "additionalProperties": false,
           "properties": {
-            "model": {"type": "string", "minLength": 1},
-            "patience": {"type": "string", "minLength": 1},
-            "reader_profile": {"type": "string", "minLength": 1}
+            "model": {
+              "type": "string",
+              "minLength": 1
+            },
+            "patience": {
+              "type": "string",
+              "minLength": 1
+            },
+            "reader_profile": {
+              "type": "string",
+              "minLength": 1
+            }
           }
         },
         "scale": {
@@ -117,63 +149,84 @@
             "超长篇（300万字以上）"
           ]
         },
-        "primary_genre": {"type": "string", "minLength": 1, "maxLength": 30},
+        "primary_genre": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 30
+        },
         "secondary_directions": {
           "type": "array",
-          "items": {"type": "string", "minLength": 1, "maxLength": 30},
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 30
+          },
           "maxItems": 16,
           "uniqueItems": true
         },
         "emotional_surface": {
           "type": "array",
-          "items": {"type": "string", "minLength": 1, "maxLength": 30},
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 30
+          },
           "minItems": 1,
           "maxItems": 2,
           "uniqueItems": true
         },
-        "emotional_core": {"type": "string", "minLength": 1, "maxLength": 30},
-        "tonal_contrast": {"type": ["string", "null"], "maxLength": 300},
+        "emotional_core": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 30
+        },
+        "tonal_contrast": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 300
+        },
         "aesthetic_styles": {
           "type": "array",
-          "items": {"type": "string", "minLength": 1, "maxLength": 30},
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 30
+          },
           "minItems": 1,
           "maxItems": 2,
           "uniqueItems": true
         },
-        "genre_profile": {"type": ["object", "null"]},
-        "reference_material": {"type": ["string", "null"], "maxLength": 10000}
-      }
-    }
-  },
-  "allOf": [
-    {
-      "if": {
-        "properties": {"request_type": {"const": "novelos.project.create.v2"}},
-        "required": ["request_type"]
-      },
-      "then": {"properties": {"setup": {"required": ["creator"]}}}
-    },
-    {
-      "if": {
-        "properties": {"request_type": {"const": "novelos.project.create.v3"}},
-        "required": ["request_type"]
-      },
-      "then": {
-        "properties": {
-          "setup": {
-            "required": ["author_kernel"],
-            "not": {"required": ["creator"]}
-          }
+        "genre_profile": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "reference_material": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 10000
         }
       }
     }
-  ],
+  },
   "$defs": {
     "line_list": {
       "type": "array",
-      "items": {"type": "string", "minLength": 1, "maxLength": 200},
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200
+      },
       "maxItems": 20
     },
-    "hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+    "hash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    }
   }
 }

@@ -4,13 +4,12 @@
 向导产出的 `novelos.project.create.v3` JSON 不再靠主控眼审，本脚本一次完成：
 
 1. **入口校验**（--payload，必跑）：jsonschema 结构校验
-   （config/schemas/project-create-request.schema.json，v2/v3 双分支）+
+   （config/schemas/project-create-request.schema.json，v3）+
    词表级联校验（channel×platform×题材×二级方向×基调池×美学，全部对照
    ui/project-wizard-data.js 静态权威数据）+ 表里互斥规则。
    v3 内核分支：mode=select 时**库内反查**（kernel_version_id 存在、
    profile ownership='author_kernel'、status='active'、subject_hash 相符）；
    mode=create 时 kernel_hints 由 schema 约束。
-   v2 过渡分支：原型三方比对照旧（向导 v3 上线后移除）。
 2. **内核阶段**（--kernel-candidate，mode=create 首次建核或独立修订）：
    候选容错解析 → kernel-candidate 信封 + author-kernel 深层两步校验 →
    revise 基底库内反查 + display_name 连续性 + growth_log 非空 →
@@ -18,8 +17,8 @@
    creator_profile_versions）。`--emit-payload <path>` 输出缝合后的
    select 形态 payload（mode=create 建核后自动回填 kernel_version_id）。
 3. **校验门**（--candidate，分身融合后）：候选容错解析 →
-   creator-derivation-candidate 信封 → 签名 v2 深层 → v3 下 parent=内核
-   版本库内反查（v2 下 parent=config 原型反查）→ 逐字复制与条数检查 →
+   creator-derivation-candidate 信封 → 签名 v2 深层 → parent=内核
+   版本库内反查 → kernel_origin 一致性 → 逐字复制与条数检查 →
    hash 计算。
 4. **落库**（默认；--dry-run 关闭）：BEGIN IMMEDIATE 单事务 + foreign_keys=ON
    + 失败整体回滚。v3 六表一次写入（签名资源 / 派生资源 / creator_profiles /
@@ -62,7 +61,6 @@ from typing import Any
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_DB = REPO_ROOT / "data" / "novelos-v2.db"
 WIZARD_DATA_FILE = REPO_ROOT / "ui/project-wizard-data.js"
-ARCHETYPE_CONFIG = REPO_ROOT / "config/system_archetypes.json"
 SCHEMA_DIR = REPO_ROOT / "config/schemas"
 
 SCALES = (
@@ -97,14 +95,6 @@ def content_hash(text: str) -> str:
 def load_wizard_data() -> dict[str, Any]:
     raw = WIZARD_DATA_FILE.read_text(encoding="utf-8")
     return json.loads(raw[raw.index("{"): raw.rindex("}") + 1])
-
-
-def load_config_archetypes() -> list[dict[str, Any]]:
-    return json.loads(ARCHETYPE_CONFIG.read_text(encoding="utf-8"))
-
-
-def is_v3(payload: dict[str, Any]) -> bool:
-    return payload.get("request_type") == "novelos.project.create.v3"
 
 
 def lookup_kernel_version(conn: sqlite3.Connection, version_id: str) -> sqlite3.Row | None:
@@ -206,7 +196,6 @@ def parse_candidate_text(raw: str, kind: str = "persona") -> tuple[dict[str, Any
 def validate_request(
     payload: dict[str, Any],
     wizard: dict[str, Any],
-    cfg: dict[str, dict[str, Any]],
     conn: sqlite3.Connection,
 ) -> tuple[list[str], list[str]]:
     import jsonschema
@@ -276,56 +265,27 @@ def validate_request(
     if s["genre_profile"] is not None and s["genre_profile"] != gp:
         errors.append("genre_profile 与词表快照不一致")
 
-    if is_v3(payload):
-        ak = s["author_kernel"]
-        if ak["mode"] == "select":
-            row = lookup_kernel_version(conn, ak["kernel_version_id"])
-            if row is None:
+    ak = s["author_kernel"]
+    if ak["mode"] == "select":
+        row = lookup_kernel_version(conn, ak["kernel_version_id"])
+        if row is None:
+            errors.append(
+                f"kernel_version_id={ak['kernel_version_id']!r} 库中不存在"
+            )
+        else:
+            if row["ownership"] != "author_kernel":
                 errors.append(
-                    f"kernel_version_id={ak['kernel_version_id']!r} 库中不存在"
+                    f"kernel_version_id 指向 ownership={row['ownership']!r} 的版本——"
+                    "只能绑定 author_kernel 内核"
                 )
-            else:
-                if row["ownership"] != "author_kernel":
-                    errors.append(
-                        f"kernel_version_id 指向 ownership={row['ownership']!r} 的版本——"
-                        "只能绑定 author_kernel 内核"
-                    )
-                if row["status"] != "active":
-                    errors.append(f"内核 profile status={row['status']!r}，非 active")
-                if row["subject_hash"] != ak["subject_hash"]:
-                    errors.append("内核 subject_hash 与库内反查不符")
-                if ak.get("display_name") and ak["display_name"] != row["display_name"]:
-                    warns.append(
-                        f"内核 display_name 与库不符（库内 {row['display_name']!r}）"
-                    )
-        return errors, warns
-
-    # v2 过渡分支：原型三方比对（payload × config × 镜像）
-    mirror = {a["profile_version_id"]: a for a in wizard["system_archetypes"]}
-    for i, sa in enumerate(s["creator"]["selected_archetypes"], 1):
-        tag = f"[{i}] {sa['display_name']}"
-        a = cfg.get(sa["profile_version_id"])
-        if a is None:
-            errors.append(f"{tag} profile_version_id={sa['profile_version_id']} 在 config 中不存在")
-            continue
-        if a["subject_hash"] != sa["subject_hash"]:
-            errors.append(f"{tag} subject_hash 与 config 不符")
-        if a["display_name"] != sa["display_name"]:
-            errors.append(f"{tag} display_name 与 config 不符（应为 {a['display_name']!r}）")
-        m = mirror.get(sa["profile_version_id"])
-        if m is None:
-            errors.append(f"{tag} 向导镜像缺失")
-        elif m["subject_hash"] != a["subject_hash"]:
-            errors.append(f"{tag} 向导镜像 hash 漂移")
-        aff = a.get("channel_affinity")
-        if ch in ("男频", "女频") and aff not in (ch, "通吃"):
-            warns.append(f"{tag} channel_affinity={aff}，在 {ch} 通道下为负分项")
-    drift = [
-        pvid for pvid, m in mirror.items()
-        if pvid in cfg and m["subject_hash"] != cfg[pvid]["subject_hash"]
-    ]
-    if drift:
-        errors.append(f"向导镜像漂移 {len(drift)} 个原型（{drift}）——先同步镜像再创建")
+            if row["status"] != "active":
+                errors.append(f"内核 profile status={row['status']!r}，非 active")
+            if row["subject_hash"] != ak["subject_hash"]:
+                errors.append("内核 subject_hash 与库内反查不符")
+            if ak.get("display_name") and ak["display_name"] != row["display_name"]:
+                warns.append(
+                    f"内核 display_name 与库不符（库内 {row['display_name']!r}）"
+                )
     return errors, warns
 
 
@@ -392,10 +352,10 @@ def persist_kernel(
     kernel_json = json.dumps(kernel, ensure_ascii=False, indent=2)
 
     snapshot = None
-    if payload is not None and is_v3(payload):
+    if payload is not None:
         setup = payload["setup"]
         snapshot = {
-            "author_kernel": setup["author_kernel"],
+            "author_kernel": setup.get("author_kernel"),
             "setup": {k: v for k, v in setup.items() if k != "author_kernel"},
         }
     deriv = {
@@ -476,7 +436,6 @@ def persist_kernel(
 def validate_candidate(
     candidate: dict[str, Any],
     payload: dict[str, Any],
-    cfg: dict[str, dict[str, Any]],
     conn: sqlite3.Connection,
 ) -> tuple[list[str], str]:
     import jsonschema
@@ -500,43 +459,26 @@ def validate_candidate(
         errors.append(f"签名 schema v2 FAIL: {exc.message}")
 
     parent_lists: dict[str, list[str]] = {}
-    if is_v3(payload):
-        ak = payload["setup"]["author_kernel"]
-        row = lookup_kernel_version(conn, ak["kernel_version_id"])
-        if row is None:
-            errors.append(f"parent 内核版本库中不存在: {ak['kernel_version_id']!r}")
-        else:
-            if candidate.get("parent_version_id") != ak["kernel_version_id"]:
-                errors.append("parent_version_id 与 payload 绑定的内核版本不符")
-            if candidate.get("parent_subject_hash") != row["subject_hash"]:
-                errors.append("parent_subject_hash 与内核库内反查不符")
-            if candidate.get("display_name") == row["display_name"]:
-                errors.append("display_name 逐字复制内核名——分身须凝聚为本书人格名")
-            identity = json.loads(row["kernel_json"]).get("identity", {})
-            for field in KERNEL_IDENTITY_LIST_FIELDS:
-                parent_lists[field] = list(identity.get(field, []))
-            origin = sig.get("kernel_origin")
-            if origin is not None:
-                if origin.get("kernel_version_id") != ak["kernel_version_id"]:
-                    errors.append("kernel_origin.kernel_version_id 与绑定内核不符")
-                if origin.get("kernel_subject_hash") != row["subject_hash"]:
-                    errors.append("kernel_origin.kernel_subject_hash 与内核反查不符")
+    ak = payload["setup"]["author_kernel"]
+    row = lookup_kernel_version(conn, ak["kernel_version_id"])
+    if row is None:
+        errors.append(f"parent 内核版本库中不存在: {ak['kernel_version_id']!r}")
     else:
-        parent = cfg.get(candidate.get("parent_version_id", ""))
-        if parent is None:
-            errors.append(f"parent_version_id={candidate.get('parent_version_id')!r} 不在 config")
-        else:
-            if parent["subject_hash"] != candidate.get("parent_subject_hash"):
-                errors.append("parent_subject_hash 与 config 反查不符")
-            if candidate.get("display_name") == parent["display_name"]:
-                errors.append("display_name 逐字复制父原型名——须凝聚为本书人格名")
-            for field in SIGNATURE_FIELDS:
-                parent_lists[field] = list(parent["signature"].get(field, []))
-        selected = {
-            a["profile_version_id"] for a in payload["setup"]["creator"]["selected_archetypes"]
-        }
-        if candidate.get("parent_version_id") not in selected:
-            errors.append("parent 不属于用户勾选集")
+        if candidate.get("parent_version_id") != ak["kernel_version_id"]:
+            errors.append("parent_version_id 与 payload 绑定的内核版本不符")
+        if candidate.get("parent_subject_hash") != row["subject_hash"]:
+            errors.append("parent_subject_hash 与内核库内反查不符")
+        if candidate.get("display_name") == row["display_name"]:
+            errors.append("display_name 逐字复制内核名——分身须凝聚为本书人格名")
+        identity = json.loads(row["kernel_json"]).get("identity", {})
+        for field in KERNEL_IDENTITY_LIST_FIELDS:
+            parent_lists[field] = list(identity.get(field, []))
+        origin = sig.get("kernel_origin")
+        if origin is not None:
+            if origin.get("kernel_version_id") != ak["kernel_version_id"]:
+                errors.append("kernel_origin.kernel_version_id 与绑定内核不符")
+            if origin.get("kernel_subject_hash") != row["subject_hash"]:
+                errors.append("kernel_origin.kernel_subject_hash 与内核反查不符")
 
     if parent_lists:
         for field in SIGNATURE_FIELDS:
@@ -570,54 +512,25 @@ def persist(
         conn.execute("PRAGMA foreign_keys = ON")
         conn.execute("BEGIN IMMEDIATE")
 
-        if is_v3(payload):
-            ak = setup["author_kernel"]
-            kernel_row = lookup_kernel_version(conn, ak["kernel_version_id"])
-            if kernel_row is None or kernel_row["ownership"] != "author_kernel":
-                raise SystemExit(
-                    f"绑定的内核版本无效: {ak['kernel_version_id']!r}（落库前校验门应已拦截）"
-                )
-            deriv = {
-                "parent_version_id": ak["kernel_version_id"],
-                "parent_display_name": kernel_row["display_name"],
-                "parent_subject_hash": kernel_row["subject_hash"],
-                "auxiliary_archetypes": [],
-                "rationale": candidate["parent_rationale"],
-                "user_input_snapshot": {
-                    "author_kernel": {k: v for k, v in ak.items() if k != "kernel_hints"},
-                    "setup": {k: v for k, v in setup.items() if k != "author_kernel"},
-                },
-            }
-            binding_mode = "kernel_derive"
-            kernel_version_id = ak["kernel_version_id"]
-        else:
-            aux = sorted(
-                a["profile_version_id"]
-                for a in setup["creator"]["selected_archetypes"]
-                if a["profile_version_id"] != candidate["parent_version_id"]
+        ak = setup["author_kernel"]
+        kernel_row = lookup_kernel_version(conn, ak["kernel_version_id"])
+        if kernel_row is None or kernel_row["ownership"] != "author_kernel":
+            raise SystemExit(
+                f"绑定的内核版本无效: {ak['kernel_version_id']!r}（落库前校验门应已拦截）"
             )
-            parent_name = next(
-                (
-                    a["display_name"]
-                    for a in setup["creator"]["selected_archetypes"]
-                    if a["profile_version_id"] == candidate["parent_version_id"]
-                ),
-                "",
-            )
-            deriv = {
-                "parent_version_id": candidate["parent_version_id"],
-                "parent_display_name": parent_name,
-                "parent_subject_hash": candidate["parent_subject_hash"],
-                "auxiliary_archetypes": aux,
-                "rationale": candidate["parent_rationale"],
-                "user_input_snapshot": {
-                    "selected_archetypes": setup["creator"]["selected_archetypes"],
-                    "user_persona_hints": setup["creator"]["user_persona_hints"],
-                    "setup": {k: v for k, v in setup.items() if k != "creator"},
-                },
-            }
-            binding_mode = "derive"
-            kernel_version_id = None
+        deriv = {
+            "parent_version_id": ak["kernel_version_id"],
+            "parent_display_name": kernel_row["display_name"],
+            "parent_subject_hash": kernel_row["subject_hash"],
+            "auxiliary_archetypes": [],
+            "rationale": candidate["parent_rationale"],
+            "user_input_snapshot": {
+                "author_kernel": {k: v for k, v in ak.items() if k != "kernel_hints"},
+                "setup": {k: v for k, v in setup.items() if k != "author_kernel"},
+            },
+        }
+        binding_mode = "kernel_derive"
+        kernel_version_id = ak["kernel_version_id"]
         deriv_json = json.dumps(deriv, ensure_ascii=False, indent=2)
 
         ids = {
@@ -628,10 +541,10 @@ def persist(
             "project": f"project:{uuid.uuid4()}",
         }
         meta = {
-            "setup_schema_version": 3 if is_v3(payload) else 2,
+            "setup_schema_version": 3,
             "setup": {
                 k: v for k, v in setup.items()
-                if k not in ("creator", "author_kernel")
+                if k != "author_kernel"
             },
         }
         description = (
@@ -737,11 +650,7 @@ def main() -> int:
 
         if payload is not None and not args.kernel_revise:
             wizard = load_wizard_data()
-            cfg_list = load_config_archetypes()
-            cfg = {
-                f"creator-profile-version:{a['id']}:{a['revision']}": a for a in cfg_list
-            }
-            errors, warns = validate_request(payload, wizard, cfg, conn)
+            errors, warns = validate_request(payload, wizard, conn)
             for w in warns:
                 print(f"WARN {w}")
             if errors:
@@ -771,7 +680,7 @@ def main() -> int:
                 print(f"  kernel_profile   {kernel['kernel_profile']}")
                 print(f"  kernel_version   {kernel['kernel_version']}")
                 print(f"  subject_hash     {kernel['subject_hash']}")
-                if args.emit_payload and payload is not None and is_v3(payload):
+                if args.emit_payload and payload is not None:
                     if payload["setup"]["author_kernel"].get("mode") == "create":
                         _emit_bound_payload(payload, kernel, Path(args.emit_payload))
                         print(f"  bound payload    {args.emit_payload}（已缝合为 select 形态）")
@@ -786,12 +695,7 @@ def main() -> int:
             for n in notes:
                 print(f"NOTE 候选解析修复: {n}")
 
-            wizard = load_wizard_data()
-            cfg_list = load_config_archetypes()
-            cfg = {
-                f"creator-profile-version:{a['id']}:{a['revision']}": a for a in cfg_list
-            }
-            gate_errors, sig_hash = validate_candidate(candidate, payload, cfg, conn)
+            gate_errors, sig_hash = validate_candidate(candidate, payload, conn)
             if gate_errors:
                 for e in gate_errors:
                     print(f"FAIL {e}")

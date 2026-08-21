@@ -145,22 +145,18 @@ def _seed_kernel_for_fusion(conn: sqlite3.Connection) -> None:
         ("sha256:" + "c" * 64,))
 
 
-def _fusion_payload() -> dict:
-    a = ARCHETYPES[0]
-    version_id = f"creator-profile-version:{a['id']}:{a['revision']}"
+def _fusion_payload(mode: str = "create") -> dict:
+    """v3 融合载荷：create 模式（kernel_full 占位）；select 模式需 seed 内核后用。"""
+    ak = {"mode": mode, "kernel_hints": {"taste_anchors": ["低温叙事"]}}
+    if mode == "select":
+        ak["kernel_version_id"] = "creator-profile-version:k1:1"
+        ak["subject_hash"] = "sha256:" + "c" * 64
+        ak["kernel_hints"] = {}
     return {
-        "request_type": "novelos.project.create.v2",
+        "request_type": "novelos.project.create.v3",
         "setup": {
             "title": "槽位测试书",
-            "creator": {
-                "mode": "derive",
-                "selected_archetypes": [{
-                    "profile_version_id": version_id,
-                    "subject_hash": "sha256:" + "b" * 64,
-                    "display_name": a["display_name"],
-                }],
-                "user_persona_hints": {"taste_anchors": ["低温叙事"]},
-            },
+            "author_kernel": ak,
             "channel": "男频",
             "platform": "起点",
             "platform_traits": {"model": "免费算法", "patience": "快节奏", "reader_profile": "广谱"},
@@ -223,72 +219,59 @@ class FusionSlots(unittest.TestCase):
 
     def test_payload_schema_and_section_order(self):
         conn = _make_db()
-        _seed_user_persona(conn)
         payload = _fusion_payload()
         validate_fusion_payload(payload)  # 不抛即通过
         sections = resolve_slots(conn, ASSET_DIRS["fusion"], payload=payload)
         self.assertEqual(
             [t for t, _ in sections],
             [
-                "作者内核（kernel 全文）",  # v2 载荷 → 占位节
-                "selected_archetypes（选中条目全文——parent 判定与气质溯因只用这些）",
+                "作者内核（kernel 全文）",  # create 模式未建核 → 占位节
                 "系统原型全库一行式清单（仅作语境：库里还有什么；禁止从清单外原型取材）",
-                "user_persona_hints（人格素材）",
                 "project_setup v2 快照",
-                "跨批次比对基准人格（existing_persona_fingerprints，按量化范围取数）",
+                "跨批次比对基准人格",  # 空库 → 占位标题
             ],
         )
         self.assertIn("无内核来源", sections[0][1])
-        self.assertIn("display_name", sections[1][1])
-        self.assertEqual(build_context_fusion(conn, payload)["selected_count"], 1)
-
-    def test_v3_kernel_derive_sections_and_marker(self):
-        """v3 内核派生：kernel_full 注入内核全文，原型/素材槽占位，kernel-derive 模块命中。"""
-        from scripts.novelos_compose_prompt import (
-            build_context_fusion as _bcf, compose as _compose,
-        )
-        conn = _make_db()
-        _seed_kernel_for_fusion(conn)
-        payload = _fusion_payload()
-        payload["request_type"] = "novelos.project.create.v3"
-        payload["setup"]["author_kernel"] = {
-            "mode": "select", "kernel_version_id": "creator-profile-version:k1:1",
-            "subject_hash": "sha256:" + "c" * 64, "kernel_hints": {}}
-        payload["setup"].pop("creator")
-        validate_fusion_payload(payload)
-        context = _bcf(conn, payload)
-        self.assertEqual(context["selected_count"], 0)
-        sections = resolve_slots(conn, ASSET_DIRS["fusion"], payload=payload)
-        by_title = {t: b for t, b in sections}
-        kernel_sec = next(b for t, b in sections if t.startswith("作者内核"))
-        self.assertIn("测试内核", kernel_sec)
-        self.assertIn("sha256:", kernel_sec)
-        self.assertIn("v3 内核派生路径", by_title["selected_archetypes（选中条目全文）"])
-        self.assertIn("素材已在建核时消费", by_title["user_persona_hints（人格素材）"])
-        out = _compose(ASSET_DIRS["fusion"], context, sections)
-        self.assertIn("内核派生分支（v3）", out)
-        self.assertIn("kernel_origin", out)
+        self.assertIn("人格库为空", sections[3][1])
 
     def test_empty_library_placeholder(self):
         conn = _make_db()
         sections = resolve_slots(conn, ASSET_DIRS["fusion"], payload=_fusion_payload())
-        self.assertEqual(sections[5][0], "跨批次比对基准人格")
-        self.assertIn("人格库为空", sections[5][1])
+        self.assertEqual(sections[3][0], "跨批次比对基准人格")
+        self.assertIn("人格库为空", sections[3][1])
 
     def test_invalid_payload_rejected(self):
         with self.assertRaises(SystemExit):
             validate_fusion_payload({"setup": {}})  # 缺 request_type
         payload = _fusion_payload()
-        payload["setup"]["creator"]["selected_archetypes"][0]["profile_version_id"] = "bogus"
+        del payload["setup"]["author_kernel"]
         with self.assertRaises(SystemExit):
             validate_fusion_payload(payload)
 
-    def test_selected_ids_read_from_nested_creator(self):
-        # 向导契约：selected_archetypes 在 setup.creator 内（防顶层旧读法回归）
-        from scripts.novelos_compose_prompt import _fusion_selected_ids
-        ids = _fusion_selected_ids(_fusion_payload())
-        self.assertEqual(len(ids), 1)
-        self.assertTrue(ids[0].startswith("creator-profile-version:"))
+    def test_v3_kernel_derive_sections_and_marker(self):
+        """select 模式：kernel_full 注入内核全文，kernel-derive 模块命中。"""
+        from scripts.novelos_compose_prompt import (
+            build_context_fusion as _bcf, compose as _compose,
+        )
+        conn = _make_db()
+        _seed_kernel_for_fusion(conn)
+        payload = _fusion_payload("select")
+        validate_fusion_payload(payload)
+        context = _bcf(conn, payload)
+        sections = resolve_slots(conn, ASSET_DIRS["fusion"], payload=payload)
+        kernel_sec = next(b for t, b in sections if t.startswith("作者内核"))
+        self.assertIn("测试内核", kernel_sec)
+        self.assertIn("sha256:", kernel_sec)
+        out = _compose(ASSET_DIRS["fusion"], context, sections)
+        self.assertIn("内核派生分支（v3）", out)
+        self.assertIn("kernel_origin", out)
+
+    def test_kernel_derive_absent_without_kernel(self):
+        from scripts.novelos_compose_prompt import compose as _compose
+        conn = _make_db()
+        context = {"setup": {"channel": "男频", "genre_profile": None}}
+        out = _compose(ASSET_DIRS["fusion"], context, [])
+        self.assertNotIn("内核派生分支（v3）", out)
 
 
 class FullChainSmoke(unittest.TestCase):

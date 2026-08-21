@@ -67,17 +67,19 @@ def _ctx_direction(channel: str = "男频", model: str = "免费算法",
 
 
 def _ctx_fusion(channel: str = "女频", library_count: int = 6,
-                selected_count: int = 1) -> dict:
-    return {
-        "setup": {
-            "channel": channel,
-            "platform_traits": {"model": "付费订阅"},
-            "genre_profile": {"typical_dilemmas": ["…"]},
-            "aesthetic_styles": [],
-        },
-        "selected_count": selected_count,
-        "persona_library_count": library_count,
+                kernel: bool = True) -> dict:
+    setup = {
+        "channel": channel,
+        "platform": "起点",
+        "platform_traits": {"model": "付费订阅"},
+        "genre_profile": None,
+        "aesthetic_styles": ["冷峻"],
     }
+    if kernel:
+        setup["author_kernel"] = {
+            "mode": "select", "kernel_version_id": "creator-profile-version:k:1",
+            "subject_hash": "sha256:" + "d" * 64, "kernel_hints": {}}
+    return {"setup": setup, "persona_library_count": library_count}
 
 
 class ManifestIntegrity(unittest.TestCase):
@@ -174,8 +176,6 @@ class EnumCoverage(unittest.TestCase):
             (_ctx_fusion(library_count=n), f"library={n}")
             for n in (0, 1, 4, 5, 11)
         ] + [
-            (_ctx_fusion(selected_count=1), "selected=1"),
-            (_ctx_fusion(selected_count=3), "selected=3"),
         ]
         for ctx, label in cases:
             with self.subTest(case=label):
@@ -256,7 +256,7 @@ class SizeBudget(unittest.TestCase):
 
     def test_methodology_within_budget(self):
         worst_direction = _ctx_direction()  # 男频+免费+genre+美学 = 最多模块
-        worst_fusion = _ctx_fusion(channel="男频", library_count=7, selected_count=3)
+        worst_fusion = _ctx_fusion(channel="男频", library_count=7)
         for asset, ctx in (
             ("direction", worst_direction),
             ("direction-review", _ctx_direction(channel="女频")),
@@ -410,8 +410,8 @@ class ComposeDeterminism(unittest.TestCase):
             (ASSET_DIRS["direction"], _ctx_direction()),
             (ASSET_DIRS["direction"], _ctx_direction(channel="女频", model="付费订阅")),
             (ASSET_DIRS["direction-review"], _ctx_direction(channel="全向")),
-            (ASSET_DIRS["fusion"], _ctx_fusion(channel="女频", library_count=0, selected_count=1)),
-            (ASSET_DIRS["fusion"], _ctx_fusion(channel="男频", library_count=9, selected_count=3)),
+            (ASSET_DIRS["fusion"], _ctx_fusion(channel="女频", library_count=0)),
+            (ASSET_DIRS["fusion"], _ctx_fusion(channel="男频", library_count=9)),
         ]
         for skill_dir, ctx in cases:
             with self.subTest(asset=skill_dir.name):

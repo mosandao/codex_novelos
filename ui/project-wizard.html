@@ -263,24 +263,23 @@
           <textarea id="reference_material" maxlength="10000" placeholder="可填写灵感片段、已有设定、参考作品、希望避开的内容或其他创作要求。"></textarea>
         </fieldset>
 
-        <fieldset id="archetype_section">
-          <legend><div class="section-head"><h3>作者人格底色 <span class="required" aria-label="必填">*</span></h3><span class="section-index">07</span></div></legend>
+        <fieldset id="kernel_section">
+          <legend><div class="section-head"><h3>作者内核 <span class="required" aria-label="必填">*</span></h3><span class="section-index">07</span></div></legend>
           <div class="creator-panel">
-            <p class="hint">推荐结果由频道、题材、表里基调与美学标签在浏览器内确定性计算。可浏览全部原型并多选为融合素材，主次与取舍由主控的融合智能体确定。</p>
-            <div class="archetype-recommendations" id="archetype_recommendations" aria-label="推荐叙事原型"></div>
-            <div>
-              <span class="field-label">浏览全部叙事原型（可多选）</span>
-              <div class="archetype-all" id="creator_parent_options" aria-label="全部叙事原型"></div>
+            <p class="hint">作者内核是跨书持久的创作之根——同一位内核写不同题材，深层判断一致，文风手法按书适配。已建内核可直接选用；首次使用请新建（素材由主控的内核融合智能体反推成核）。</p>
+            <div class="choice-grid" role="radiogroup" aria-label="内核来源" id="kernel_mode_choices">
+              <label class="choice"><input type="radio" name="author_kernel_mode" value="select" required>选择已有内核</label>
+              <label class="choice"><input type="radio" name="author_kernel_mode" value="create">新建内核</label>
             </div>
-            <p class="creator-summary" id="creator_derive_summary">完成项目定位后查看推荐原型。</p>
-            <div>
-              <span class="field-label">融合原型的读者承诺（只读参考）</span>
-              <div class="inherited-grid" id="inherited_signature"></div>
+            <div id="kernel_select_block" hidden>
+              <span class="field-label">选择内核（单选）</span>
+              <div class="archetype-all" id="kernel_options" aria-label="可选作者内核"></div>
+              <p class="creator-summary" id="kernel_select_summary">尚无可用内核——请选择「新建内核」。</p>
             </div>
-            <div>
-              <p class="hint">以下人格素材直接喂给融合智能体反推作者生平（口味→声音与师承；圈子→目光与库存；禁区→人格禁令种子；执念→反复注视的东西）。不填则完全由原型与项目定位长出人格。</p>
-              <span class="field-label">人格素材（全部可选，每行一条）</span>
-              <div class="persona-hints-grid" id="persona_hint_fields"></div>
+            <div id="kernel_create_block" hidden>
+              <p class="hint">以下素材直接喂给内核融合智能体反推作者内核（口味→审美承诺；圈子→注意偏向与目光；禁区→情感立场警惕；执念与核心问题→反复追问；知识背景→有限知识生态）。不填则完全由生活基底反推——但至少填一条，给融合智能体留抓手。</p>
+              <span class="field-label">内核素材（全部可选，每行一条；新建至少填一条）</span>
+              <div class="persona-hints-grid" id="kernel_hint_fields"></div>
             </div>
           </div>
         </fieldset>
@@ -304,6 +303,7 @@
   </div>
 
   <script src="./project-wizard-data.js"></script>
+  <script src="./kernel-roster.js"></script>
   <script>
     const wizardData = window.NOVELOS_WIZARD_DATA || {};
     const channels = wizardData.channels || {};
@@ -338,17 +338,19 @@
     const coreCount = document.querySelector("#core_count");
     const styleChoices = document.querySelector("#style_choices");
     const styleCount = document.querySelector("#style_count");
-    const creatorParentOptions = document.querySelector("#creator_parent_options");
-    const archetypeRecommendations = document.querySelector("#archetype_recommendations");
-    const inheritedSignature = document.querySelector("#inherited_signature");
-    let creatorProfiles = [];
-    let recommendationRules = { genre_temperaments: {}, tone_temperaments: {} };
+    const kernelSelectBlock = document.querySelector("#kernel_select_block");
+    const kernelCreateBlock = document.querySelector("#kernel_create_block");
+    const kernelOptions = document.querySelector("#kernel_options");
+    const kernelSelectSummary = document.querySelector("#kernel_select_summary");
+    const kernelRoster = window.NOVELOS_KERNEL_ROSTER || [];
 
-    const personaHintFields = {
-      taste_anchors: ["口味锚点", "喜欢的作家/作品/影视与为何喜欢（喂人格的声音与师承）\n例如：喜欢《大明王朝1566》的台词机锋"],
-      people_and_scenes: ["最想写的人与圈子", "最想写哪类人、哪个圈子/行当/阶层（喂目光与库存）\n例如：县城中学的师生"],
-      hard_nos: ["绝不触碰", "写出来会难受、绝不想碰的内容（喂人格禁令种子）\n例如：无意义的宠物死亡"],
-      obsessions: ["执念话题", "反复想写、放不下的东西（喂执念来路）\n例如：普通人怎么在有裂缝的制度里过得体面"]
+    const kernelHintFields = {
+      taste_anchors: ["口味锚点", "喜欢的作家/作品/影视与为何喜欢（喂内核的审美承诺）\n例如：喜欢《大明王朝1566》的台词机锋"],
+      people_and_scenes: ["最想写的人与圈子", "最想写哪类人、哪个圈子/行当/阶层（喂注意偏向与目光）\n例如：县城中学的师生"],
+      hard_nos: ["绝不触碰", "写出来会难受、绝不想碰的内容（喂情感立场的警惕面）\n例如：无意义的宠物死亡"],
+      obsessions: ["执念话题", "反复想写、放不下的东西（喂内核的反复追问）\n例如：普通人怎么在有裂缝的制度里过得体面"],
+      core_questions: ["核心问题", "作为作者你反复追问什么（直种子，优先级最高）\n例如：秩序崩坏时普通人靠什么站住"],
+      knowledge_domains: ["知识背景", "你真正懂行的领域/行当（喂有限知识生态，诚实分档）\n例如：工程审计；基层官僚运作"]
     };
 
     const request = (method, params) => new Promise((resolve, reject) => {
@@ -385,8 +387,8 @@
     const splitLines = value => [...new Set(value.split(/\n+/).map(item => item.trim()).filter(Boolean))];
     const setStatus = (message, success) => { status.textContent = message; status.className = success ? "success" : ""; };
 
-    const renderPersonaHintFields = () => {
-      document.querySelector("#persona_hint_fields").innerHTML = Object.entries(personaHintFields).map(([field, [label, placeholder]]) => `
+    const renderKernelHintFields = () => {
+      document.querySelector("#kernel_hint_fields").innerHTML = Object.entries(kernelHintFields).map(([field, [label, placeholder]]) => `
         <label>
           <span class="field-label">${label}</span>
           <textarea id="hint_${field}" data-hint-field="${field}" maxlength="2000" placeholder="${placeholder}"></textarea>
@@ -394,105 +396,59 @@
       `).join("");
     };
 
-    const selectedParentIds = () => [...document.querySelectorAll('input[name="creator_parents"]:checked')].map(input => input.value);
-    const selectedParentProfiles = () => selectedParentIds().map(profileByVersion).filter(Boolean);
-    const profileByVersion = versionId => creatorProfiles.find(profile => profile.profile_version_id === versionId);
-    const renderSelectedArchetype = () => {
-      const summary = document.querySelector("#creator_derive_summary");
-      const profiles = selectedParentProfiles();
-      if (!profiles.length) {
-        summary.textContent = "尚无可用叙事原型。";
-        inheritedSignature.innerHTML = "";
+    const renderKernelOptions = () => {
+      if (!kernelRoster.length) {
+        kernelOptions.innerHTML = "";
+        kernelSelectSummary.textContent = "尚无可用内核——请选择「新建内核」。";
         return;
       }
-      summary.textContent = `已选 ${profiles.length} 个融合原型：${profiles.map(profile => profile.display_name).join("、")}。融合智能体将结合项目资料确定主次与取舍。`;
-      inheritedSignature.innerHTML = profiles.map(profile => `
-        <div class="inherited-item"><strong>${escapeHtml(profile.display_name)} · 只读参考</strong><p>${escapeHtml(profile.reader_promise)}</p></div>
-      `).join("");
-    };
-
-    const recommendationScore = profile => {
-      const channel = selectedRadio("channel") || "";
-      const genre = selectedRadio("primary_genre") || "";
-      const surface = selectedValues("emotional_surface");
-      const core = selectedRadio("emotional_core") || "";
-      const directions = selectedValues("secondary_directions");
-      const styles = selectedValues("aesthetic_styles");
-      let score = (profile.genre_tags || []).includes(genre) ? 10 : 0;
-      const affinity = profile.channel_affinity || "通吃";
-      if (channel === "全向") score += affinity === "通吃" ? 8 : 2;
-      else if (affinity === "通吃") score += 3;
-      else if (affinity === channel) score += 8;
-      else score -= 6;
-      const temperamentTags = profile.temperament_tags || [];
-      const toneHit = tone => {
-        const expected = recommendationRules.tone_temperaments[tone] || [];
-        return temperamentTags.filter(tag => expected.some(item => tag === item || tag.includes(item))).length;
-      };
-      if (core) score += toneHit(core) * 4;
-      for (const tone of surface) score += toneHit(tone) * 3;
-      const expectedGenre = recommendationRules.genre_temperaments[genre] || [];
-      score += temperamentTags.filter(tag => expectedGenre.some(item => tag.includes(item))).length * 2;
-      score += directions.filter(item => profile.reader_promise.includes(item) || [...(profile.genre_tags || []), ...temperamentTags].some(tag => item.includes(tag))).length * 1.5;
-      score += styles.filter(item => profile.reader_promise.includes(item) || temperamentTags.some(tag => item.includes(tag))).length;
-      return score;
-    };
-
-    const renderRecommendations = () => {
-      if (!creatorProfiles.length) return;
-      const ranked = creatorProfiles.map((profile, index) => ({ profile, index, score: recommendationScore(profile) }))
-        .sort((left, right) => right.score - left.score || left.index - right.index).slice(0, 3);
-      const selected = new Set(selectedParentIds());
-      archetypeRecommendations.innerHTML = ranked.map(({ profile, score }, index) => `
+      kernelOptions.innerHTML = kernelRoster.map(kernel => `
         <label class="archetype-option">
-          <input type="checkbox" name="recommended_archetype" value="${escapeHtml(profile.profile_version_id)}" ${selected.has(profile.profile_version_id) ? "checked" : ""}>
-          <strong>${index + 1}. ${escapeHtml(profile.display_name)}</strong>
-          <small>${escapeHtml(profile.reader_promise)}</small>
-          <small>匹配分 ${score.toFixed(1)} · 频道亲和 ${escapeHtml(profile.channel_affinity || "通吃")} · ${(profile.temperament_tags || []).map(escapeHtml).join(" / ")}</small>
+          <input type="radio" name="kernel_choice" value="${escapeHtml(kernel.kernel_version_id)}">
+          <strong>${escapeHtml(kernel.display_name)} · r${kernel.revision}</strong>
+          <small>反复追问：${(kernel.core_questions || []).map(escapeHtml).join(" / ") || "（名册未带预览）"}</small>
         </label>
       `).join("");
+      kernelSelectSummary.textContent = `共 ${kernelRoster.length} 个内核可用。`;
     };
 
-    const refreshArchetypes = () => {
-      renderRecommendations();
-      renderSelectedArchetype();
+    const updateKernelModeBlocks = () => {
+      const mode = selectedRadio("author_kernel_mode");
+      kernelSelectBlock.hidden = mode !== "select";
+      kernelCreateBlock.hidden = mode !== "create";
+      if (mode === "select" && !kernelRoster.length) {
+        kernelSelectSummary.textContent = "尚无可用内核——请选择「新建内核」；新建后重跑 scripts/novelos_export_kernel_roster.py 刷新名册。";
+      }
     };
 
-    const renderCreatorProfiles = (profiles, rules = {}) => {
-      creatorProfiles = Array.isArray(profiles) ? profiles : [];
-      recommendationRules = rules;
-      creatorParentOptions.innerHTML = creatorProfiles.map(profile => `
-        <label class="archetype-option">
-          <input type="checkbox" name="creator_parents" value="${escapeHtml(profile.profile_version_id)}">
-          <strong>${escapeHtml(profile.display_name)} · r${profile.revision}</strong>
-          <small>${escapeHtml(profile.reader_promise)}</small>
-          <small>频道亲和 ${escapeHtml(profile.channel_affinity || "通吃")} · ${(profile.temperament_tags || []).map(escapeHtml).join(" / ")}</small>
-        </label>
-      `).join("");
-      refreshArchetypes();
-    };
-
-    const personaHintsPayload = () => {
+    const kernelHintsPayload = () => {
       const payload = {};
-      for (const field of Object.keys(personaHintFields)) {
+      for (const field of Object.keys(kernelHintFields)) {
         const lines = splitLines(document.querySelector(`#hint_${field}`).value);
         if (lines.length) payload[field] = lines;
       }
       return payload;
     };
 
-    const creatorPayload = () => {
-      const profiles = selectedParentProfiles();
-      if (!profiles.length) throw new Error("请至少选择一个叙事原型。");
-      return {
-        mode: "derive",
-        selected_archetypes: profiles.map(profile => ({
-          profile_version_id: profile.profile_version_id,
-          subject_hash: profile.subject_hash,
-          display_name: profile.display_name
-        })),
-        user_persona_hints: personaHintsPayload()
-      };
+    const authorKernelPayload = () => {
+      const mode = selectedRadio("author_kernel_mode");
+      if (mode === "select") {
+        const kernel = kernelRoster.find(item => item.kernel_version_id === selectedRadio("kernel_choice"));
+        if (!kernel) throw new Error("请选择一个作者内核，或改为「新建内核」。");
+        return {
+          mode: "select",
+          kernel_version_id: kernel.kernel_version_id,
+          subject_hash: kernel.subject_hash,
+          display_name: kernel.display_name,
+          kernel_hints: {}
+        };
+      }
+      if (mode === "create") {
+        const kernelHints = kernelHintsPayload();
+        if (!Object.keys(kernelHints).length) throw new Error("新建内核至少填写一条素材——给内核融合智能体留抓手。");
+        return { mode: "create", kernel_hints: kernelHints };
+      }
+      throw new Error("请选择内核来源（选择已有内核 / 新建内核）。");
     };
 
     const setupPayload = () => {
@@ -501,7 +457,7 @@
       const primaryGenre = selectedRadio("primary_genre");
       return {
         title: document.querySelector("#title").value.trim(),
-        creator: creatorPayload(),
+        author_kernel: authorKernelPayload(),
         channel,
         platform,
         platform_traits: platform ? (platformTraits[platform] || null) : null,
@@ -530,7 +486,7 @@
 
     const generateStandaloneJson = async () => {
       const request = {
-        request_type: "novelos.project.create.v2",
+        request_type: "novelos.project.create.v3",
         setup: setupPayload()
       };
       const serialized = JSON.stringify(request, null, 2);
@@ -540,15 +496,12 @@
       setStatus(copied ? "项目提交 JSON 已生成并复制，请发送给 Main Agent。" : "项目提交 JSON 已生成，请点击“复制 JSON”后发送给 Main Agent。", true);
       if (!standalone) {
         notify("ui/update-model-context", {
-          content: [{ type: "text", text: `请处理以下 NovelOS 项目创建请求：先经引导融合智能体融合作者人格（derive 模式），落库时 projects.metadata_json 需写入 setup 快照：\n${serialized}` }]
+          content: [{ type: "text", text: `请处理以下 NovelOS 项目创建请求（v3）：mode=create 先经内核融合智能体建核（--kernel-candidate + --emit-payload 缝合），再经分身融合智能体从内核派生本书人格；mode=select 直接派生。落库时 projects.metadata_json 需写入 setup 快照：\n${serialized}` }]
         });
       }
       jsonResult.scrollIntoView({ behavior: "smooth", block: "start" });
     };
 
-    const loadCreatorProfiles = () => {
-      renderCreatorProfiles(wizardData.system_archetypes || [], wizardData.recommendation_rules || {});
-    };
 
     const renderPlatformOptions = () => {
       const channel = selectedRadio("channel");
@@ -673,17 +626,12 @@
       if (name === "channel") {
         onChannelChange();
         refreshCounts();
-        renderRecommendations();
         return;
       }
       if (name === "primary_genre") {
         onGenreChange();
-      } else if (name === "recommended_archetype") {
-        const parentInput = document.querySelector(`input[name="creator_parents"][value="${CSS.escape(event.target.value)}"]`);
-        if (parentInput) parentInput.checked = event.target.checked;
-        renderSelectedArchetype();
-      } else if (name === "creator_parents") {
-        renderSelectedArchetype();
+      } else if (name === "author_kernel_mode") {
+        updateKernelModeBlocks();
       } else if (name === "emotional_core") {
         for (const input of form.querySelectorAll('input[name="emotional_core"]:checked')) {
           if (input !== event.target) input.checked = false;
@@ -702,7 +650,6 @@
       }
       setStatus(message);
       refreshCounts();
-      if (["primary_genre", "secondary_directions", "emotional_surface", "emotional_core", "aesthetic_styles"].includes(name)) renderRecommendations();
     });
 
     form.addEventListener("submit", async event => {
@@ -725,9 +672,9 @@
       setStatus(copied ? "项目提交 JSON 已复制，请发送给 Main Agent。" : "浏览器拒绝访问剪贴板，请手动选择下方 JSON。", copied);
     });
 
-    renderPersonaHintFields();
+    renderKernelHintFields();
+    renderKernelOptions();
     onChannelChange();
-    loadCreatorProfiles();
     refreshCounts();
     wizardReady = true;
   </script>
