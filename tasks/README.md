@@ -8,6 +8,7 @@
 
 | Task | 状态 | 说明 |
 |---|---|---|
+| [Task 32](./32_volume_characters.md) | `DONE` | 卷级配角班底（动态配角第二造人口）：volume_outline 候选 metadata.`volume_characters`（冲突线载体逐一指认来源，无源 blocking；禁 main/禁跨卷/禁重名）→ 锁定后经 `--entry` 落人物注册表（arc_role/预期退场/来源卷/source）→ 本卷执行卡直接消费。schema $defs + 脚本校验 + 三 prompt + 两审查 + SKILL/flows 同步。138 tests 四命令全绿。 |
 | [Task 31](./31_chain_seam_gaps.md) | `DONE` | 创建链路衔接缺陷修复（Task 30 后复查）：单次调用建核+建项目链路打通、内核近重复/孤儿 WARN、账本↔人物注册表对账（--pending-status）、旧版内核绑定 WARN、roster 重锁对账、复活清退场痕迹+状态史审计；连带修复 revise 信封 CLI 崩溃（存量）。135 tests 四命令全绿，库副本 CLI 冒烟全链复验。 |
 | [Task 30](./30_author_kernel_and_character_lifecycle.md) | `DONE` | 作者内核双层架构（跨书内核+每书派生，取代原型直连）+ 创作链深度参与 + 人物全量设计与生命周期（死亡/退场/状态账本/动态配角）+ 世界规则深化（六角色/三类规则/力量-规则循环）+ 道德债功能化。119 tests 四命令全绿，端到端冒烟在库副本验证。 |
 | [Task 28](./28_agent_prompt_enhancement_queue.md) | `DONE` | 各级 Agent Prompt 增强队列（阶段 0-2 原位完成；剩余范围经 Task 29 组装管线交付——P0-2/P2-1..P2-9）。 |
