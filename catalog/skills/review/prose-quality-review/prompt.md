@@ -10,7 +10,9 @@
 - 思想是否通过选择和后果呈现，是否出现叙述者代替剧情讲道理；
 - 是否为了爽点、圆满或推进便利违反 `forbidden_conveniences` / `forbidden_resolutions`；
 - **persona 盲区穿透**：签名 `blindspots` 是否被正文穿透——若正文流畅展开了 `cannot_write` 声明写不了的圈子/暗面（如 old money 社交的内部黑话对白），而未按该条目附带的绕开方式处理（转喻/侧写/留白/借他人之口），判定 persona 未生效——`blocking`；正文出现 `refuses` 清单中的写法/题材——`blocking`；
-- 与提供的近期章节相比，是否发生作者立场漂移、人物声音趋同或母题机械重复。
+- 与提供的近期章节相比，是否发生作者立场漂移、人物声音趋同或母题机械重复；
+- **心理解释压过节奏**：连续两段以上纯心理剖析而剧情零推进（对话/行动/信息量无变化）= `warning`；类型回报（升级/对抗/关系确认/讨回）被心理深描挤占 = `warning`；
+- **立场突变无触发**：人物立场/态度/关系判断发生实质转变，而正文中找不到触发经验（事件/对话/发现/损失）= `warning`；主角核心动机无触发翻转 = `blocking`。
 
 同时检查**形式规范与 AI 指纹**——**全部数字阈值以注入的 craft 方法卡为唯一权威源**（prose-format-hardrules / prose-anti-ai-fingerprint / prose-webnovel-accessibility / worldview-lexicon），本 rubric 不复述数字，只保留判级语义与结构性检查：
 

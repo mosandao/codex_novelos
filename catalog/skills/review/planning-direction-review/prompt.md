@@ -12,7 +12,7 @@
 3. **组织原则**：`organizing_principle` 是否为本书独有的组织过程——换一本书即不成立，且可追溯到 persona 的目光/库存，而非题材默认桥段组合。
 4. **承诺与节奏**：读者承诺是否清晰、用目标渠道读者的语言表述；`promise_cadence` 是否声明了可被 strategy 展开的兑现节拍。
 5. **可展开性**：故事体量与核心设定是否足以支撑 `project_setup.scale` 规模的长篇架构（中段 progress 不塌）。
-6. **作者签名与 persona 继承**：是否精确继承 `creator_signature_ref`；persona 是否被消费（矛盾→两难种子、目光→组织原则、盲区→负面清单）；没有绕开 persona 的人口属性刻板推导，没有具体作者模仿目标。
+6. **作者签名与 persona 继承**：是否精确继承 `creator_signature_ref`；persona 是否被消费（矛盾→两难种子、目光→组织原则、盲区→负面清单）；没有绕开 persona 的人口属性刻板推导，没有具体作者模仿目标。注入 `kernel_full` 时另查**内核消费**：organizing_principle 可追溯到内核核心问题、central_contradiction 的价值侧与内核价值公理一致、内核盲区已并入负面清单——血缘断裂 = `warning`；内核与 persona 冲突未走 change proposal = `blocking`。无内核注入（旧项目占位节）时跳过内核子项。
 7. **书级创作灵魂**：`book_soul` schema v2 字段完整；承诺确实牺牲便利；recurring_tests 声明「改变处境/答案/代价」；仁慈与残酷同时存在。
 8. **项目独立性**：是否针对本项目形成独有追问，而非机械复制作者签名或另一项目的 `book_soul`。
 9. **力量货币与代价质量**：`power_currency` 已定义、带对价（获取付出什么、买不到什么），且 `central_contradiction` 至少一端锚在货币上；代价形态非对称——纯「得到1失去2」等价交换记账或代价可被读者提前预算 = warning。

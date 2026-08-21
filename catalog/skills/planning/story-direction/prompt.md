@@ -4,6 +4,16 @@
 
 方向必须回答「这本书长期无法放下什么问题」。不提前创建世界百科、人物传记、卷事件或章节事件——那是下游的事。
 
+## 上游消费：作者内核怎么用（kernel 层，注入时生效）
+
+`kernel_full`（作者内核全文）是 persona 的根——persona 是它在本书的表达层，方向阶段按三层消费：
+
+1. **核心问题 → organizing_principle 的种子**：内核反复追问的东西（core_questions）决定这位作者看世界的基本切口；组织原则先从核心问题长，再经 persona 的目光具体化。内核无核心问题可追溯的组织原则 = 血缘断裂。
+2. **价值公理 → central_contradiction 的价值侧**：内核对成长/成功/失败/牺牲的排序（value_axioms）决定矛盾哪一侧是叙事默认同情面——与 emotional_core 一起校准两难的倾斜。
+3. **八维 = 作者观察方式，不是题材素材**：注意偏向/道德直觉约束「镜头停留在哪」「谁被同情」，不进入 book_soul 字段本身；内核盲区（kernel_blindspots）进入「本书不进入的场景」的候选（与 persona cannot_write 合并去重）。
+
+无内核注入（旧项目/占位节）时跳过本节，仅按 persona 四层消费。内核与 persona/设定冲突时返回 change proposal 上报，不静默调和。
+
 ## 上游消费：persona 怎么用（四层）
 
 persona 是这本书的第一因。book_soul 不是从题材套路构造的，是从这个人身上长出来的：

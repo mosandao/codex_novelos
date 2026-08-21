@@ -23,6 +23,14 @@
         "field": "setup.channel",
         "equals": "全向"
       }
+    },
+    {
+      "id": "kernel-psychology",
+      "file": "kernel-psychology.md",
+      "when": {
+        "field": "has_kernel",
+        "equals": true
+      }
     }
   ],
   "data_slots": [

@@ -79,9 +79,9 @@
 
 ### P2 内核深度参与创作链
 
-- [ ] **P2-1 SLOT_REGISTRY 增 `kernel_full`**（三表 JOIN 照抄 _slot_persona_full 模式，缺失即停）+ slot_vocabulary 登记。
-- [ ] **P2-2 注入与消费**：direction（核心问题→organizing_principle 种子、价值公理→矛盾价值侧）、character-contract（八维=作者观察方式，非角色模板）、chapter-draft（kernel-psychology 条件模块：心理呈现纪律）+ review 消费检查（direction-review / character-contract-review / prose-review 增「心理解释压过节奏」「立场突变无触发」）；矩阵/manifest/SIZE_BUDGET/文档同步。
-- [ ] **P2-3 内核陈旧检查**：绑定旧版内核的项目查询模板 + SKILL 升级裁决指引（跟随新内核重派生 vs 锁定当前分身）。
+- [x] **P2-1 SLOT_REGISTRY 增 `kernel_full`**（三表 JOIN 照抄 _slot_persona_full 模式，缺失即停）+ slot_vocabulary 登记。
+- [x] **P2-2 注入与消费**：direction（核心问题→organizing_principle 种子、价值公理→矛盾价值侧）、character-contract（八维=作者观察方式，非角色模板）、chapter-draft（kernel-psychology 条件模块：心理呈现纪律）+ review 消费检查（direction-review / character-contract-review / prose-review 增「心理解释压过节奏」「立场突变无触发」）；矩阵/manifest/SIZE_BUDGET/文档同步。
+- [x] **P2-3 内核陈旧检查**：绑定旧版内核的项目查询模板 + SKILL 升级裁决指引（跟随新内核重派生 vs 锁定当前分身）。
 
 ### P3 人物全量设计与生命周期
 
@@ -154,3 +154,13 @@
   - 验证：109 tests OK；四命令全绿；向导内联 JS `node --check` 通过、DOM id 引用零缺失；kernel-roster 导出/`--check` 冒烟通过（当前 0 内核 → 空名册）。
   - 文档变更：`scripts/novelos_export_kernel_roster.py`（新：名册导出/校验，file:// 协议 `<script>` 镜像机制）；`ui/kernel-roster.js`（生成镜像）；`ui/project-wizard.html`（07 步重做为「作者内核」：select/create 双模式 radio、内核卡片单选、六字段内核素材表单、request_type v3、notify 流程文案、原型打分/浏览 UI 及 JS 全删）；`ui/project-wizard-data.js`（删 system_archetypes 镜像 + recommendation_rules，头注改内核时代）；`config/schemas/project-create-request.schema.json`（v3 单形态：const + author_kernel 入 setup.required——修复删 allOf 时丢失的必填约束）；`scripts/novelos_compose_prompt.py`（v2 残留清理：_slot_selected_archetypes/_slot_persona_hints/_fusion_selected_ids 删除、槽位词表去 selected_archetypes/persona_hints）；`scripts/novelos_create_project.py`（v2 分支删除：原型三方比对/勾集校验/persist derive 分支/is_v3；validate_request·validate_candidate 去 cfg 参数）；`catalog/skills/onboarding/creator-signature-fusion/`（prompt.md 定位改「从内核长分身」+素材节/条件模块清单更新、metadata.yaml use_when/avoid_when 改内核时代、manifest 删 single/multi-archetype 模块与两槽位、模块文件删除）；`config/agent-recipes.json` + `documentation/agent-recipes.md`；测试四件（test_slot_resolution fusion v3 重写、test_compose_prompt _ctx_fusion 去 selected_count 增 kernel、test_create_v3 去 CFG、test_wizard_data 镜像守护换参考资料库完整性+roster 防残留）。
   - 备注：① breaking 变更按决策 2 执行——旧向导 JSON（v2）不再被接受，回退 = git revert 本 commit + 前一 commit；② 现存唯一 v2 项目（binding_mode='derive'）不受影响，创作链照常（persona_full 仍从绑定注入）；③ fusion 的 fingerprint 比对基准随 v2 删除简化为全库（parents 恒空）。
+- **[T30-P2-1] kernel_full 注入创作链** — 2026-08-21
+  - 验证：110 tests OK（direction 槽序断言更新 + 新增 kernel_derive 项目注入用例 + review 槽序对齐）；四命令全绿。
+  - 文档变更：`scripts/novelos_compose_prompt.py`（六资产 manifest 由矩阵先行同步：direction/direction-review/character-contract/character-contract-review/chapter-draft/prose-review 的 data_slots 插入 kernel_full）；`config/agent-recipes.json` + `documentation/agent-recipes.md`（六行 slots 更新）；`tests/test_slot_resolution.py`（绑定表夹具补 kernel_version_id 列 + kernel 注入断言 + 索引修正）。
+- **[T30-P2-2] 内核消费规则 + 审查项** — 2026-08-21
+  - 验证：113 tests OK（新增 KernelPsychologyRouting 三用例：has_kernel 挂/不挂、direction 内核消费节；SIZE_BUDGET direction 180→190、chapter-draft 60→75 实测调升）；四命令全绿。
+  - 文档变更：`scripts/novelos_compose_prompt.py`（build_context_direction 增 has_kernel——模块可按内核绑定状态路由）；`catalog/skills/writing/chapter-draft-generation/modules/kernel-psychology.md`（新模块：反应可追溯/心理解释不压节奏/作者盲区传导/临床语域禁令）+ manifest 挂接；`catalog/skills/planning/story-direction/prompt.md`（「上游消费：作者内核怎么用」三层节）；`catalog/skills/review/prose-quality-review/prompt.md`（心理解释压过节奏=warning、立场突变无触发=warning/主角动机翻转=blocking）；`catalog/skills/review/planning-direction-review/prompt.md`（检查项 6 增内核消费子项）；`tests/test_compose_prompt.py`。
+  - 备注：character-contract 及其 review 的内核消费规则随 P3-1/P3-5 的全量重写落地，本项只完成槽位接入。
+- **[T30-P2-3] 内核陈旧检查** — 2026-08-21
+  - 验证：113 tests OK。
+  - 文档变更：`.agents/skills/novel-memory/SKILL.md`（工作流第 6 步：绑定旧版内核时上下文包标注 + 用户裁决，不静默换绑）；查询模板已随 P1-7 入 sql-reference.md。

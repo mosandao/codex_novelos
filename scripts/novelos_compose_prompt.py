@@ -279,7 +279,11 @@ def build_context_direction(conn: sqlite3.Connection, project_id: str) -> dict[s
         raise SystemExit(f"项目不存在: {project_id}")
     metadata = json.loads(row[0])
     setup = metadata.get("setup", {})
-    return {"setup": setup}
+    kernel_row = conn.execute(
+        "SELECT kernel_version_id FROM project_creator_bindings WHERE project_id = ?",
+        (project_id,),
+    ).fetchone()
+    return {"setup": setup, "has_kernel": bool(kernel_row and kernel_row[0])}
 
 
 def build_context_fusion(conn: sqlite3.Connection, payload: dict[str, Any]) -> dict[str, Any]:

@@ -17,7 +17,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 # 组装结果回归闸（纯方法论部分行数：主干 + 命中模块，不含输入数据区）。
 # 防未来审查条款无节制回填主干——收紧前先确认模块化结构未被破坏。
 SIZE_BUDGET = {
-    "direction": 180,
+    "direction": 190,
     "direction-review": 120,
     "fusion": 280,
     "kernel-fusion": 200,
@@ -35,7 +35,7 @@ SIZE_BUDGET = {
     "volume-outline-review": 70,
     "chapter-plan": 110,
     "chapter-plan-review": 70,
-    "chapter-draft": 60,
+    "chapter-draft": 75,
     "prose-review": 65,
     "continuity-extraction": 35,
     "continuity-review": 30,
@@ -447,6 +447,27 @@ class ProposalChannel(unittest.TestCase):
         ctx = _ctx_direction()
         self.assertEqual(compose(ASSET_DIRS["direction"], ctx, [], proposal_modules=[]),
                          compose(ASSET_DIRS["direction"], ctx, []))
+
+
+class KernelPsychologyRouting(unittest.TestCase):
+    """P2-2：kernel-psychology 模块按 has_kernel 挂接（v2 旧项目不挂）。"""
+
+    def test_module_attaches_with_kernel(self):
+        ctx = _ctx_direction(channel="女频")
+        ctx["has_kernel"] = True
+        out = compose(ASSET_DIRS["chapter-draft"], ctx, [])
+        self.assertIn("内核心理呈现纪律（kernel_psychology）", out)
+
+    def test_module_absent_without_kernel(self):
+        ctx = _ctx_direction(channel="女频")
+        ctx["has_kernel"] = False
+        out = compose(ASSET_DIRS["chapter-draft"], ctx, [])
+        self.assertNotIn("内核心理呈现纪律（kernel_psychology）", out)
+
+    def test_direction_consumes_kernel_layer(self):
+        out = compose(ASSET_DIRS["direction"], _ctx_direction(), [])
+        self.assertIn("上游消费：作者内核怎么用", out)
+        self.assertIn("核心问题 → organizing_principle 的种子", out)
 
 
 class WhenEvaluator(unittest.TestCase):
