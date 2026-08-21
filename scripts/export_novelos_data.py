@@ -21,7 +21,7 @@ except ModuleNotFoundError:  # 作为 scripts 命名空间模块导入时使用�
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SOURCE = ROOT / "data" / "novelos-v2.db"
-DEFAULT_DRILL = ROOT / "tasks" / "migration" / "schema12_export_drill.json"
+DEFAULT_DRILL = ROOT / "tasks" / "migration" / "schema18_export_drill.json"
 MANIFEST_FIELDS = {"schema_version", "logical_snapshot", "schema", "tables"}
 TABLE_FIELDS = {"name", "columns", "path", "row_count", "content_hash"}
 

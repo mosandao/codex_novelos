@@ -178,7 +178,7 @@ class DataExportTest(unittest.TestCase):
     def test_real_database_export_drill_is_current(self) -> None:
         drill = json.loads(DEFAULT_DRILL.read_text(encoding="utf-8"))
         backup = json.loads(
-            (DEFAULT_DRILL.parent / "schema12_restore_drill.json").read_text(encoding="utf-8")
+            (DEFAULT_DRILL.parent / "schema18_restore_drill.json").read_text(encoding="utf-8")
         )
         self.assertEqual("passed", drill["export_restore_drill"])
         self.assertEqual(backup["logical_snapshot"], drill["logical_snapshot"])

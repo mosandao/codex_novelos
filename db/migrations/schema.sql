@@ -79,18 +79,30 @@ CREATE TABLE IF NOT EXISTS chapters (
     )
 );
 
+-- 人物注册表（migration 018 重建）：主要人物 roster + 次要角色动态登记 + 状态七态。
 CREATE TABLE IF NOT EXISTS characters (
     id TEXT PRIMARY KEY,
     project_id TEXT NOT NULL,
     name TEXT NOT NULL,
+    role_class TEXT NOT NULL DEFAULT 'secondary'
+        CHECK (role_class IN ('main', 'secondary', 'minor')),
+    status TEXT NOT NULL DEFAULT 'active'
+        CHECK (status IN ('active', 'peripheral', 'dormant', 'departed', 'transformed', 'dead')),
     description_resource_id TEXT,
     state_json TEXT NOT NULL DEFAULT '{}',
+    first_chapter_id TEXT,
+    exit_chapter_id TEXT,
+    exit_type TEXT
+        CHECK (exit_type IS NULL OR exit_type IN
+               ('完成型', '迁移型', '转化型', '关系型', '功能转移型', '休眠型', '死亡型')),
     version INTEGER NOT NULL DEFAULT 1 CHECK (version > 0),
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (project_id, name),
     FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
-    FOREIGN KEY (description_resource_id) REFERENCES resources(id) ON DELETE RESTRICT
+    FOREIGN KEY (description_resource_id) REFERENCES resources(id) ON DELETE RESTRICT,
+    FOREIGN KEY (first_chapter_id) REFERENCES chapters(id) ON DELETE SET NULL,
+    FOREIGN KEY (exit_chapter_id) REFERENCES chapters(id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS worlds (
