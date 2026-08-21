@@ -8,6 +8,7 @@
 
 | Task | 状态 | 说明 |
 |---|---|---|
+| [Task 33](./33_direction_reverse_audit.md) | `DONE` | 方向阶段反向审查批次：direction 双侧强化——审查侧补 check-aesthetic 对偶、规模数字门、证伪与读者模拟、库存反向对账、血缘逐字段核验、cruelty 落点、check 执行纪律、strength 通道、横向回执；生成侧七维比较表（情感登记错开）、发散纪律（最大反差档+血缘变奏）、负向承诺语法（暗色主轨合法）、逐字段血缘映射、画像薄声明；novel-review 加 accepted_risk 豁免/辩护回合/strength；receipt schema severity+豁免字段；book_soul v2 可选扩展 lineage + cadence_plan（validate --scale 机器数字门）。151 tests 四命令全绿。 |
 | [Task 32](./32_volume_characters.md) | `DONE` | 卷级配角班底（动态配角第二造人口）：volume_outline 候选 metadata.`volume_characters`（冲突线载体逐一指认来源，无源 blocking；禁 main/禁跨卷/禁重名）→ 锁定后经 `--entry` 落人物注册表（arc_role/预期退场/来源卷/source）→ 本卷执行卡直接消费。schema $defs + 脚本校验 + 三 prompt + 两审查 + SKILL/flows 同步。138 tests 四命令全绿。 |
 | [Task 31](./31_chain_seam_gaps.md) | `DONE` | 创建链路衔接缺陷修复（Task 30 后复查）：单次调用建核+建项目链路打通、内核近重复/孤儿 WARN、账本↔人物注册表对账（--pending-status）、旧版内核绑定 WARN、roster 重锁对账、复活清退场痕迹+状态史审计；连带修复 revise 信封 CLI 崩溃（存量）。135 tests 四命令全绿，库副本 CLI 冒烟全链复验。 |
 | [Task 30](./30_author_kernel_and_character_lifecycle.md) | `DONE` | 作者内核双层架构（跨书内核+每书派生，取代原型直连）+ 创作链深度参与 + 人物全量设计与生命周期（死亡/退场/状态账本/动态配角）+ 世界规则深化（六角色/三类规则/力量-规则循环）+ 道德债功能化。119 tests 四命令全绿，端到端冒烟在库副本验证。 |
