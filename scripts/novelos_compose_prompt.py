@@ -543,6 +543,11 @@ def _slot_canon_minimal(conn: sqlite3.Connection, project_id: str | None,
          "SELECT a.arc_ref, CAST(r.content AS TEXT) AS state "
          "FROM arc_states a JOIN resources r ON r.id = a.state_resource_id "
          "WHERE a.project_id = ? ORDER BY a.rowid DESC LIMIT 4"),
+        ("人物状态（死/退/眠优先，近 20 人）",
+         "SELECT name, role_class, status, exit_type FROM characters "
+         "WHERE project_id = ? ORDER BY CASE status WHEN 'dead' THEN 0 WHEN 'departed' THEN 1 "
+         "WHEN 'transformed' THEN 2 WHEN 'dormant' THEN 3 ELSE 4 END, "
+         "updated_at DESC LIMIT 20"),
         ("近期已接受章节（近 5 章）",
          "SELECT c.number, c.title, c.summary FROM chapters c "
          "JOIN volumes v ON v.id = c.volume_id JOIN books b ON b.id = v.book_id "

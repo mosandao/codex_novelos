@@ -85,12 +85,12 @@
 
 ### P3 人物全量设计与生命周期
 
-- [ ] **P3-1 character-contract prompt 重写**：全量主要人物（主角+核心对手+主锚点+卷级关键载体，对照架构移交清单逐人认领）+ 每人心理运作简表（八维选 3-4 维）+ 知识边界 + 计划内死亡设计卡 + 退场设计（七型+回归条件）。
-- [ ] **P3-2 planning-candidate.schema.json metadata 增可选 `character_roster`**（name/role_class/arc_role/登场卷/预期退场）。
-- [ ] **P3-3 动态配角机制**：`scripts/novelos_register_characters.py`（幂等 upsert 注册表）；chapter-plan-execution-card 增「本章新登场人物微档案」节；continuity schema 增第六类候选 `character_status`（owners + character）。
-- [ ] **P3-4 entity-authority-review 重锚定 characters 注册表**（新人物/状态变化须指认授权来源：执行卡预登记或已接受正文）。
-- [ ] **P3-5 人物链 review 检查项**：主要人物覆盖度、死亡必要性（只为刺激主角=blocking）、退场债务清算、还债不降智。
-- [ ] **P3-6 canon_minimal 增人物状态节 + 投影渲染人物状态文件**。
+- [x] **P3-1 character-contract prompt 重写**：全量主要人物（主角+核心对手+主锚点+卷级关键载体，对照架构移交清单逐人认领）+ 每人心理运作简表（八维选 3-4 维）+ 知识边界 + 计划内死亡设计卡 + 退场设计（七型+回归条件）。
+- [x] **P3-2 planning-candidate.schema.json metadata 增可选 `character_roster`**（name/role_class/arc_role/登场卷/预期退场）。
+- [x] **P3-3 动态配角机制**：`scripts/novelos_register_characters.py`（幂等 upsert 注册表）；chapter-plan-execution-card 增「本章新登场人物微档案」节；continuity schema 增第六类候选 `character_status`（owners + character）。
+- [x] **P3-4 entity-authority-review 重锚定 characters 注册表**（新人物/状态变化须指认授权来源：执行卡预登记或已接受正文）。
+- [x] **P3-5 人物链 review 检查项**：主要人物覆盖度、死亡必要性（只为刺激主角=blocking）、退场债务清算、还债不降智。
+- [x] **P3-6 canon_minimal 增人物状态节 + 投影渲染人物状态文件**。
 
 ### P4 作品世界层补全 + 道德债功能化
 
@@ -119,6 +119,16 @@
 - 内核取代原型后 26 原型退出创建链：config 保留为参考资料库，test_wizard_data 相应调整。
 
 ## 验收记录
+
+- **[T30-P3-1/P3-2] 人物契约全量重写 + roster schema** — 2026-08-21
+  - 验证：119 tests OK；四命令全绿。
+  - 文档变更：`catalog/skills/planning/character-contract/prompt.md`（全量重写：主要人物全量设计[主角+核心对手+主锚点+卷级载体对照移交清单逐人认领]、次要角色动态创建边界、kernel 消费节[八维=观察方式非模板/全员同构=blocking]、每人心理简表 3-4 维五段式、知识边界、死亡设计卡[必要性/因果链/最后选择/影响追踪/性别风险]、退场七型+退场三问+回归条件、自检 6→11 项）；`config/schemas/planning-candidate.schema.json`（metadata.character_roster $defs：name/role_class/arc_role/登场卷/预期退场八枚举）。
+- **[T30-P3-3/P3-4] 注册表基础设施** — 2026-08-21
+  - 验证：119 tests OK（新增 test_register_characters.py 6 用例：roster 幂等/schema 拒识/动态配角并入升级/状态迁移校验/未知人物 minor 补登 + continuity character_status schema 双向）。
+  - 文档变更：`scripts/novelos_register_characters.py`（新：--roster/--entry/--status-update 三入口单事务幂等 upsert，状态字段只走状态迁移路径不被 roster 覆盖）；`catalog/skills/planning/chapter-plan-execution-card/prompt.md`（新登场人物微档案节——规划端造人正文只消费，Writer 违卡=blocking 源头）；`catalog/skills/continuity/continuity-candidate-extraction/{schema.json,prompt.md}`（第六类候选 character_status[owners + character]，正文确认的退场/转化/休眠/死亡才算，新登场不算）；`catalog/skills/review/entity-authority-review/prompt.md`（重锚定人物注册表：三源之外新人物=blocking、重名=blocking、微档案缺职责细节=warning）；`.agents/skills/novel-continuity/SKILL.md`（提取类型 + character_status 晋升后经 register 脚本更新注册表）。
+- **[T30-P3-5/P3-6] 人物链审查 + canon/投影** — 2026-08-21
+  - 验证：119 tests OK（canon 七节断言 + FullChainSmoke 8 节）。
+  - 文档变更：`catalog/skills/review/planning-character-contract-review/prompt.md`（检查项 9-13：全量覆盖[roster 对档/缺档 blocking]、心理简表[缺=warning/同构内核=blocking/临床语域=blocking]、知识边界、死亡四问[工具人化死亡/女性角色功能化死亡=blocking]、退场三问与回归条件）；同目录 `modules/check-channel-female.md`（还债不降智 + 高级回报=清偿后不依附）；`scripts/novelos_compose_prompt.py`（canon_minimal 第七节：人物状态死/退/眠优先近 20 人）；`scripts/novelos_render_projection.py`（人物档案文件显示分类/状态/退场 + 连续性/人物状态注册表.md）；`tests/test_slot_resolution.py` + `tests/test_genre_packs.py`（夹具 characters 表 + 节数/索引更新）。
 
 - **[T30-P0-0] 任务文档建立** — 2026-08-21
   - 验证：本文档 + tasks/README.md Task 表加行。

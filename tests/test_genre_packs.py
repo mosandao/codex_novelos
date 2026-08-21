@@ -72,10 +72,10 @@ class CanonMinimalSlot(unittest.TestCase):
                      "'res:p1','摘要甲','{}',1,'2026-01-01','2026-01-01')")
         from scripts.novelos_compose_prompt import _slot_canon_minimal
         sections = _slot_canon_minimal(conn, "project:p1")
-        self.assertEqual(len(sections), 6)
+        self.assertEqual(len(sections), 7)  # 六类账本 + 人物状态
         self.assertTrue(sections[0][0].startswith("canon 最小集 · facts"))
         self.assertIn("（空）", sections[0][1])  # 账本未 seed 的节正常降级
-        self.assertIn("摘要甲", sections[5][1])
+        self.assertIn("摘要甲", sections[6][1])
 
 
 class ReviewFeedbackSlot(unittest.TestCase):

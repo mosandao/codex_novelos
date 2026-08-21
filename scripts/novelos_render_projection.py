@@ -627,7 +627,12 @@ def render(snapshot: dict[str, Any], project_id: str, output_root: str) -> dict[
     # H. 人物/ & 世界/
     for char in snapshot["characters"]:
         name = sanitize_filename(char["name"])
-        body = f"**描述**：{char.get('description', '')}\n\n**状态**：{char.get('state_json', '')}"
+        body = (
+            f"**分类**：{char.get('role_class', '')}　**状态**：{char.get('status', '')}"
+            + (f"　**退场**：{char['exit_type']}" if char.get("exit_type") else "")
+            + "\n\n**描述**：" + char.get('description', '')
+            + "\n\n**补充**：" + char.get('state_json', '')
+        )
         write_markdown(f"人物/{name}.md", char["name"], body,
                        {"source_type": "character", "source_id": char["id"], "source_version": char["version"]})
     for world in snapshot["worlds"]:
@@ -650,6 +655,16 @@ def render(snapshot: dict[str, Any], project_id: str, output_root: str) -> dict[
         body = json.dumps(data, indent=2, ensure_ascii=False) if data else "*尚无相关记录*"
         write_markdown(f"连续性/{fname}", title, body,
                        {"source_type": "continuity_ledger", "source_id": fname})
+
+    # I+. 人物状态注册表（migration 018 重建后的人物状态唯一锚点）
+    if snapshot["characters"]:
+        lines = ["| 姓名 | 分类 | 状态 | 退场 | 职责/补充 |", "|---|---|---|---|---|"]
+        for char in snapshot["characters"]:
+            lines.append(
+                f"| {char['name']} | {char.get('role_class', '')} | {char.get('status', '')} "
+                f"| {char.get('exit_type') or ''} | {char.get('state_json', '')} |")
+        write_markdown("连续性/人物状态注册表.md", "人物状态注册表", "\n".join(lines),
+                       {"source_type": "character_registry", "source_id": "characters"})
 
     # J. manifest.json
     manifest_payload = {

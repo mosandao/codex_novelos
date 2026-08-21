@@ -55,6 +55,12 @@ def _make_db() -> sqlite3.Connection:
             object_ref TEXT, state_resource_id TEXT);
         CREATE TABLE arc_states (
             id TEXT PRIMARY KEY, project_id TEXT, arc_ref TEXT, state_resource_id TEXT);
+        CREATE TABLE characters (
+            id TEXT PRIMARY KEY, project_id TEXT, name TEXT,
+            role_class TEXT DEFAULT 'secondary', status TEXT DEFAULT 'active',
+            description_resource_id TEXT, state_json TEXT DEFAULT '{}',
+            first_chapter_id TEXT, exit_chapter_id TEXT, exit_type TEXT,
+            version INTEGER DEFAULT 1, created_at TEXT, updated_at TEXT);
         """
     )
     return conn
@@ -337,10 +343,10 @@ class FullChainSmoke(unittest.TestCase):
         self.assertTrue(sections[0][0].startswith("被审章节正文"))
         self.assertIn("第一章正文", sections[0][1])
         self.assertGreaterEqual(sum(t.startswith("craft 方法卡") for t, _ in sections), 5)
-        # continuity-extraction：subject 章节 + canon 最小集六节
+        # continuity-extraction：subject 章节 + canon 最小集七节（含人物状态）
         sections = resolve_slots(conn, ASSET_DIRS["continuity-extraction"],
                                  project_id="project:p1", subject_id="chapter:c1")
-        self.assertEqual(len(sections), 7)
+        self.assertEqual(len(sections), 8)
         self.assertTrue(sections[0][0].startswith("被审章节正文"))
         out = _compose(ASSET_DIRS["continuity-extraction"], {"setup": {}}, sections)
         self.assertIn("判定标准（五条边界）", out)
@@ -372,6 +378,10 @@ def _seed_canon_ledgers(conn: sqlite3.Connection) -> None:
         "('rel:1', 'project:p1', '林昭', '沈青梧', 'res:rl1')")
     conn.execute(
         "INSERT INTO arc_states VALUES ('arc:1', 'project:p1', '复仇弧', 'res:ar1')")
+    conn.execute(
+        "INSERT INTO characters (id, project_id, name, role_class, status, exit_type, updated_at) VALUES "
+        "('ch:a', 'project:p1', '林昭', 'main', 'active', NULL, '2026-01-02'), "
+        "('ch:b', 'project:p1', '沈青梧', 'main', 'dead', '死亡型', '2026-01-03')")
     # 干扰项：他项目的账本不得混入
     conn.execute(
         "INSERT INTO chapter_facts VALUES "
@@ -386,7 +396,7 @@ class CanonLedgerInjection(unittest.TestCase):
         conn = _make_db()
         _seed_canon_ledgers(conn)
         sections = _slot_canon_minimal(conn, "project:p1")
-        self.assertEqual(len(sections), 6)
+        self.assertEqual(len(sections), 7)
         by_title = {t: b for t, b in sections}
         facts = by_title["canon 最小集 · facts（近 12 条）"]
         self.assertIn("林昭", facts)
@@ -401,6 +411,10 @@ class CanonLedgerInjection(unittest.TestCase):
         recent = by_title["canon 最小集 · 近期已接受章节（近 5 章）"]
         self.assertIn("第九章", recent)
         self.assertIn("主角查明铸根案一角", recent)
+        chars = by_title["canon 最小集 · 人物状态（死/退/眠优先，近 20 人）"]
+        self.assertIn("沈青梧", chars)  # dead 优先
+        self.assertIn("死亡型", chars)
+        self.assertIn("林昭", chars)
 
     def test_degradation_is_visible(self):
         """缺表降级必须打 stderr，禁止静默吞错（回归闸）。"""
@@ -411,7 +425,7 @@ class CanonLedgerInjection(unittest.TestCase):
         stderr = io.StringIO()
         with contextlib.redirect_stderr(stderr):
             sections = _slot_canon_minimal(conn, "project:x")
-        self.assertEqual(len(sections), 6)
+        self.assertEqual(len(sections), 7)
         self.assertTrue(all("（空）" == b for _, b in sections))
         self.assertIn("账本查询降级", stderr.getvalue())
 
