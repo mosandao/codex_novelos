@@ -94,10 +94,10 @@
 
 ### P4 作品世界层补全 + 道德债功能化
 
-- [ ] **P4-1 新 expansion skill `catalog/skills/expansions/power-ecology/`**：八力量类型+七属性、三类规则分层、规则六角色、男频力量-规则循环、开局无敌冲突转移。
-- [ ] **P4-2 world-contract 主干深化**：规则条目必答六角色 + 三类规则分层 + 可选素材挂 power-ecology；channel-male 模块增力量-规则循环与开局无敌条目。
-- [ ] **P4-3 world-contract-review 检查项**：规则六角色缺失=warning、规则分层核对增强。
-- [ ] **P4-4 道德债功能化**：character-contract/modules/channel-male.md、channel-omni.md 增「功能性道德债」节 + check-channel-male/omni 对应检查项。
+- [x] **P4-1 新 expansion skill `catalog/skills/expansions/power-ecology/`**：八力量类型+七属性、三类规则分层、规则六角色、男频力量-规则循环、开局无敌冲突转移。
+- [x] **P4-2 world-contract 主干深化**：规则条目必答六角色 + 三类规则分层 + 可选素材挂 power-ecology；channel-male 模块增力量-规则循环与开局无敌条目。
+- [x] **P4-3 world-contract-review 检查项**：规则六角色缺失=warning、规则分层核对增强。
+- [x] **P4-4 道德债功能化**：character-contract/modules/channel-male.md、channel-omni.md 增「功能性道德债」节 + check-channel-male/omni 对应检查项。
 
 ### P5 文档与协议收尾
 
@@ -119,6 +119,20 @@
 - 内核取代原型后 26 原型退出创建链：config 保留为参考资料库，test_wizard_data 相应调整。
 
 ## 验收记录
+
+- **[T30-P4-1] power-ecology expansion** — 2026-08-21
+  - 验证：119 tests OK；四命令全绿。
+  - 文档变更：`catalog/skills/expansions/power-ecology/`（新四件套：因果优先级链、八力量类型七属性[拥有者/作用对象/成本/可转让/可剥夺/兑换范围/失效]、三类规则分层、规则六角色、男频力量-规则循环、开局无敌冲突转移）。
+- **[T30-P4-2] world-contract 深化 + 男频模块** — 2026-08-21
+  - 验证：119 tests OK；SIZE_BUDGET 实测 world-contract 111/150 达标。
+  - 文档变更：`catalog/skills/planning/world-contract/prompt.md`（主干增规则六角色必答 + 三类分层 + 可选素材挂 power-ecology）；`modules/channel-male.md`（新：四段循环 + 规则的力量层级观 + 开局无敌冲突转移 + 力量货币兑现路径）+ manifest 挂接。
+- **[T30-P4-3] world-contract-review 检查项** — 2026-08-21
+  - 验证：119 tests OK；SIZE_BUDGET 实测 review 45/70 达标。
+  - 文档变更：`catalog/skills/review/planning-world-contract-review/prompt.md`（检查项 1b：六角色缺任一=warning 列名、层级错装=warning/正文依赖升级 blocking、男频循环对偶核查）。
+- **[T30-P4-4] 道德债功能化** — 2026-08-21
+  - 验证：119 tests OK；character-contract 系 SIZE_BUDGET 实测达标（117/130、47/70）。
+  - 文档变更：`catalog/skills/planning/character-contract/modules/channel-male.md`（功能性道德债三合法用法[反派驱动/圣母谈资/债务动机] + 非法用法=主线债权化结算串味）；`modules/channel-omni.md`（轻量版）；`catalog/skills/review/planning-character-contract-review/modules/check-channel-male.md`（第 3 条逐条核对+勒索逻辑自洽）+ `check-channel-omni.md`（轻量对偶）。
+  - 备注：女频全链路债权机制不动（决策 5：道德债主要女频）；男频/全向只加「功能件」用法与串味判级。
 
 - **[T30-P3-1/P3-2] 人物契约全量重写 + roster schema** — 2026-08-21
   - 验证：119 tests OK；四命令全绿。
