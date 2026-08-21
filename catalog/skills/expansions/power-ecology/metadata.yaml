@@ -1,0 +1,21 @@
+name: power-ecology
+description: 力量生态与规则分层设计——因果优先级链、八力量类型七属性、三类规则六角色、男频力量-规则循环与开局无敌冲突转移
+stage: plan
+asset: world_contract
+capability: generate
+lifecycle: active
+version: 1.0.0
+genres: []
+risk: P1
+output_contract: document
+priority: 20
+use_when:
+- 世界契约阶段需要深化力量生态、规则来源与执行结构时
+- 男频力量题材需要声明力量-规则循环或处理开局无敌的冲突转移时
+avoid_when:
+- 单一封闭场景内不需要力量结构时
+tags:
+- worldbuilding
+- power-ecology
+- rules
+- faction

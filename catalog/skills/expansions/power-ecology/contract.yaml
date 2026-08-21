@@ -1,0 +1,14 @@
+contract_version: 1
+inputs:
+  - contract: architecture
+    cardinality: one
+  - contract: strategy
+    cardinality: one
+outputs:
+  - power_ecology_contract
+invariants:
+  - 每条重要规则有六角色（制定者/承认者/执行者/受益者/豁免者/破坏成本）
+  - 不用无来源抽象规则压过已声明的力量（世界违约）
+  - 与跨维度隔离原则同向：不把账本结构泛化为通用代价形态
+forbidden_actions:
+  - commit_authority

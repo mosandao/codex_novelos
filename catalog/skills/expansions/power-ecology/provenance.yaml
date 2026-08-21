@@ -1,0 +1,11 @@
+origin: target-native
+source_repository: null
+source_path: null
+source_commit: null
+source_hash: null
+license: NovelOS-project
+migration_note: |
+  Task 30 新增。设计来源：外部规范《作者内核、心理运作与作品设计指导规范》
+  第 6 章（世界本体、力量生态与规则）制度化——八力量类型七属性、三类规则
+  分层、规则六角色、男频力量-规则循环、开局无敌冲突转移。与 world-contract
+  主干的跨维度隔离原则同向（六角色说明规则来源，不泛化账本结构）。
