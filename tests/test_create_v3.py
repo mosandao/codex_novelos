@@ -3,9 +3,11 @@ from __future__ import annotations
 import importlib.util
 import json
 import sqlite3
+import sys
 import tempfile
 import unittest
 from pathlib import Path
+from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -279,6 +281,141 @@ class KernelPipeline(unittest.TestCase):
         errors, _ = create_mod.validate_kernel_candidate(
             {"request_type": "novelos.kernel.candidate.v1", "mode": "create"}, self.conn)
         self.assertTrue(errors)
+
+
+class ChainSeamGaps(unittest.TestCase):
+    """T31：跨步骤衔接——单次调用缝合 / 内核重复与孤儿 WARN / 旧版绑定 WARN。"""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.db_path = Path(self.tmp.name) / "test.db"
+        self.conn = _make_db(self.db_path)
+
+    def tearDown(self):
+        self.conn.close()
+        self.tmp.cleanup()
+
+    def _write(self, name: str, obj: Any) -> str:
+        path = Path(self.tmp.name) / name
+        path.write_text(json.dumps(obj, ensure_ascii=False), encoding="utf-8")
+        return str(path)
+
+    def _run_main(self, argv: list[str]) -> tuple[int, str]:
+        import contextlib
+        import io
+        from unittest import mock
+        with mock.patch.object(sys, "argv", ["novelos_create_project.py", *argv]):
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                code = create_mod.main()
+        return code, out.getvalue()
+
+    def _create_kernel_with_payload(self) -> dict:
+        payload = _v3_payload("create")
+        cand = _kernel_candidate("create")
+        _, kernel_hash = create_mod.validate_kernel_candidate(cand, self.conn)
+        return create_mod.persist_kernel(self.db_path, cand, kernel_hash, payload)
+
+    def test_single_invocation_stitches_before_candidate_gate(self):
+        # 建核 + --candidate 同一次调用：内核落库后内存缝合 select 形态，
+        # validate_candidate 正常执行（父不匹配 → 干净 FAIL），不再 KeyError 裸崩。
+        payload_path = self._write("payload.json", _v3_payload("create"))
+        kernel_path = self._write("kernel.json", _kernel_candidate("create"))
+        persona = _persona_candidate("creator-profile-version:ghost:1", "sha256:" + "c" * 64)
+        persona_path = self._write("persona.json", persona)
+        bound_path = str(Path(self.tmp.name) / "bound.json")
+        code, out = self._run_main([
+            "--payload", payload_path, "--kernel-candidate", kernel_path,
+            "--candidate", persona_path, "--emit-payload", bound_path, "--db", str(self.db_path),
+        ])
+        self.assertEqual(code, 1)
+        self.assertIn("parent_version_id 与 payload 绑定的内核版本不符", out)  # 校验门跑了
+        self.assertNotIn("Traceback", out)
+        # 内核已落库 + bound payload 是 select 形态（单次调用可继续重跑 --candidate）
+        bound = json.loads(Path(bound_path).read_text(encoding="utf-8"))
+        self.assertEqual(bound["setup"]["author_kernel"]["mode"], "select")
+        n = self.conn.execute(
+            "SELECT COUNT(*) FROM creator_profiles WHERE ownership='author_kernel'").fetchone()[0]
+        self.assertEqual(n, 1)
+
+    def test_candidate_with_create_payload_fails_cleanly(self):
+        # 丢了 bound.json、拿原始 create payload 跑 --candidate：给可行动的失败信息
+        payload_path = self._write("payload.json", _v3_payload("create"))
+        persona_path = self._write("persona.json", _persona_candidate("x", "y"))
+        code, out = self._run_main([
+            "--payload", payload_path, "--candidate", persona_path, "--db", str(self.db_path),
+        ])
+        self.assertEqual(code, 1)
+        self.assertIn("select 形态", out)
+
+    def test_kernel_dry_run_with_candidate_hints_limitation(self):
+        payload_path = self._write("payload.json", _v3_payload("create"))
+        kernel_path = self._write("kernel.json", _kernel_candidate("create"))
+        persona_path = self._write("persona.json", _persona_candidate("x", "y"))
+        code, out = self._run_main([
+            "--payload", payload_path, "--kernel-candidate", kernel_path,
+            "--candidate", persona_path, "--dry-run", "--db", str(self.db_path),
+        ])
+        self.assertEqual(code, 0)
+        self.assertIn("候选校验门需要已落库内核", out)
+
+    def test_hints_duplicate_and_orphan_warnings(self):
+        self._create_kernel_with_payload()  # 未绑定任何项目
+        payload = _v3_payload("create")  # 与落库内核同一份 hints
+        errors, warns = create_mod.validate_request(payload, WIZARD, self.conn)
+        self.assertEqual(errors, [])
+        self.assertTrue(any("高度重合" in w for w in warns))
+        self.assertTrue(any("未被任何项目绑定" in w for w in warns))
+
+    def test_hints_distinct_no_duplicate_warning(self):
+        self._create_kernel_with_payload()
+        payload = _v3_payload("create")
+        payload["setup"]["author_kernel"]["kernel_hints"] = {
+            "taste_anchors": ["高温浓烈叙事"], "core_questions": ["欢愉的来源"]}
+        _, warns = create_mod.validate_request(payload, WIZARD, self.conn)
+        self.assertFalse(any("高度重合" in w for w in warns))
+
+    def test_select_old_revision_warns(self):
+        kernel = self._create_kernel_with_payload()
+        revise = _kernel_candidate("revise")
+        revise["base_version"] = kernel["kernel_version"]
+        revise["kernel"]["growth_log"] = [
+            {"trigger": "复盘", "attribution": "kernel", "change": "attention_bias 修正"}]
+        _, rh = create_mod.validate_kernel_candidate(revise, self.conn)
+        create_mod.persist_kernel(self.db_path, revise, rh)  # r2
+
+        payload = _v3_payload("select")
+        payload["setup"]["author_kernel"]["kernel_version_id"] = kernel["kernel_version"]
+        payload["setup"]["author_kernel"]["subject_hash"] = kernel["subject_hash"]
+        errors, warns = create_mod.validate_request(payload, WIZARD, self.conn)
+        self.assertEqual(errors, [])
+        self.assertTrue(any("非最新" in w for w in warns))
+
+    def test_revise_reports_bound_projects(self):
+        kernel = self._create_kernel_with_payload()
+        # 建项目绑定 r1
+        bound = create_mod._stitch_bound_payload(_v3_payload("create"), kernel)
+        persona = _persona_candidate(kernel["kernel_version"], kernel["subject_hash"])
+        _, sig_hash = create_mod.validate_candidate(persona, bound, self.conn)
+        ids = create_mod.persist(self.db_path, bound, persona, sig_hash)
+
+        revise_payload = {
+            "request_type": "novelos.kernel.revise.v1",
+            "base_version": kernel["kernel_version"],
+            "kernel_hints": {"taste_anchors": ["低温叙事"]},
+        }
+        revise = _kernel_candidate("revise")
+        revise["base_version"] = kernel["kernel_version"]
+        revise["kernel"]["growth_log"] = [
+            {"trigger": "复盘", "attribution": "kernel", "change": "价值公理微调"}]
+        code, out = self._run_main([
+            "--kernel-revise", self._write("revise.json", revise_payload),
+            "--kernel-candidate", self._write("revise-cand.json", revise),
+            "--db", str(self.db_path),
+        ])
+        self.assertEqual(code, 0)
+        self.assertIn("旧版本", out)
+        self.assertIn(ids["project"], out)
 
 
 if __name__ == "__main__":

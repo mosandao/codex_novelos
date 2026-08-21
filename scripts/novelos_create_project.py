@@ -193,6 +193,69 @@ def parse_candidate_text(raw: str, kind: str = "persona") -> tuple[dict[str, Any
     raise _fail
 
 
+def _hint_lines(hints: dict[str, Any]) -> set[str]:
+    """六字段素材展平为行集合（去空白行），供相似度比对。"""
+    lines: set[str] = set()
+    for v in hints.values():
+        if isinstance(v, list):
+            lines.update(str(x).strip() for x in v if str(x).strip())
+    return lines
+
+
+def _kernel_hints_dup_warnings(conn: sqlite3.Connection, hints: dict[str, Any]) -> list[str]:
+    """create 模式防近重复建核：与既有内核的建核素材做 Jaccard 相似度比对。"""
+    new_lines = _hint_lines(hints)
+    if not new_lines:
+        return []
+    try:
+        rows = conn.execute(
+            "SELECT p.display_name, CAST(r.content AS TEXT) AS deriv_json "
+            "FROM creator_profiles p "
+            "JOIN creator_profile_versions v ON v.profile_id = p.id "
+            "JOIN resources r ON r.id = v.derivation_resource_id "
+            "WHERE p.ownership = 'author_kernel'"
+        ).fetchall()
+    except sqlite3.OperationalError:
+        return []
+    best: dict[str, float] = {}
+    for name, deriv_json in rows:
+        try:
+            snap = json.loads(deriv_json).get("user_input_snapshot") or {}
+        except (json.JSONDecodeError, AttributeError):
+            continue
+        old = _hint_lines((snap.get("author_kernel") or {}).get("kernel_hints") or {})
+        if not old:
+            continue
+        overlap = len(new_lines & old) / len(new_lines | old)
+        best[str(name)] = max(best.get(str(name), 0.0), overlap)
+    return [
+        f"内核素材与既有内核「{name}」高度重合（相似度 {score:.2f}）——"
+        "若非有意另立人格，应改为 select 该内核"
+        for name, score in sorted(best.items()) if score >= 0.8
+    ]
+
+
+def _orphan_kernel_warnings(conn: sqlite3.Connection) -> list[str]:
+    """提示未被任何项目绑定的内核（多为失败尝试的孤儿），避免重复建核堆积。"""
+    try:
+        rows = conn.execute(
+            "SELECT p.display_name FROM creator_profiles p "
+            "WHERE p.ownership = 'author_kernel' AND NOT EXISTS ("
+            "  SELECT 1 FROM project_creator_bindings b "
+            "  JOIN creator_profile_versions v ON v.id = b.kernel_version_id "
+            "  WHERE v.profile_id = p.id)"
+        ).fetchall()
+    except sqlite3.OperationalError:
+        return []
+    if not rows:
+        return []
+    names = "、".join(str(r[0]) for r in rows)
+    return [
+        f"库中存在未被任何项目绑定的内核（{names}）——"
+        "若为此前失败尝试的孤儿，确认后另行清理，勿重复建核"
+    ]
+
+
 def validate_request(
     payload: dict[str, Any],
     wizard: dict[str, Any],
@@ -286,6 +349,19 @@ def validate_request(
                 warns.append(
                     f"内核 display_name 与库不符（库内 {row['display_name']!r}）"
                 )
+            newest = conn.execute(
+                "SELECT MAX(revision) FROM creator_profile_versions "
+                "WHERE profile_id = ?",
+                (row["profile_id"],),
+            ).fetchone()[0]
+            if newest is not None and newest > row["revision"]:
+                warns.append(
+                    f"绑定的内核版本非最新（绑定 r{row['revision']}，最新 r{newest}）——"
+                    "确认是沿用旧版还是改绑新版"
+                )
+    else:
+        warns += _kernel_hints_dup_warnings(conn, ak.get("kernel_hints") or {})
+        warns += _orphan_kernel_warnings(conn)
     return errors, warns
 
 
@@ -352,11 +428,19 @@ def persist_kernel(
     kernel_json = json.dumps(kernel, ensure_ascii=False, indent=2)
 
     snapshot = None
-    if payload is not None:
+    if payload is not None and isinstance(payload.get("setup"), dict):
         setup = payload["setup"]
         snapshot = {
             "author_kernel": setup.get("author_kernel"),
             "setup": {k: v for k, v in setup.items() if k != "author_kernel"},
+        }
+    elif payload is not None:
+        # revise 信封（novelos.kernel.revise.v1）没有 setup——记录修订素材与基底
+        snapshot = {
+            "kernel_revise": {
+                "base_version": payload.get("base_version"),
+                "kernel_hints": payload.get("kernel_hints"),
+            }
         }
     deriv = {
         "mode": candidate["mode"],
@@ -600,7 +684,7 @@ def persist(
     return ids
 
 
-def _emit_bound_payload(payload: dict[str, Any], kernel: dict[str, str], path: Path) -> None:
+def _stitch_bound_payload(payload: dict[str, Any], kernel: dict[str, str]) -> dict[str, Any]:
     """mode=create 建核后，把 payload 缝合为 select 形态（机械回填 id/hash，不改内容）。"""
     bound = json.loads(json.dumps(payload, ensure_ascii=False))
     ak = bound["setup"]["author_kernel"]
@@ -613,7 +697,14 @@ def _emit_bound_payload(payload: dict[str, Any], kernel: dict[str, str], path: P
     if isinstance(ak.get("display_name"), str):
         stitched["display_name"] = ak["display_name"]
     bound["setup"]["author_kernel"] = stitched
-    path.write_text(json.dumps(bound, ensure_ascii=False, indent=2), encoding="utf-8")
+    return bound
+
+
+def _emit_bound_payload(payload: dict[str, Any], kernel: dict[str, str], path: Path) -> None:
+    path.write_text(
+        json.dumps(_stitch_bound_payload(payload, kernel), ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
 
 
 def main() -> int:
@@ -674,22 +765,48 @@ def main() -> int:
             print("内核校验门通过（信封 + author-kernel 深层 + 基底反查）。")
             if args.dry_run:
                 print(f"\n--dry-run：未落库。内核 hash = {kernel_hash}")
-            else:
-                kernel = persist_kernel(db_path, candidate, kernel_hash, payload)
-                print("\n内核落库成功（单事务提交）。")
-                print(f"  kernel_profile   {kernel['kernel_profile']}")
-                print(f"  kernel_version   {kernel['kernel_version']}")
-                print(f"  subject_hash     {kernel['subject_hash']}")
-                if args.emit_payload and payload is not None:
-                    if payload["setup"]["author_kernel"].get("mode") == "create":
-                        _emit_bound_payload(payload, kernel, Path(args.emit_payload))
-                        print(f"  bound payload    {args.emit_payload}（已缝合为 select 形态）")
+                if args.candidate:
+                    print("--dry-run：候选校验门需要已落库内核（create 模式），完整链路请去掉 --dry-run。")
+                return 0
+            kernel = persist_kernel(db_path, candidate, kernel_hash, payload)
+            print("\n内核落库成功（单事务提交）。")
+            print(f"  kernel_profile   {kernel['kernel_profile']}")
+            print(f"  kernel_version   {kernel['kernel_version']}")
+            print(f"  subject_hash     {kernel['subject_hash']}")
+            if candidate["mode"] == "revise":
+                affected = conn.execute(
+                    "SELECT b.project_id FROM project_creator_bindings b "
+                    "JOIN creator_profile_versions v ON v.id = b.kernel_version_id "
+                    "WHERE v.profile_id = ? AND b.kernel_version_id != ?",
+                    (kernel["kernel_profile"], kernel["kernel_version"]),
+                ).fetchall()
+                if affected:
+                    names = "、".join(str(r[0]) for r in affected)
+                    print(
+                        f"  注意：{len(affected)} 个项目仍绑定该内核旧版本（{names}）——"
+                        "按裁决制由用户决定跟随新版重派生还是锁定当前分身"
+                        "（见 novel-memory SKILL 内核陈旧检查）。"
+                    )
+            if (payload.get("setup", {}).get("author_kernel") or {}).get("mode") == "create":
+                # 建核后立刻缝合 select 形态：单次调用也能走 --candidate 全链，
+                # 且落库快照与两段式（--emit-payload 重跑）完全一致。
+                payload = _stitch_bound_payload(payload, kernel)
+                if args.emit_payload:
+                    _emit_bound_payload(payload, kernel, Path(args.emit_payload))
+                    print(f"  bound payload    {args.emit_payload}（已缝合为 select 形态）")
             if not args.candidate:
                 return 0
 
         if args.candidate:
             if payload is None or args.kernel_revise:
                 parser.error("--candidate 需要与 --payload（项目创建）同用")
+            if payload["setup"]["author_kernel"].get("mode") == "create":
+                print(
+                    "FAIL payload 为 create 模式：--candidate 需要 select 形态 payload。"
+                    "建核时加 --emit-payload 产出 bound payload 再用；"
+                    "或把 --kernel-candidate 与 --candidate 放在同一次调用（建核后自动缝合）。"
+                )
+                return 1
             raw = Path(args.candidate).read_text(encoding="utf-8")
             candidate, notes = parse_candidate_text(raw)
             for n in notes:
