@@ -24,7 +24,7 @@
 参与者：主控智能体、规划智能体、写作链、`$novel-continuity`、`scripts/novelos_register_characters.py`。
 
 1. **立档**：character_contract 锁定时，主控用 `novelos_register_characters.py --project <id> --roster <json>` 把 metadata.character_roster 落人物注册表（main/secondary，arc_role 与预期退场写 state_json）。**重锁对账**：曾在旧 roster 但不在新 roster 的人物输出 WARN——契约修订删除的用 `--status-update` 退役，误删的补回。
-2. **动态创建**：次要角色由章纲执行卡「新登场人物微档案」预登记（规划端造人，正文只消费不发明——Writer 写到未预登记新名字 = 违卡，entity-authority-review 判 blocking）；章节接受后主控用 `--entry` 落注册表（minor/secondary）。
+2. **动态创建**：次要角色有两个人口——卷级配角由卷纲「卷级配角班底」生成（volume_outline 候选 metadata.`volume_characters`：secondary/minor + arc_role + 预期退场 + 微档案；不得生成 main、不得承载跨卷职责），卷纲锁定后主控用 `--entry` 落注册表（条目可带 arc_role/预期退场/来源卷/source:"volume_outline"）；章级新面孔由章纲执行卡「本章新登场人物微档案」预登记（规划端造人，正文只消费不发明——Writer 写到未预登记新名字 = 违卡，entity-authority-review 判 blocking），章节接受后主控用 `--entry` 落注册表（minor/secondary）。执行卡可直接消费本卷班底人物（标注「卷纲已登记」，不重复微档案）。
 3. **状态迁移**：`$novel-continuity` 提取 character_status 候选（正文确认的退场/转化/休眠/死亡；新登场与下落不明不算），晋升后主控用 `--status-update` 更新注册表（单对象或数组；dead 必带 死亡型 exit_type；非退场状态不带 exit_type 并整体清空退场痕迹——复活场景；每次迁移在 state_json.状态史 留审计记录；未登记人物按 minor 补登）。
 4. **升级**：动态配角需要卷级职责/回归时走 change proposal → character_contract 新 revision（回归面孔名单为判定清单）→ 新 roster 重跑 `--roster`（升级 role_class，不覆盖 status）。
 5. **对账**：连续性收尾必跑 `novelos_register_characters.py --project <id> --pending-status`——比对 promoted 候选集中每人物最新 character_status 候选与注册表现状，漂移（漏跑迁移/迁移被回滚）非零退出，处理完才能开下一章。

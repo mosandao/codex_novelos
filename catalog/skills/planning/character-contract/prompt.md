@@ -1,6 +1,6 @@
 # 人物契约
 
-**主要人物全量设计**：主角、核心对手、主锚点、卷级关键载体——凡架构移交清单点名需要人物承载的职责，全部在本契约立档，不只设计主角。**次要角色不在本契约**：一次性或短弧配角由章纲执行卡「本章新登场人物微档案」预登记（规划端造人，正文只消费不发明），章节接受后落人物注册表；需要升级为卷级常驻时走 change proposal 出本契约新 revision。
+**主要人物全量设计**：主角、核心对手、主锚点、卷级关键载体——凡架构移交清单点名需要人物承载的职责，全部在本契约立档，不只设计主角。**次要角色不在本契约**：卷级配角由卷纲「卷级配角班底」（volume_outline 的 `volume_characters`）生成，章级一次性或短弧配角由章纲执行卡「本章新登场人物微档案」预登记（规划端造人，正文只消费不发明），锁定/接受后落人物注册表；需要升级为卷级常驻或跨卷回归时走 change proposal 出本契约新 revision。
 
 每个立档人物定义：初始状态、欲望与恐惧、核心执念（主角专属）、误判、能力边界与知识边界、必须付出的代价、心理运作简表、人物弧状态变化、关键关系张力、退场设计（含计划内死亡）。逐项说明如何服务 Architecture 与 Strategy。
 
@@ -75,7 +75,7 @@ decision_points 附在 metadata 由主控呈现给用户裁决；用户选择经
 
 ## character_roster 结构化出口
 
-metadata 另附 `character_roster` 数组（schema 见 `config/schemas/planning-candidate.schema.json`）——每个立档人物一行：`name` / `role_class`（main|secondary）/ `arc_role`（主角|核心对手|主锚点|卷级载体等一句话职责）/ `登场卷` / `预期退场`（七型之一或「持续活跃」）。契约锁定时由 `scripts/novelos_register_characters.py` 落人物注册表（characters 表）；正文期新配角经执行卡微档案登记为 secondary/minor，与本 roster 合流。
+metadata 另附 `character_roster` 数组（schema 见 `config/schemas/planning-candidate.schema.json`）——每个立档人物一行：`name` / `role_class`（main|secondary）/ `arc_role`（主角|核心对手|主锚点|卷级载体等一句话职责）/ `登场卷` / `预期退场`（七型之一或「持续活跃」）。契约锁定时由 `scripts/novelos_register_characters.py` 落人物注册表（characters 表）；卷级配角经卷纲班底、章级新配角经执行卡微档案登记为 secondary/minor，与本 roster 合流。
 
 ## 文档结构约定
 

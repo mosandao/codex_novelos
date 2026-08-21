@@ -38,7 +38,7 @@ description: 识别小说规划层级并准备对应权威资产的最小输入�
    INSERT INTO planning_asset_dependencies (asset_id, upstream_asset_id, upstream_version) VALUES (?, ?, ?);
    ```
 7. 用 `$novel-review` 审查（sub agent 审查 → INSERT reviews）。direction 的审查 rubric 同样按项目组装：`.venv/bin/python scripts/novelos_compose_prompt.py --asset direction-review --project <project_id>`——频道语法/平台画像/题材信息包的专项检查随项目路由，与生成端对称。
-8. 审查通过后锁定：`UPDATE planning_assets SET status='locked', locked_review_id=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`。
+8. 审查通过后锁定：`UPDATE planning_assets SET status='locked', locked_review_id=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`。**volume_outline 锁定后**：若候选 metadata 带 `volume_characters`（卷级配角班底，secondary/minor），主控随即运行 `scripts/novelos_register_characters.py --project <project_id> --entry <volume_characters.json>` 落人物注册表（条目带 source:"volume_outline"、arc_role、预期退场、来源卷）。
 9. 若下游 Agent 发现上游问题，返回变更提案由主控路由给上游所有者，不在下游候选中隐式重写上游。
 
 ## 上游变更与 stale 传播

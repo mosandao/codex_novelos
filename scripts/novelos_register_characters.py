@@ -11,8 +11,11 @@
   落库为 role_class=main/secondary，arc_role 与预期退场写 state_json。
   重锁对账：曾在旧 roster（有 arc_role）但不在新 roster 的人物会 WARN，
   提示用 --status-update 退役或补回。
-- `--entry <json>`：动态配角登记（执行卡微档案），单对象或数组：
+- `--entry <json>`：动态配角登记，单对象或数组：
   {name, role_class: minor|secondary, first_chapter_id?, notes?}。
+  卷纲锁定时班底（metadata.volume_characters）也走本入口，条目可带
+  arc_role / 预期退场（八值 enum）/ 来源卷（整数）/ 微档案 / 登记备注 /
+  source:"volume_outline"，随 state_json 落库。
 - `--status-update <json>`：连续性状态迁移（character_status 晋升后），
   单对象或数组（一章多个迁移一次提交）。dead 必须带 死亡型 exit_type；
   非退场状态不得携带 exit_type，且会清空遗留退场痕迹（复活不留半截
@@ -90,6 +93,12 @@ def _validate_entries(entries: list[dict[str, Any]]) -> list[str]:
         rc = e.get("role_class", "secondary")
         if rc not in ("minor", "secondary", "main"):
             errors.append(f"entry[{i}]: role_class 非法 {rc!r}")
+        et = e.get("预期退场")
+        if et is not None and et not in EXIT_TYPES + ("持续活跃",):
+            errors.append(f"entry[{i}]: 预期退场非法 {et!r}（{EXIT_TYPES} 或 持续活跃）")
+        vol = e.get("来源卷")
+        if vol is not None and not (isinstance(vol, int) and 1 <= vol <= 99):
+            errors.append(f"entry[{i}]: 来源卷须为 1-99 整数，got {vol!r}")
     return errors
 
 

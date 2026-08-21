@@ -127,6 +127,41 @@ class RegisterCharacters(unittest.TestCase):
         self.assertEqual(rows["账房老周"]["status"], "active")  # 状态不被 roster 覆盖
         self.assertIn("袖口磨亮的算盘", rows["账房老周"]["state_json"])  # 微档案信息保留
 
+    def test_entry_volume_characters_fields(self):
+        # 卷纲班底走 --entry：arc_role/预期退场/来源卷/source 落 state_json
+        entry = {"name": "悬赏猎人·隼", "role_class": "secondary",
+                 "arc_role": "本卷第二支线压力源", "预期退场": "完成型",
+                 "来源卷": 2, "微档案": "左手总戴着断指手套；从不喝别人倒的酒",
+                 "source": "volume_outline"}
+        self.assertEqual(reg.run(self.db, "project:p1", None, [entry], None), 0)
+        rows = self._rows()
+        state = json.loads(rows["悬赏猎人·隼"]["state_json"])
+        self.assertEqual(rows["悬赏猎人·隼"]["role_class"], "secondary")
+        self.assertEqual(state["arc_role"], "本卷第二支线压力源")
+        self.assertEqual(state["预期退场"], "完成型")
+        self.assertEqual(state["来源卷"], 2)
+        self.assertEqual(state["source"], "volume_outline")
+
+    def test_entry_volume_characters_validation(self):
+        bad_exit = {"name": "甲", "role_class": "minor", "预期退场": "半路消失"}
+        self.assertEqual(reg.run(self.db, "project:p1", None, [bad_exit], None), 1)
+        bad_vol = {"name": "乙", "role_class": "minor", "来源卷": "第二卷"}
+        self.assertEqual(reg.run(self.db, "project:p1", None, [bad_vol], None), 1)
+
+    def test_entry_volume_characters_schema(self):
+        # planning-candidate $defs/volume_characters：合法班底通过，main 被拒
+        import jsonschema
+        schema = json.loads(reg.SCHEMA_PATH.read_text(encoding="utf-8"))
+        sub = dict(schema["$defs"]["volume_characters"])
+        sub["$schema"] = "https://json-schema.org/draft/2020-12/schema"
+        good = [{"name": "隼", "role_class": "secondary", "arc_role": "支线压力源",
+                 "预期退场": "完成型", "微档案": "断指手套"}]
+        jsonschema.validate(good, sub)
+        with self.assertRaises(jsonschema.ValidationError):
+            jsonschema.validate(
+                [{"name": "假主角", "role_class": "main", "arc_role": "主角",
+                  "预期退场": "持续活跃"}], sub)
+
     def test_status_update_dead_requires_exit_type(self):
         reg.run(self.db, "project:p1", _roster(), None, None)
         bad = {"name": "沈青梧", "status": "dead", "exit_type": "迁移型"}

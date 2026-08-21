@@ -48,7 +48,8 @@
           "additionalProperties": true,
           "properties": {
             "decision_points": {"type": "array"},
-            "character_roster": {"$ref": "#/$defs/character_roster"}
+            "character_roster": {"$ref": "#/$defs/character_roster"},
+            "volume_characters": {"$ref": "#/$defs/volume_characters"}
           }
         }
       }
@@ -71,6 +72,25 @@
           "预期退场": {
             "enum": ["完成型", "迁移型", "转化型", "关系型", "功能转移型", "休眠型", "死亡型", "持续活跃"]
           }
+        }
+      }
+    },
+    "volume_characters": {
+      "type": "array",
+      "maxItems": 40,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "role_class", "arc_role", "预期退场"],
+        "properties": {
+          "name": {"type": "string", "minLength": 1, "maxLength": 60},
+          "role_class": {"enum": ["secondary", "minor"]},
+          "arc_role": {"type": "string", "minLength": 1, "maxLength": 200},
+          "预期退场": {
+            "enum": ["完成型", "迁移型", "转化型", "关系型", "功能转移型", "休眠型", "死亡型", "持续活跃"]
+          },
+          "微档案": {"type": "string", "maxLength": 200},
+          "登记备注": {"type": "string", "maxLength": 200}
         }
       }
     }

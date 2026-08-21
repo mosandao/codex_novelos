@@ -16,6 +16,7 @@
 5. **卷尾承诺**：本卷结尾是否提供了强有力的悬念或下一卷承诺。
 6. **卷级灵魂职责**：是否落实指定 `recurring_test`、有代价承诺和卷末未解决压力，并与前后卷形成变化。
 7. **悬念种收平衡**：本卷是否兑现至少一条前序悬念；是否只堆积新谜题而不兑现旧悬念——后者为 `warning`。
+8. **卷级配角班底**：本卷各冲突线的人物载体逐一指认来源（契约 roster / 在库配角 / 本卷新生成）——**无源载体 = blocking**；metadata `volume_characters` 无 main 人物（main 出现 = blocking，归人物契约）；无跨卷职责（跨卷需要未标注「待 change proposal 升级」= warning）；命名与人物注册表在库人物重名 = warning；正文班底叙述与 `volume_characters` 数组不一致 = warning。
 
 ## Blocking 条件
 - 单卷目标模糊、卷末无危机或偏离跨卷故事弧分配。
