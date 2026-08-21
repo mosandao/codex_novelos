@@ -37,7 +37,7 @@ description: 识别小说规划层级并准备对应权威资产的最小输入�
    -- 记录上游依赖
    INSERT INTO planning_asset_dependencies (asset_id, upstream_asset_id, upstream_version) VALUES (?, ?, ?);
    ```
-7. 用 `$novel-review` 审查（sub agent 审查 → INSERT reviews）。direction 的审查 rubric 同样按项目组装：`.venv/bin/python scripts/novelos_compose_prompt.py --asset direction-review --project <project_id>`——频道语法/平台画像/题材信息包的专项检查随项目路由，与生成端对称。
+7. 用 `$novel-review` 审查（sub agent 审查 → INSERT reviews）。direction 的审查 rubric 同样按项目组装：`.venv/bin/python scripts/novelos_compose_prompt.py --asset direction-review --project <project_id> --subject <候选资产ID>`——频道语法/平台画像/题材信息包/美学基因的专项检查随项目路由，与生成端对称。direction 产出 2-3 候选时按 novel-review「横向回执」汇总比较呈报用户，用户裁决选定后仅对选定候选走锁定循环。
 8. 审查通过后锁定：`UPDATE planning_assets SET status='locked', locked_review_id=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`。**volume_outline 锁定后**：若候选 metadata 带 `volume_characters`（卷级配角班底，secondary/minor），主控随即运行 `scripts/novelos_register_characters.py --project <project_id> --entry <volume_characters.json>` 落人物注册表（条目带 source:"volume_outline"、arc_role、预期退场、来源卷）。
 9. 若下游 Agent 发现上游问题，返回变更提案由主控路由给上游所有者，不在下游候选中隐式重写上游。
 
@@ -67,8 +67,10 @@ Direction 候选的 `metadata.book_soul` 必须符合 `config/schemas/book-soul.
 | `narrative_mercy` | string | 1-1000 字符 |
 | `narrative_cruelty` | string | 1-1000 字符 |
 | `deliberate_silences` | string[] | 同上 |
+| `lineage`（可选） | object[] | 逐字段血缘映射：{field, source_type: signature/persona/kernel/setup/reference_material, source_ref, derivation, variation?}；2-24 条，organizing_principle 与 central_contradiction 必须有条目；variation=true 为显式血缘变奏（发散纪律允许至多一个变奏候选） |
+| `cadence_plan`（可选） | object | 兑现规划：{fulfillment_count, interval_volumes, notes?}——`--scale` 机器数字门（短篇 1-2 / 中篇 ≥3 / 长篇 ≥3 / 超长篇 ≥5）；新 direction 候选必带 |
 
-用 `scripts/novelos_validate_book_soul.py` 校验。book_soul 只有 v2 一个版本；既有 v1 资产属历史锁定数据，不参与新候选校验。
+用 `scripts/novelos_validate_book_soul.py book_soul.json --scale "<setup.scale 档位>"` 校验（结构 + lineage 覆盖 + cadence_plan 数字门）。book_soul 只有 v2 一个版本；既有 v1 资产属历史锁定数据，不参与新候选校验。
 
 ## 节奏密度约束
 

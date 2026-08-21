@@ -55,6 +55,14 @@
         "field": "setup.genre_profile",
         "is_null": true
       }
+    },
+    {
+      "id": "check-aesthetic-present",
+      "file": "check-aesthetic-present.md",
+      "when": {
+        "field": "setup.aesthetic_styles",
+        "non_empty": true
+      }
     }
   ],
   "data_slots": [

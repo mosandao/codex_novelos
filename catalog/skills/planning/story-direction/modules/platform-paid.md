@@ -10,3 +10,4 @@
 ## 附加自检
 
 - promise_cadence 引用了 patience 与 reader_profile；慢热铺陈合法但每章增量可指认；大兑现带有名有姓的到期日。
+- patience / reader_profile 过薄（寥寥数语无法支撑画像消费）时，已在候选正文显式声明「消费受限 + 缺什么」，不在贫信息上空转消费语法。

@@ -47,7 +47,9 @@ persona 是这本书的第一因。book_soul 不是从题材套路构造的，�
 | 长篇（100-300万字） | 主承诺分 3-4 幂兑现，矛盾两层递进 | 兑现间隔 ≤ 80 万字 |
 | 超长篇（300万字以上） | 承诺可再造（同一承诺在不同世界/阶段重新定价），矛盾三层以上 | 兑现 5 次以上，间隔 ≤ 100 万字 |
 
-  禁止 300 万字的书只排 3 次兑现（一次兑现隔一百万字 = 读者流失空窗），也禁止 30 万字的短篇铺三层矛盾（收不了尾）。
+  禁止 300 万字的书只排 3 次兑现（一次兑现隔一百万字 = 读者流失空窗），也禁止 30 万字的短篇铺三层矛盾（收不了尾）。兑现次数与间隔的规划值落 `metadata.book_soul.cadence_plan`（fulfillment_count × interval_volumes），`novelos_validate_book_soul.py --scale <档位>` 机器校验次数下限——数字门不靠自检自觉。
+
+- setup 输入过薄（如 platform_traits 的 patience / reader_profile 仅寥寥数语）时，在候选正文显式声明「消费受限 + 缺什么」，交主控补采后重生成——禁止在贫信息上空转消费语法。
 
 ## 上游消费：表里基调（普适硬输入）
 
@@ -72,14 +74,14 @@ persona 是这本书的第一因。book_soul 不是从题材套路构造的，�
 | `organizing_principle` | 组织原则：这本书用什么独特过程组织（故事过程+原创执行） | 一句话可检验：「用 X 方式讲 Y」；脱离本书换一本书即不成立。禁止「升级打怪变强」级泛化表述 | 从 persona 目光长出；architecture 把它翻译为机制 |
 | `central_contradiction` | 核心矛盾：两个都能成立却无法同时完整满足的判断 | 写成「判断A / 判断B」两难，各自都有代价；禁止单向正确口号 | 种子来自 inner_tension + 主原则；recurring_tests 论证它 |
 | `power_currency` | 力量货币：本书「什么等同于更强」及其对价 | 声明货币 + 兑现语义 + 对价（获取付出什么、买不到什么）；至少一端锚进 central_contradiction | genre_profile 候选池选取，或从 persona 库存长出；costly_commitments 以它计价 |
-| `promise_cadence` | 承诺兑现节奏：读者靠什么在中段保持信心 | 声明承诺的兑现节拍（如「每卷级弧兑现一次核心承诺的一个侧面」），可被 strategy 展开为阶段收益 | 与 strategy 的「承诺-收益配对」直接对接 |
+| `promise_cadence` | 承诺兑现节奏：读者靠什么在中段保持信心 | 声明承诺的兑现节拍（如「每卷级弧兑现一次核心承诺的一个侧面」）。承诺含**正向兑现**（读者得到什么）与**负向承诺**（见证代价/追讨真相/守护将失之物/目睹幻灭）两类，负向承诺是合法的主承诺形态，其兑现单位同样必须可感（真相揭示/代价落地/失去逼近）；可被 strategy 展开为阶段收益 | 与 strategy 的「承诺-收益配对」直接对接 |
 | `unresolved_claims` | 未决追问 | 2-6 条，每条是可追问的具体问题而非抽象主题词；分层（全书终极 1 条+阶段性若干） | deliberate_silences 为它服务；strategy 阶段不得消解 |
 | `costly_commitments` | 有代价的承诺 | 每条写明「牺牲什么便利 + 具体叙事代价」，五种便利（爽点/圆满/推进速度/主角正确性/即时认同）至少占一 | 是 central_contradiction 的代价面 |
 | `protected_dignity` | 受保护的尊严 | 指向具体的人/群体的具体尊严，不从 sympathies 复制措辞 | 种子来自 sympathies |
 | `forbidden_resolutions` | 禁止的解决方式 | 叙事手法层禁令，每条可被审查判定违反与否；终局也不得动用 | 吸收 refuses 的可翻译部分 |
 | `recurring_tests` | 重复检验：矛盾的论证装置 | 2-5 个测试母题，每个声明「相对上次改变处境/答案/代价」，不是事件清单 | story_arc 把它们分配到卷 |
-| `narrative_mercy` | 叙事仁慈 | 与 cruelty 成对；写明对读者/人物的仁慈体现在哪 | 两者同时生效，缺一即失衡 |
-| `narrative_cruelty` | 叙事残酷 | 同上；写明叙事在哪下狠手 | — |
+| `narrative_mercy` | 叙事仁慈 | 写明对读者/人物的仁慈体现在哪，与 cruelty 成对生效，缺一即失衡 | — |
+| `narrative_cruelty` | 叙事残酷 | 写明残酷的**具体落点**：落在谁身上、什么形态、在结局的哪一侧兑现——存在性一句话（「叙事会比较残酷」）不算数，审查判 warning | — |
 | `deliberate_silences` | 有意留白 | 每条声明「暂不解释什么 + 为什么现在不解释」，服务悬念经济 | 服务 unresolved_claims |
 | — | schema_version 固定 `2` | — | — |
 
@@ -101,17 +103,21 @@ persona 是这本书的第一因。book_soul 不是从题材套路构造的，�
 
 ## 候选正文骨架（下游注入的就是这份正文）
 
-1. `## 上游继承`（签名关键条目 + persona 一句话主轴 + 血缘映射）
+1. `## 上游继承`（签名关键条目 + persona 一句话主轴 + 逐字段血缘映射——落 `metadata.book_soul.lineage`：每条 {field, source_type: signature/persona/kernel/setup/reference_material, source_ref, derivation}，organizing_principle 与 central_contradiction 必须有条目；映射须真实可推导，贴标签式映射过不了审查抽查）
 2. `## 组织原则`
 3. `## 核心矛盾`（两难结构展开；力量货币锚点与代价形态在此声明）
-4. `## 读者承诺与兑现节奏`（用 persona 的语言）
+4. `## 读者承诺与兑现节奏`（用 persona 的语言；正向兑现与负向承诺分别声明，负向承诺写明可感兑现单位；兑现次数 × 间隔落 `metadata.book_soul.cadence_plan`）
 5. `## 未决追问与留白`
 6. `## 题材边界`（不进入的场景，来自 cannot_write；风险声明）
 7. `## 与签名的关系`（继承/差异/冲突，冲突走 change proposal）
 
 ## 候选比较表（防同质候选）
 
-产出候选后附一张五维比较表：两难结构 / 组织原则 / 承诺 / 主要风险 / 签名契合点。任意两个候选若在「两难」与「组织原则」两维实质相同，即为假多样性，重做其中一个。**反泛化参照**：可对照 `catalog/skills/expansions/scenario-atlas/prompt.md` 的题材簇索引检查候选是否落入该题材的默认桥段组合——atlas 只当镜子照泛化，不把桥段当生成素材。
+产出候选后附一张七维比较表：两难结构 / 组织原则 / **情感登记** / **承诺类型（正向兑现主导或负向承诺主导）** / 承诺 / 主要风险 / 签名契合点。任意两个候选若在「两难」与「组织原则」两维实质相同，或**情感登记两两相同**，即为假多样性，重做其中一个（男频三种登记恰好三候选各占其一是一种满足方式）。差异必须是结构差异——题材换皮（修仙 vs 都市换背景）不构成差异。
+
+**发散纪律**（防全候选安全化）：至少一个候选采用最大表里反差档（表层与内核极性相反）或最激进的承诺结构（如负向承诺主导）；至多一个候选可为**血缘变奏候选**——在 lineage 中对 1-2 个字段标 `variation: true` 显式越出所指来源（derivation 写明越界理由与代价），变奏不判血缘断裂但须向用户显式标注，藏起来的越界照判；频道模块的好/坏例证仅示范结构形态，禁止候选复用例证的题材场景。
+
+**反泛化参照**：可对照 `catalog/skills/expansions/scenario-atlas/prompt.md` 的题材簇索引检查候选是否落入该题材的默认桥段组合——atlas 只当镜子照泛化，不把桥段当生成素材。
 
 ## 方法素材（可选）
 
@@ -122,10 +128,10 @@ persona 是这本书的第一因。book_soul 不是从题材套路构造的，�
 
 1. **两难测试**：central_contradiction 的两个判断各自成立且互斥，无单向口号。
 2. **组织原则测试**：organizing_principle 换一本书即不成立；能追溯到 persona 的目光。
-3. **承诺测试**：promise_cadence 声明了兑现节拍；承诺语言是 persona 的语言且匹配平台渠道。
-4. **代价测试**：每条 costly_commitments 牺牲了具体便利且形态非对称（无纯「得到1失去2」等价记账）；forbidden_resolutions 是可判定的手法禁令。
-5. **血缘测试**：每个候选能说清「从签名哪条、persona 哪个部件长出来」；无静默改写签名。
-6. **可展开性测试**：承诺与矛盾层次撑得起 scale 规模的中段（progress 不塌）。
-7. **假多样性测试**：比较表中无两个候选共享实质相同的两难+组织原则。
+3. **承诺测试**：promise_cadence 声明了兑现节拍；负向承诺（如采用）写明了可感兑现单位；承诺语言是 persona 的语言且匹配平台渠道。
+4. **代价测试**：每条 costly_commitments 牺牲了具体便利且形态非对称（无纯「得到1失去2」等价记账）；forbidden_resolutions 是可判定的手法禁令；narrative_cruelty 有具体落点（谁/什么形态/结局哪一侧）。
+5. **血缘测试**：逐字段血缘映射表真实可推导（字段内容确实从所指签名条目/persona 部件长出，非贴标签）；persona 差异化库存（career_track / class_circle_inventory）被至少一个候选消费；无静默改写签名。
+6. **可展开性测试**：承诺与矛盾层次撑得起 scale 规模的中段（progress 不塌）；兑现次数与间隔规划值匹配 scale 档位（短篇 1-2 次 / 中篇 3 次量级 / 长篇 3-4 幂 / 超长篇 ≥5 次）。
+7. **假多样性测试**：比较表中无两个候选共享实质相同的两难+组织原则，且情感登记两两不同；至少一个候选走了最大表里反差档或激进承诺结构。
 8. **边界测试**：未提前建世界百科/人物传记/卷章事件；cannot_write 的场景已进负面清单。
-9. **形式测试**：book_soul 过 schema v2（organizing_principle / promise_cadence 必填）；正文符合骨架；metadata 含精确 `creator_signature_ref` 与完整 `book_soul`（与正文逐字段一致）。
+9. **形式测试**：book_soul 过 schema v2（organizing_principle / promise_cadence 必填）；正文符合骨架；metadata 含精确 `creator_signature_ref` 与完整 `book_soul`（与正文逐字段一致，含 lineage 映射与 cadence_plan）；`novelos_validate_book_soul.py --scale <项目档位>` 机器校验通过。

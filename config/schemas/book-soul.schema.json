@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://novelos.local/schemas/book-soul.schema.json",
   "title": "NovelOS 书级创作灵魂",
-  "description": "NovelOS 书级创作灵魂 v2：十三字段，含 organizing_principle（组织原则）、promise_cadence（承诺兑现节奏）与 power_currency（力量货币），下游 architecture/strategy 结构化依赖",
+  "description": "NovelOS 书级创作灵魂 v2：十三字段，含 organizing_principle（组织原则）、promise_cadence（承诺兑现节奏）与 power_currency（力量货币），下游 architecture/strategy 结构化依赖。v2 可选扩展（不破坏旧数据）：lineage（逐字段血缘映射，结构化可核验）与 cadence_plan（兑现次数×间隔规划，配 validate --scale 机器数字门）",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -33,7 +33,54 @@
     "recurring_tests": {"$ref": "#/$defs/non_empty_text_list"},
     "narrative_mercy": {"$ref": "#/$defs/non_empty_text"},
     "narrative_cruelty": {"$ref": "#/$defs/non_empty_text"},
-    "deliberate_silences": {"$ref": "#/$defs/non_empty_text_list"}
+    "deliberate_silences": {"$ref": "#/$defs/non_empty_text_list"},
+    "lineage": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 24,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["field", "source_type", "source_ref", "derivation"],
+        "properties": {
+          "field": {
+            "type": "string",
+            "enum": ["organizing_principle", "central_contradiction", "promise_cadence", "power_currency", "unresolved_claims", "costly_commitments", "protected_dignity", "forbidden_resolutions", "recurring_tests", "narrative_mercy", "narrative_cruelty", "deliberate_silences"]
+          },
+          "source_type": {
+            "type": "string",
+            "enum": ["signature", "persona", "kernel", "setup", "reference_material"]
+          },
+          "source_ref": {"$ref": "#/$defs/non_empty_text"},
+          "derivation": {"$ref": "#/$defs/non_empty_text"},
+          "variation": {
+            "type": "boolean",
+            "description": "血缘变奏：该字段显式越出所指来源（发散纪律允许至多一个变奏候选），理由写进 derivation"
+          }
+        }
+      }
+    },
+    "cadence_plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fulfillment_count", "interval_volumes"],
+      "properties": {
+        "fulfillment_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 24,
+          "description": "全书完整兑现次数规划（validate --scale 对照档位下限机器校验）"
+        },
+        "interval_volumes": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 20,
+          "description": "兑现间隔的卷数估计（供 review 与 volume_outline 回查参考）"
+        },
+        "notes": {"$ref": "#/$defs/non_empty_text"}
+      }
+    }
   },
   "$defs": {
     "non_empty_text": {

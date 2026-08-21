@@ -12,7 +12,7 @@ description: 独立审查不可变小说资产并生成 Review Receipt。规划�
 1. 接收审查目标（资产或章节的 ID）和审查维度（Review Profile 对应的方法论）。
 2. 审查标准获取（按资产分流，以 `scripts/novelos_compose_prompt.py` 的 **ASSET_DIRS 注册表**为准）：**已注册审查**（direction-review / architecture-review 及后续）用组装器 `--asset <asset>-review --project <project_id> --subject <被审资产ID>`——检查清单 + 随项目路由的条件审查模块 + 被审对象全文 + 上游原文一步产出，与生成端对称；**未注册审查**暂仍 Read `catalog/skills/review/<对应 review skill>/prompt.md` + 手工注入 subject 与上游原文，Task 29 P2 完成后逐一切换。
 3. 审查 sub agent 需要**完整的审查依据**：候选正文全文 + 全部已锁定上游原文。直接从数据库 SELECT resources 读取，注入 sub agent prompt。禁止让 sub agent 自行读文件。
-4. 按 review prompt 的检查维度逐项审查。每个 finding 只使用 `blocking`、`warning` 或 `note`，给出最小直接证据和原文片段。
+4. 按 review prompt 的检查维度逐项审查。finding severity 四档：`blocking` / `warning` / `note`（问题分级）与 `strength`（记录候选独有赌注与亮点，供选型与修复参考，不阻断不修复）；问题类 finding 给出最小直接证据和原文片段，strength 可引用候选对比与推理但须写明依据。
 5. 只要有 `blocking`，verdict 必须是 `rejected`。
 6. 记录审查结果：
    ```sql
@@ -20,7 +20,7 @@ description: 独立审查不可变小说资产并生成 Review Receipt。规划�
        findings_json, reviewer_profile, evidence_refs_json)
    VALUES (?, ?, ?, ?, ?, ?, ?, ?);
    ```
-   - `findings_json`：`[{"severity":"note","message":"...","evidence_refs":["..."]}]`
+   - `findings_json`：`[{"severity":"note","message":"...","evidence_refs":["..."]}]`（severity 取 blocking/warning/note/strength；豁免标记见下文豁免通道）
    - `verdict`：`approved` 或 `rejected`
 
 ## 审查标准来源
@@ -53,16 +53,30 @@ description: 独立审查不可变小说资产并生成 Review Receipt。规划�
 - 每次修复 = 新 revision（candidate），重审该 revision，不直接改已审查的正文。
 - 锁定时旧 revision 标 `superseded`，新 revision 标 `locked` + `locked_review_id`。
 - 循环可多轮，直到满足退出条件（无 blocking、无未豁免 warning）。
+- **修复不得削平 strength 指认的特质**：上轮回执中 strength 标记的独有赌注是设计意图，修复其他问题时不得顺手抹平（表里反差、激进节奏等被 strength 认定的棱角）。
 
-### warning 的下游豁免（defer_to_downstream）
-若某 `warning` 确属**下游执行责任**（当前资产层无法修复，本质是给下游资产的执行边界提醒），可在 finding 中显式标注 `"defer_to_downstream": "<下游 asset_type>"`：
+### 生成侧异议（辩护回合）
+修复不是单向服从：主控（或生成 agent）认为某 finding 误判或属有意取舍时，可将异议回传审查 agent **复核一次**（指出 finding 与候选原文的冲突点）。复核后维持原判则进修复或豁免通道，争议不决升级用户裁决——禁止以「审查说了算」静默服从，也禁止以「生成进行中」拒绝异议。
+
+### 横向回执（多候选并列资产）
+direction 等按方法论产出多候选供用户裁决的资产：逐候选审查独立出回执，主控收集同轮全部回执后**汇总横向比较呈报用户**（最强候选 / 实质差异维：两难·组织原则·情感登记·承诺类型 / 推荐序 + 各候选 strength 摘要），用户裁决选定后仅对选定候选走锁定循环。未选定候选不锁定，留档备查。
+
+### warning 的豁免通道（两种，均须显式记录）
+
+**① 下游豁免（defer_to_downstream）**：若某 `warning` 确属**下游执行责任**（当前资产层无法修复，本质是给下游资产的执行边界提醒），可在 finding 中显式标注 `"defer_to_downstream": "<下游 asset_type>"`：
 - 主控判断是否豁免：豁免则该 warning 不阻断当前资产锁定，但**必须记录跟踪责任**（哪个下游资产、须兑现什么），并在生成该下游资产时强制检查是否兑现。
 - 豁免须有充分理由（当前资产确实无法承载该修复）；能在本资产层修复的 warning 不得豁免，必须进循环。
+
+**② 艺术风险豁免（accepted_risk）**：若某 `warning` 指向的是**有意的创作取舍**（大胆的表里反差、激进慢热、负向承诺主导等 strength 认定的设计意图被审查判为风险），不得静默修复削平，走显式豁免：
+- finding 标注 `"accepted_risk": true`，**呈报用户确认**（说明风险与对应的 strength/设计意图）后记录 `"accepted_by": "user"`；未获用户确认不得豁免。
+- 豁免后该 warning 不阻断锁定；用户否决则进修复循环。
+- 适用边界：方法论硬约束（schema 完整性、两难结构、血缘真实性）不得用 accepted_risk 豁免——只有「方向选择类」风险可豁免。
 
 ### 查询未解决项
 ```sql
 -- 未豁免的 warning（仍需进循环修复）
 SELECT subject_ref, findings_json FROM reviews
 WHERE findings_json LIKE '%warning%'
-  AND findings_json NOT LIKE '%defer_to_downstream%';
+  AND findings_json NOT LIKE '%defer_to_downstream%'
+  AND findings_json NOT LIKE '%accepted_risk%';
 ```

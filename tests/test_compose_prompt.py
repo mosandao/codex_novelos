@@ -16,8 +16,10 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 
 # 组装结果回归闸（纯方法论部分行数：主干 + 命中模块，不含输入数据区）。
 # 防未来审查条款无节制回填主干——收紧前先确认模块化结构未被破坏。
+# 2026-08 方向阶段反向审查批次有意扩充（七维比较表/证伪清单/负向承诺/
+# 血缘逐字段/strength 通道），direction 190→210、direction-review 120 保持。
 SIZE_BUDGET = {
-    "direction": 190,
+    "direction": 210,
     "direction-review": 120,
     "fusion": 280,
     "kernel-fusion": 200,
