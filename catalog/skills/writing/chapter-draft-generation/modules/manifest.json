@@ -26,6 +26,7 @@
     }
   ],
   "data_slots": [
+    "kernel_full",
     "persona_full",
     "upstream:chapter_plan",
     "canon_minimal",

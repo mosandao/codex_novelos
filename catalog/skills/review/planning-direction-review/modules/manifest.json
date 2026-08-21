@@ -59,7 +59,9 @@
   ],
   "data_slots": [
     "project_setup",
-    "persona_full"
+    "kernel_full",
+    "persona_full",
+    "subject"
   ],
   "decision_scope": "judge"
 }

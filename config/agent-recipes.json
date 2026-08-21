@@ -66,6 +66,7 @@
       "skill": "planning/story-direction",
       "slots": [
         "project_setup",
+        "kernel_full",
         "persona_full",
         "genre_pack"
       ],
@@ -80,6 +81,7 @@
       "skill": "review/planning-direction-review",
       "slots": [
         "project_setup",
+        "kernel_full",
         "persona_full",
         "subject"
       ],
@@ -149,6 +151,7 @@
       "composer_key": "character-contract",
       "skill": "planning/character-contract",
       "slots": [
+        "kernel_full",
         "persona_full",
         "upstream:architecture",
         "upstream:strategy"
@@ -164,6 +167,8 @@
       "skill": "review/planning-character-contract-review",
       "slots": [
         "subject",
+        "kernel_full",
+        "persona_full",
         "upstream:architecture",
         "upstream:strategy"
       ],
@@ -284,10 +289,10 @@
       "composer_key": "chapter-draft",
       "skill": "writing/chapter-draft-generation",
       "slots": [
-        "upstream:chapter_plan",
+        "kernel_full",
         "persona_full",
+        "upstream:chapter_plan",
         "canon_minimal",
-        "craft_refs",
         "review_feedback"
       ],
       "divergence": "constrained",
@@ -301,9 +306,9 @@
       "skill": "review/prose-quality-review",
       "slots": [
         "subject",
-        "upstream:chapter_plan",
+        "kernel_full",
         "persona_full",
-        "craft_refs"
+        "upstream:chapter_plan"
       ],
       "divergence": null,
       "decision_scope": "judge",

@@ -30,7 +30,7 @@ def _make_db() -> sqlite3.Connection:
         CREATE TABLE creator_profile_versions (
             id TEXT PRIMARY KEY, profile_id TEXT, parent_version_id TEXT,
             created_at TEXT, content_resource_id TEXT, subject_hash TEXT);
-        CREATE TABLE project_creator_bindings (project_id TEXT, profile_version_id TEXT);
+        CREATE TABLE project_creator_bindings (project_id TEXT, profile_version_id TEXT, kernel_version_id TEXT);
         CREATE TABLE planning_assets (
             id TEXT PRIMARY KEY, project_id TEXT, asset_type TEXT, scope_ref TEXT,
             revision INTEGER, status TEXT, content_resource_id TEXT, metadata_json TEXT);
@@ -127,7 +127,7 @@ def _seed_user_persona(conn: sqlite3.Connection) -> None:
         "INSERT INTO creator_profile_versions VALUES "
         "('cpv:1', 'cp:1', 'creator-profile-version:system-test:1', '2026-01-01', 'res:1', ?)",
         ("sha256:" + "a" * 64,))
-    conn.execute("INSERT INTO project_creator_bindings VALUES ('project:p1', 'cpv:1')")
+    conn.execute("INSERT INTO project_creator_bindings (project_id, profile_version_id) VALUES ('project:p1', 'cpv:1')")
     conn.execute(
         "INSERT INTO projects VALUES ('project:p1', ?)",
         (json.dumps({"setup": {"channel": "男频", "title": "测试书"}}, ensure_ascii=False),))
@@ -182,27 +182,45 @@ class DirectionSlots(unittest.TestCase):
                                  context={"setup": {"genre_profile": None}})
         self.assertEqual(
             [t for t, _ in sections],
-            ["project_setup v2 快照（硬输入）", "创作者人格签名（第一因，persona 全文）",
-             "题材信息包"],
+            ["project_setup v2 快照（硬输入）", "作者内核（kernel 全文）",
+             "创作者人格签名（第一因，persona 全文）", "题材信息包"],
         )
-        self.assertTrue(sections[1][1].startswith("subject_hash: sha256:"))
-        self.assertIn("迷恋秩序又怀疑秩序", sections[1][1])
+        self.assertIn("无内核来源", sections[1][1])  # v2 旧项目无内核绑定 → 占位
+        self.assertTrue(sections[2][1].startswith("subject_hash: sha256:"))
+        self.assertIn("迷恋秩序又怀疑秩序", sections[2][1])
+
+    def test_with_kernel_binding_injects_kernel_full(self):
+        """kernel_derive 项目：kernel_full 注入内核全文（P2-1 链上注入）。"""
+        conn = _make_db()
+        _seed_user_persona(conn)
+        _seed_kernel_for_fusion(conn)
+        conn.execute(
+            "UPDATE project_creator_bindings SET kernel_version_id = 'creator-profile-version:k1:1' "
+            "WHERE project_id = 'project:p1'")
+        sections = resolve_slots(conn, ASSET_DIRS["direction"], project_id="project:p1",
+                                 context={"setup": {}})
+        kernel_sec = sections[1]
+        self.assertTrue(kernel_sec[0].startswith("作者内核"))
+        self.assertIn("测试内核", kernel_sec[1])
+        self.assertIn("sha256:", kernel_sec[1])
 
     def test_without_binding_placeholder(self):
         conn = _make_db()
         conn.execute("INSERT INTO projects VALUES ('project:p2', '{}')")
         sections = resolve_slots(conn, ASSET_DIRS["direction"], project_id="project:p2",
                                  context={"setup": {}})
-        self.assertEqual(sections[1][0], "创作者人格签名")
-        self.assertIn("禁止无签名生成方向", sections[1][1])
+        self.assertEqual(sections[2][0], "创作者人格签名")
+        self.assertIn("禁止无签名生成方向", sections[2][1])
 
     def test_review_slots_match_direction(self):
         conn = _make_db()
         _seed_user_persona(conn)
+        _seed_locked_direction(conn)
         d = resolve_slots(conn, ASSET_DIRS["direction"], project_id="project:p1",
                           context={"setup": {}})
-        r = resolve_slots(conn, ASSET_DIRS["direction-review"], project_id="project:p1")
-        self.assertEqual([t for t, _ in d][:2], [t for t, _ in r])
+        r = resolve_slots(conn, ASSET_DIRS["direction-review"], project_id="project:p1",
+                          subject_id="pa:d1")
+        self.assertEqual([t for t, _ in d][:3], [t for t, _ in r][:3])
 
     def test_unregistered_slot_rejected(self):
         conn = _make_db()

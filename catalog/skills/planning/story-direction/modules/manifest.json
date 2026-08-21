@@ -67,6 +67,7 @@
   ],
   "data_slots": [
     "project_setup",
+    "kernel_full",
     "persona_full",
     "genre_pack"
   ],
