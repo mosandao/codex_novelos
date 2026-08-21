@@ -23,11 +23,12 @@
 
 参与者：主控智能体、规划智能体、写作链、`$novel-continuity`、`scripts/novelos_register_characters.py`。
 
-1. **立档**：character_contract 锁定时，主控用 `novelos_register_characters.py --project <id> --roster <json>` 把 metadata.character_roster 落人物注册表（main/secondary，arc_role 与预期退场写 state_json）。
+1. **立档**：character_contract 锁定时，主控用 `novelos_register_characters.py --project <id> --roster <json>` 把 metadata.character_roster 落人物注册表（main/secondary，arc_role 与预期退场写 state_json）。**重锁对账**：曾在旧 roster 但不在新 roster 的人物输出 WARN——契约修订删除的用 `--status-update` 退役，误删的补回。
 2. **动态创建**：次要角色由章纲执行卡「新登场人物微档案」预登记（规划端造人，正文只消费不发明——Writer 写到未预登记新名字 = 违卡，entity-authority-review 判 blocking）；章节接受后主控用 `--entry` 落注册表（minor/secondary）。
-3. **状态迁移**：`$novel-continuity` 提取 character_status 候选（正文确认的退场/转化/休眠/死亡；新登场与下落不明不算），晋升后主控用 `--status-update` 更新注册表（dead 必带 死亡型 exit_type；未登记人物按 minor 补登）。
+3. **状态迁移**：`$novel-continuity` 提取 character_status 候选（正文确认的退场/转化/休眠/死亡；新登场与下落不明不算），晋升后主控用 `--status-update` 更新注册表（单对象或数组；dead 必带 死亡型 exit_type；非退场状态不带 exit_type 并整体清空退场痕迹——复活场景；每次迁移在 state_json.状态史 留审计记录；未登记人物按 minor 补登）。
 4. **升级**：动态配角需要卷级职责/回归时走 change proposal → character_contract 新 revision（回归面孔名单为判定清单）→ 新 roster 重跑 `--roster`（升级 role_class，不覆盖 status）。
-5. **消费**：canon 最小集注入「人物状态」节（死/退/眠优先近 20 人）；投影渲染 `连续性/人物状态注册表.md` 与每人物档案的分类/状态/退场头部。
+5. **对账**：连续性收尾必跑 `novelos_register_characters.py --project <id> --pending-status`——比对 promoted 候选集中每人物最新 character_status 候选与注册表现状，漂移（漏跑迁移/迁移被回滚）非零退出，处理完才能开下一章。
+6. **消费**：canon 最小集注入「人物状态」节（死/退/眠优先近 20 人）；投影渲染 `连续性/人物状态注册表.md` 与每人物档案的分类/状态/退场头部。
 
 ## 用户实时打断
 
@@ -58,7 +59,7 @@ Character 与 World 可以并行生成（上游相同、互不依赖），全部
 2. 没有有效 Chapter Plan 时，按规划流程生成并锁定；执行卡包含可追溯到 locked Direction 的 `soul_pressure` 和 `moral_residue`，纯过渡场景允许明确降低思想前景强度。
 3. 主控创建写作智能体 sub agent，注入 `style_refs`（至少含当前 Creator Profile 精确 ref 和 locked Direction 精确 ref）；sub agent 返回正文候选，主控 `INSERT INTO chapters (...,'draft',...)`。
 4. 主控创建独立审查 sub agent 审查不可变正文 Hash → `INSERT INTO reviews`；审查通过后 `UPDATE chapters SET status='accepted'`。
-5. `$novel-continuity` 从已接受正文提取候选（事实/承诺/期待/关系/故事弧状态/人物状态迁移），绑定正文 Hash，主控 SQL INSERT 到对应连续性账本；character_status 晋升后经 `novelos_register_characters.py --status-update` 更新人物注册表。
+5. `$novel-continuity` 从已接受正文提取候选（事实/承诺/期待/关系/故事弧状态/人物状态迁移），绑定正文 Hash，主控 SQL INSERT 到对应连续性账本；character_status 晋升后经 `novelos_register_characters.py --status-update` 更新人物注册表，收尾跑 `--pending-status` 对账。
 
 拒绝路径：正文修改使旧审查失效则不得接受；任一失败不得部分更新连续性账本。
 

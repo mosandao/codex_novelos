@@ -18,6 +18,7 @@ description: 从已接受小说章节提取连续性数据。章节接受后需�
    - 表与列名以 `db/migrations/schema.sql` 为准：`chapter_facts(fact_type/subject/description_resource_id)`、`narrative_promises(promise_key)`、`expectation_ledgers(expectation_key)`、`relationship_states(subject_ref/object_ref/state_resource_id)`、`arc_states(arc_ref/state_resource_id)`。
 
 5. 如果提取的事实与既有 Canon 冲突，列出双方来源让主控决策，不静默覆盖。
-6. **character_status 晋升后**：`scripts/novelos_register_characters.py --project <id> --status-update '{"name": …, "status": dead|departed|transformed|dormant|peripheral|active, "exit_type": 七型之一, "exit_chapter_id": …}'` 更新人物注册表（dead 必须带 死亡型 exit_type）；执行卡预登记的新配角若尚未入库，用 `--entry` 补登。
+6. **character_status 晋升后**：`scripts/novelos_register_characters.py --project <id> --status-update '<json>'` 更新人物注册表（单对象或数组，一章多个迁移一次提交）。条目形如 `{"name": …, "status": dead|departed|transformed|dormant|peripheral|active, "exit_type": 七型之一, "exit_chapter_id": …}`：dead 必须带 死亡型 exit_type；非退场状态（active/peripheral）不带 exit_type，且会整体清空遗留退场痕迹（复活场景）；每次迁移在 state_json.状态史 留审计记录。执行卡预登记的新配角若尚未入库，用 `--entry` 补登。
+7. **收尾必跑对账**：`scripts/novelos_register_characters.py --project <id> --pending-status`——比对 promoted 候选集中每人物最新 character_status 候选与注册表现状，非零退出即有漂移（漏跑状态迁移或迁移被回滚），处理完才能开始下一章。
 
 连续性提取不需要独立审查流程——sub agent 直接提取，主控确认后写入。

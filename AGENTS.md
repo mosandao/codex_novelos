@@ -56,7 +56,7 @@ direction → architecture → strategy → character‖world（可并行）→ 
 2. `$novel-writing` 起草（composer `--asset chapter-draft` 出厂注入 → sub agent → SQL INSERT）。
 3. `$novel-review` 审查（composer `--asset <asset>-review --subject <id>` → INSERT reviews）。
 4. **审查-修复循环**：blocking+warning 必须修复，修复 = 新 revision 经 `--review-feedback` 受控重组装；只剩 note 才锁定/接受。**循环边界：3 轮未收敛或同因复发 → 升级用户裁决，禁止无限打转**（详见 novel-review SKILL）。
-5. 接受后 `$novel-continuity` 提取连续性（character_status 晋升后经 `novelos_register_characters.py --status-update` 更新人物注册表）。已接受章节局部修改可直接 UPDATE，除非改变章节状态。
+5. 接受后 `$novel-continuity` 提取连续性（character_status 晋升后经 `novelos_register_characters.py --status-update` 更新人物注册表，收尾必跑 `--pending-status` 对账——账本候选与注册表漂移非零退出，处理完才能开下一章）。已接受章节局部修改可直接 UPDATE，除非改变章节状态。
 6. **用户实时打断与修改（最高优先级）**：创作链任何阶段（规划/写作/审查进行中）用户提出修改要求时——①主控立即暂停进行中的生成与提交；②按影响面分流：setup 级（频道/平台/基调）→ UPDATE setup + `propagate_stale` 全量重审；资产级（方向/人物/世界等）→ change proposal 走上游修订；章内级（措辞/场景偏好）→ 审查回执受控重组装（`--review-feedback`）；③呈报影响面清单（哪些 locked 资产将 stale）获用户确认后执行。禁止以「生成进行中」为由推迟用户指令，禁止静默改后继续。
 
 ## 创作方法论
