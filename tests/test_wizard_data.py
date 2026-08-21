@@ -130,14 +130,15 @@ class WizardWordTables(unittest.TestCase):
 class RequestSchemaIntegrity(unittest.TestCase):
     def test_schema_json_loadable_with_expected_anchor(self):
         schema = json.loads(REQUEST_SCHEMA.read_text(encoding="utf-8"))
+        # v2/v3 双分支过渡期（Task 30）：v3 author_kernel 取代 v2 creator，向导切换后移除 v2
         self.assertEqual(
-            schema["properties"]["request_type"]["const"],
-            "novelos.project.create.v2",
+            schema["properties"]["request_type"]["enum"],
+            ["novelos.project.create.v2", "novelos.project.create.v3"],
         )
         setup_props = schema["properties"]["setup"]["properties"]
         for field in (
-            "title", "creator", "channel", "platform", "platform_traits",
-            "scale", "primary_genre", "secondary_directions",
+            "title", "creator", "author_kernel", "channel", "platform",
+            "platform_traits", "scale", "primary_genre", "secondary_directions",
             "emotional_surface", "emotional_core", "tonal_contrast",
             "aesthetic_styles", "genre_profile", "reference_material",
         ):

@@ -69,10 +69,10 @@
 
 ### P1 作者内核层（L0 + 向导 + 创建管线）
 
-- [ ] **P1-1 migration 018**：备份仪式 → creator_profiles 重建（ownership CHECK + `author_kernel`）→ project_creator_bindings 重建（+ `kernel_version_id` FK、binding_mode + `kernel_derive`）→ characters 重建（+ role_class main/secondary/minor、+ status active/peripheral/dormant/departed/transformed/dead、+ first_chapter_id/exit_chapter_id/exit_type）→ schema.sql 基线同步 → schema_migrations 登记。
-- [ ] **P1-2 `config/schemas/author-kernel.schema.json`**：identity（核心问题/价值公理/情感立场/审美承诺/知识观/创作公理/内核盲点）+ psychology 八维五段式（注意偏向/情绪加工/核心需求/依恋/防御补偿/不确定性耐受/道德直觉/认知更新，每维 tendency/triggers/reactions/blindspots/revision）+ knowledge_ecology（domain/depth/use/verification/common_errors）+ growth_log（trigger/attribution 四归因 express|slot|setting|kernel/change）+ stability_rules。
-- [ ] **P1-3 新 skill `catalog/skills/onboarding/author-kernel-fusion/`**（七件套；create 从 hints 融合 / revise 必须带四归因 growth_log；原型签名仅作参考资料）+ ASSET_DIRS 注册 `kernel-fusion` + 矩阵行 + marker/SIZE_BUDGET 测试。
-- [ ] **P1-4 v3 请求 schema + `novelos_create_project.py`**：kernel 候选校验门（author-kernel schema + 库内反查 select 模式）+ 落库事务扩展（新建内核 profile/version → 每书分身 version parent=内核版本 → binding kernel_derive）+ 删除原型三方比对（保留 config 完整性校验）。
+- [x] **P1-1 migration 018**：备份仪式 → creator_profiles 重建（ownership CHECK + `author_kernel`）→ project_creator_bindings 重建（+ `kernel_version_id` FK、binding_mode + `kernel_derive`）→ characters 重建（+ role_class main/secondary/minor、+ status active/peripheral/dormant/departed/transformed/dead、+ first_chapter_id/exit_chapter_id/exit_type）→ schema.sql 基线同步 → schema_migrations 登记。
+- [x] **P1-2 `config/schemas/author-kernel.schema.json`**：identity（核心问题/价值公理/情感立场/审美承诺/知识观/创作公理/内核盲点）+ psychology 八维五段式（注意偏向/情绪加工/核心需求/依恋/防御补偿/不确定性耐受/道德直觉/认知更新，每维 tendency/triggers/reactions/blindspots/revision）+ knowledge_ecology（domain/depth/use/verification/common_errors）+ growth_log（trigger/attribution 四归因 express|slot|setting|kernel/change）+ stability_rules。
+- [x] **P1-3 新 skill `catalog/skills/onboarding/author-kernel-fusion/`**（七件套；create 从 hints 融合 / revise 必须带四归因 growth_log；原型签名仅作参考资料）+ ASSET_DIRS 注册 `kernel-fusion` + 矩阵行 + marker/SIZE_BUDGET 测试。
+- [x] **P1-4 v3 请求 schema + `novelos_create_project.py`**：kernel 候选校验门（author-kernel schema + 库内反查 select 模式）+ 落库事务扩展（新建内核 profile/version → 每书分身 version parent=内核版本 → binding kernel_derive）+ 删除原型三方比对（保留 config 完整性校验）。
 - [ ] **P1-5 creator-signature-fusion 换派生源**：`kernel_full` 槽 + kernel-present 条件模块（内核层继承不变可追溯，表达层 voice_samples/trait_profile/七字段按 setup 适配）；creator-signature schema 加可选 `kernel_origin`；creator-derivation-candidate parent 反查改内核版本。
 - [ ] **P1-6 向导 v3**：`novelos_export_kernel_roster.py` 生成 `ui/kernel-roster.js` 镜像；project-wizard.html 07 步重做（选已有内核 / 新建内核 hints 表单含两个新字段）；移除原型选择 UI；request_type v3。
 - [ ] **P1-7 sql-reference.md 内核两步查询 + AGENTS.md 向导条款改写**。
@@ -133,3 +133,17 @@
 - **[T30-P0-3] novel-planning SKILL 过时文本修正** — 2026-08-21
   - 验证：100 tests OK（test_project_skills frontmatter 一致性通过）。
   - 文档变更：`.agents/skills/novel-planning/SKILL.md`（步骤 3 改为「全部八类规划资产已注册」；「十二字段」→「十三字段」漏改修正）。
+- **[T30-P1-1] migration 018** — 2026-08-21
+  - 验证：备份 + 恢复演练通过（`backup_novelos_database.py`，pre 回滚件 `novelos-v2-schema18-pre-backup.db` 保留）；迁移后 `PRAGMA foreign_key_check` 零违例；ownership/status CHECK 注入实测拒绝；100 tests OK；四命令全绿。现网 30 profiles / 1 binding / 0 characters 数据零损失。
+  - 文档变更：`db/migrations/018_author_kernel_and_characters.sql`（新）；`db/migrations/schema.sql`（characters 基线同步；creator 系表历史上就不在基线中，维持现状）；`scripts/export_novelos_data.py` + `tests/test_data_export.py`（drill 证据对升至 schema18：export + restore 双 manifest）；`tasks/migration/schema18_{export,restore}_drill.json`（新证据）。
+  - 备注：schema12_restore_drill.json 曾被无参备份调用误刷新，已 `git checkout` 还原为历史证据；后续备份必须显式传 `--backup/--manifest`。
+- **[T30-P1-2] author-kernel schema** — 2026-08-21
+  - 验证：107 tests OK（P1-3 一并验证）；compileall 全绿。
+  - 文档变更：`config/schemas/author-kernel.schema.json`（新：identity 八字段 + 八维五段式 $defs/dimension + 知识生态深度四档枚举 + growth_log 四归因枚举）。stability_rules 未入 schema——修正纪律属方法论约束，由 author-kernel-fusion prompt 执行，growth_log 携带归因数据。
+- **[T30-P1-3] author-kernel-fusion skill + 组装器接入** — 2026-08-21
+  - 验证：107 tests OK（新增 test_kernel_fusion.py 6 用例：载荷双模式校验/拒识、create 槽序与 marker、revise 基底直读、未知 base 停机；SIZE_BUDGET kernel-fusion=200 实测通过）；四命令全绿。
+  - 文档变更：`catalog/skills/onboarding/author-kernel-fusion/`（prompt.md/metadata.yaml/provenance.yaml/modules 四件 + mode-create/mode-revise 双模块）；`config/schemas/kernel-candidate.schema.json`（新信封，revise 必带 base_version 的 if-then）；`scripts/novelos_compose_prompt.py`（ASSET_DIRS + kernel_hints/kernel_subject 槽 + build_context_kernel_fusion + validate_kernel_fusion_payload + main 路由 + fingerprints/project_setup 容错内核载荷）；`config/agent-recipes.json` + `documentation/agent-recipes.md`（kernel_fusion 行 + 槽位词表 kernel_hints/kernel_subject/kernel_full）；`tests/test_kernel_fusion.py` + `tests/test_compose_prompt.py`。
+- **[T30-P1-4] v3 请求 schema + 创建管线内核化** — 2026-08-21
+  - 验证：111 tests OK（新增 test_create_v3.py 6 用例：v3 全链端到端[建核→缝合 payload→分身→落库 kernel_derive+parent=内核]、select 未知内核拒绝、select 非内核 profile 拒绝、revise 改名/growth_log 缺失拒绝、分身逐字复制内核条目拒绝）；四命令全绿。
+  - 文档变更：`config/schemas/project-create-request.schema.json`（v2/v3 双分支：request_type enum + 根层 allOf 条件；author_kernel{mode select|create, kernel_version_id, kernel_hints 六字段}）；`scripts/novelos_create_project.py`（重写：内核阶段 --kernel-candidate + 独立修订 --kernel-revise + --emit-payload 缝合 select 形态、validate_kernel_candidate 两步校验、persist_kernel create/revise 双路径、validate_candidate v3 分支 parent=内核库内反查 + KERNEL_IDENTITY_LIST_FIELDS 逐字复制、persist v3 binding kernel_derive+kernel_version_id、删除 cross_archetype_similarity——撞库改由 fusion 生成端指纹机制承担）；`tests/test_create_v3.py`（新）；`tests/test_wizard_data.py`（request_type 断言跟随 enum）；`tests/test_compose_prompt.py`（删除 CrossArchetypeSimilarity 类）。
+  - 备注：① v2 分支为向导切换过渡兼容，P1-6 向导 v3 上线时移除；② 版本 id 模式放宽为可选 `:<revision>` 后缀——生产生成 `creator-profile-version:<uuid>` 无后缀，config 原型带后缀，两种形态均合法；③ create 模式建核后 `--emit-payload` 机械缝合 id/hash（非内容改写，协议允许）。

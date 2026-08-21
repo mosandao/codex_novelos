@@ -1,41 +1,51 @@
 #!/usr/bin/env python
-"""项目创建固化管线：入口校验 → 原型反查 → 融合候选校验门 → 单事务落库。
+"""项目创建固化管线：入口校验 → 内核建核/绑定 → 分身候选校验门 → 单事务落库。
 
-向导产出的 `novelos.project.create.v2` JSON 不再靠主控眼审，本脚本一次完成：
+向导产出的 `novelos.project.create.v3` JSON 不再靠主控眼审，本脚本一次完成：
 
 1. **入口校验**（--payload，必跑）：jsonschema 结构校验
-   （config/schemas/project-create-request.schema.json）+ 词表级联校验
-   （channel×platform×题材×二级方向×基调池×美学，全部对照
-   ui/project-wizard-data.js 静态权威数据）+ platform_traits/genre_profile
-   随行快照与词表一致性 + 表里互斥规则（表层 light/dark 互斥、内核恰 1）。
-2. **原型三方比对**（--payload 阶段）：payload × config/system_archetypes.json
-   × 向导镜像逐项比对（hash/display_name），并全量检测 18 原型镜像漂移。
-3. **校验门**（--candidate，融合后）：候选 JSON 容错解析（去代码围栏/括号
-   平衡修复，修复必报告）→ jsonschema 信封（creator-derivation-candidate）
-   → 签名 v2 深层（creator-signature）→ parent_subject_hash 反查 config
-   → parent 属于用户勾选集 → 7 字段无逐字复制父值 → 条数 2-4 → hash 计算。
+   （config/schemas/project-create-request.schema.json，v2/v3 双分支）+
+   词表级联校验（channel×platform×题材×二级方向×基调池×美学，全部对照
+   ui/project-wizard-data.js 静态权威数据）+ 表里互斥规则。
+   v3 内核分支：mode=select 时**库内反查**（kernel_version_id 存在、
+   profile ownership='author_kernel'、status='active'、subject_hash 相符）；
+   mode=create 时 kernel_hints 由 schema 约束。
+   v2 过渡分支：原型三方比对照旧（向导 v3 上线后移除）。
+2. **内核阶段**（--kernel-candidate，mode=create 首次建核或独立修订）：
+   候选容错解析 → kernel-candidate 信封 + author-kernel 深层两步校验 →
+   revise 基底库内反查 + display_name 连续性 + growth_log 非空 →
+   单事务落库（内核资源 / 派生资源 / creator_profiles[author_kernel] /
+   creator_profile_versions）。`--emit-payload <path>` 输出缝合后的
+   select 形态 payload（mode=create 建核后自动回填 kernel_version_id）。
+3. **校验门**（--candidate，分身融合后）：候选容错解析 →
+   creator-derivation-candidate 信封 → 签名 v2 深层 → v3 下 parent=内核
+   版本库内反查（v2 下 parent=config 原型反查）→ 逐字复制与条数检查 →
+   hash 计算。
 4. **落库**（默认；--dry-run 关闭）：BEGIN IMMEDIATE 单事务 + foreign_keys=ON
-   + 失败整体回滚，六表一次写入（签名资源 / 派生资源 / creator_profiles /
-   creator_profile_versions / projects 含 setup 快照 / project_creator_bindings）。
-   派生资源内嵌**完整用户输入快照**（selected_archetypes + user_persona_hints
-   + setup 全文），setup 快照带 setup_schema_version 标记。
+   + 失败整体回滚。v3 六表一次写入（签名资源 / 派生资源 / creator_profiles /
+   creator_profile_versions[parent=内核版本] / projects 含 setup 快照 /
+   project_creator_bindings[binding_mode='kernel_derive' + kernel_version_id]）。
 
-判定策略：FAIL 阻断落库（退出码 1）；WARN 只提示不阻断。
-parent_rationale 含错配警告字样时脚本提示「须呈报用户裁决后方可落库」（协议
-见 AGENTS.md「项目创建向导」）。
+判定策略：FAIL 阻断（退出码 1）；WARN 只提示不阻断。
+parent_rationale 含错配警告字样时提示「须呈报用户裁决后方可落库」。
 
-用法::
+用法（v3 标准流）::
 
-    # 第一步：收到向导 JSON 后立即做入口校验
+    # ① 入口校验
     python scripts/novelos_create_project.py --payload payload.json
 
-    # 第二步：融合候选返回后，校验门 + 落库（一步完成）
+    # ② mode=create：内核融合候选 → 建核 + 输出缝合 payload
     python scripts/novelos_create_project.py --payload payload.json \\
-        --candidate candidate.json
+        --kernel-candidate kernel_candidate.json \\
+        --emit-payload payload.bound.json
 
-    # 只校验不落库
-    python scripts/novelos_create_project.py --payload payload.json \\
-        --candidate candidate.json --dry-run
+    # ③ 分身融合候选（用缝合 payload 或原 select payload）→ 项目落库
+    python scripts/novelos_create_project.py --payload payload.bound.json \\
+        --candidate persona_candidate.json
+
+    # 内核独立修订（不建项目）
+    python scripts/novelos_create_project.py --kernel-revise revise_payload.json \\
+        --kernel-candidate kernel_candidate.json
 """
 
 from __future__ import annotations
@@ -50,7 +60,7 @@ from pathlib import Path
 from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_DB = REPO_ROOT / "data/novelos-v2.db"
+DEFAULT_DB = REPO_ROOT / "data" / "novelos-v2.db"
 WIZARD_DATA_FILE = REPO_ROOT / "ui/project-wizard-data.js"
 ARCHETYPE_CONFIG = REPO_ROOT / "config/system_archetypes.json"
 SCHEMA_DIR = REPO_ROOT / "config/schemas"
@@ -70,11 +80,14 @@ SIGNATURE_FIELDS = (
     "expression_preferences",
     "negative_constraints",
 )
-HINT_KEYS = {"taste_anchors", "people_and_scenes", "hard_nos", "obsessions"}
+# 内核 identity 中可与分身七字段发生逐字复制的清单字段（v3 逐字复制检查的比对面）。
+KERNEL_IDENTITY_LIST_FIELDS = (
+    "core_questions",
+    "value_axioms",
+    "aesthetic_commitments",
+    "creative_axioms",
+)
 MISMATCH_MARKERS = ("错配警告", "mismatch", "根本冲突", "根本相斥", "调和建议")
-
-# 跨原型查重：候选 7 字段与未选中原型的 3-gram 包容度超阈值触发 WARN。
-CROSS_ARCHETYPE_THRESHOLD = 0.60
 
 
 def content_hash(text: str) -> str:
@@ -90,9 +103,26 @@ def load_config_archetypes() -> list[dict[str, Any]]:
     return json.loads(ARCHETYPE_CONFIG.read_text(encoding="utf-8"))
 
 
-def _candidate_shape_ok(obj: Any) -> bool:
-    """括号修复后的顶层形状校验：中段缺括号会在尾部补齐后「解析成功但内容
-    错位」（字段被嵌进错误的层级），必须靠形状检查兜住。"""
+def is_v3(payload: dict[str, Any]) -> bool:
+    return payload.get("request_type") == "novelos.project.create.v3"
+
+
+def lookup_kernel_version(conn: sqlite3.Connection, version_id: str) -> sqlite3.Row | None:
+    """库内反查内核版本（含 profile 归属校验所需列）。统一 Row 工厂便于按名取列。"""
+    conn.row_factory = sqlite3.Row
+    return conn.execute(
+        "SELECT v.id, v.revision, v.subject_hash, v.profile_id, "
+        "       p.display_name, p.status, p.ownership, "
+        "       CAST(r.content AS TEXT) AS kernel_json "
+        "FROM creator_profile_versions v "
+        "JOIN creator_profiles p ON p.id = v.profile_id "
+        "JOIN resources r ON r.id = v.content_resource_id "
+        "WHERE v.id = ?",
+        (version_id,),
+    ).fetchone()
+
+
+def _persona_shape_ok(obj: Any) -> bool:
     return (
         isinstance(obj, dict)
         and {"parent_version_id", "signature"} <= set(obj)
@@ -101,12 +131,24 @@ def _candidate_shape_ok(obj: Any) -> bool:
     )
 
 
-def parse_candidate_text(raw: str) -> tuple[dict[str, Any], list[str]]:
-    """容错解析融合候选：裸 JSON → 去围栏 → 尾部截断修复。修复必须报告。
+def _kernel_shape_ok(obj: Any) -> bool:
+    return (
+        isinstance(obj, dict)
+        and {"mode", "display_name", "kernel"} <= set(obj)
+        and isinstance(obj["kernel"], dict)
+        and "identity" in obj["kernel"]
+    )
+
+
+def parse_candidate_text(raw: str, kind: str = "persona") -> tuple[dict[str, Any], list[str]]:
+    """容错解析候选：裸 JSON → 去围栏 → 尾部截断修复。修复必须报告。
 
     只做**安全**修复：去围栏、给尾部截断补闭合括号。中段缺括号（解析成功但
     字段错位）无法安全自动修复——形状校验不过即判解析失败，要求 agent 重出。
+    kind=persona 查分身形状（parent_version_id+signature）；
+    kind=kernel 查内核形状（mode+display_name+kernel.identity）。
     """
+    shape = _persona_shape_ok if kind == "persona" else _kernel_shape_ok
     notes: list[str] = []
     text = raw.strip()
     try:
@@ -154,7 +196,7 @@ def parse_candidate_text(raw: str) -> tuple[dict[str, Any], list[str]]:
             obj = json.loads(text + closer)
         except json.JSONDecodeError as exc:
             raise _fail from exc
-        if not _candidate_shape_ok(obj):
+        if not shape(obj):
             raise _fail
         notes.append(f"补齐尾部未闭合括号 {closer!r}（结构修复不改动内容）")
         return obj, notes
@@ -165,6 +207,7 @@ def validate_request(
     payload: dict[str, Any],
     wizard: dict[str, Any],
     cfg: dict[str, dict[str, Any]],
+    conn: sqlite3.Connection,
 ) -> tuple[list[str], list[str]]:
     import jsonschema
 
@@ -233,7 +276,31 @@ def validate_request(
     if s["genre_profile"] is not None and s["genre_profile"] != gp:
         errors.append("genre_profile 与词表快照不一致")
 
-    # 原型三方比对（payload × config × 镜像）
+    if is_v3(payload):
+        ak = s["author_kernel"]
+        if ak["mode"] == "select":
+            row = lookup_kernel_version(conn, ak["kernel_version_id"])
+            if row is None:
+                errors.append(
+                    f"kernel_version_id={ak['kernel_version_id']!r} 库中不存在"
+                )
+            else:
+                if row["ownership"] != "author_kernel":
+                    errors.append(
+                        f"kernel_version_id 指向 ownership={row['ownership']!r} 的版本——"
+                        "只能绑定 author_kernel 内核"
+                    )
+                if row["status"] != "active":
+                    errors.append(f"内核 profile status={row['status']!r}，非 active")
+                if row["subject_hash"] != ak["subject_hash"]:
+                    errors.append("内核 subject_hash 与库内反查不符")
+                if ak.get("display_name") and ak["display_name"] != row["display_name"]:
+                    warns.append(
+                        f"内核 display_name 与库不符（库内 {row['display_name']!r}）"
+                    )
+        return errors, warns
+
+    # v2 过渡分支：原型三方比对（payload × config × 镜像）
     mirror = {a["profile_version_id"]: a for a in wizard["system_archetypes"]}
     for i, sa in enumerate(s["creator"]["selected_archetypes"], 1):
         tag = f"[{i}] {sa['display_name']}"
@@ -262,10 +329,155 @@ def validate_request(
     return errors, warns
 
 
+def validate_kernel_candidate(
+    candidate: dict[str, Any],
+    conn: sqlite3.Connection,
+) -> tuple[list[str], str]:
+    """内核候选校验门：信封 + author-kernel 深层 + revise 基底反查。返回 (errors, kernel_hash)。"""
+    import jsonschema
+
+    errors: list[str] = []
+    env_schema = json.loads(
+        (SCHEMA_DIR / "kernel-candidate.schema.json").read_text(encoding="utf-8")
+    )
+    try:
+        jsonschema.validate(candidate, env_schema)
+    except jsonschema.ValidationError as exc:
+        errors.append(f"内核候选信封 schema FAIL: {exc.message}")
+
+    kernel = candidate.get("kernel", {})
+    kernel_schema = json.loads(
+        (SCHEMA_DIR / "author-kernel.schema.json").read_text(encoding="utf-8")
+    )
+    try:
+        jsonschema.validate(kernel, kernel_schema)
+    except jsonschema.ValidationError as exc:
+        errors.append(f"author-kernel schema FAIL: {exc.message}")
+
+    base_row = None
+    if candidate.get("mode") == "revise":
+        base_row = lookup_kernel_version(conn, candidate.get("base_version", ""))
+        if base_row is None:
+            errors.append(f"base_version={candidate.get('base_version')!r} 库中不存在")
+        else:
+            if base_row["ownership"] != "author_kernel":
+                errors.append("base_version 指向非 author_kernel 版本——内核只能修订内核")
+            base_identity = json.loads(base_row["kernel_json"]).get("identity", {})
+            if kernel.get("identity", {}).get("display_name") != base_identity.get("display_name"):
+                errors.append("revise 的 identity.display_name 与基底不一致——修订是演化不是重写")
+            base_log = json.loads(base_row["kernel_json"]).get("growth_log", [])
+            if len(kernel.get("growth_log", [])) <= len(base_log):
+                errors.append("revise 的 growth_log 未追加新条目——每次修订必须带本次归因")
+    else:
+        dup = conn.execute(
+            "SELECT COUNT(*) FROM creator_profiles "
+            "WHERE ownership = 'author_kernel' AND display_name = ?",
+            (candidate.get("display_name", ""),),
+        ).fetchone()[0]
+        if dup:
+            errors.append("display_name 与既有内核重名——内核是跨书根，必须可区分")
+
+    kernel_json = json.dumps(kernel, ensure_ascii=False, indent=2)
+    return errors, content_hash(kernel_json)
+
+
+def persist_kernel(
+    db_path: Path,
+    candidate: dict[str, Any],
+    kernel_hash: str,
+    payload: dict[str, Any] | None = None,
+) -> dict[str, str]:
+    """内核落库（独立事务）：create 建新内核 profile；revise 在基底 profile 上出新 revision。"""
+    kernel = candidate["kernel"]
+    kernel_json = json.dumps(kernel, ensure_ascii=False, indent=2)
+
+    snapshot = None
+    if payload is not None and is_v3(payload):
+        setup = payload["setup"]
+        snapshot = {
+            "author_kernel": setup["author_kernel"],
+            "setup": {k: v for k, v in setup.items() if k != "author_kernel"},
+        }
+    deriv = {
+        "mode": candidate["mode"],
+        "rationale": candidate["rationale"],
+        "user_input_snapshot": snapshot,
+    }
+    if candidate["mode"] == "revise":
+        deriv["base_version"] = candidate["base_version"]
+    deriv_json = json.dumps(deriv, ensure_ascii=False, indent=2)
+
+    conn = sqlite3.connect(db_path)
+    try:
+        conn.execute("PRAGMA foreign_keys = ON")
+        conn.execute("BEGIN IMMEDIATE")
+        res_kernel = f"resource:{uuid.uuid4()}"
+        res_deriv = f"resource:{uuid.uuid4()}"
+        conn.execute(
+            "INSERT INTO resources (id, media_type, content, content_hash) "
+            "VALUES (?, 'application/json', CAST(? AS BLOB), ?)",
+            (res_kernel, kernel_json, kernel_hash),
+        )
+        conn.execute(
+            "INSERT INTO resources (id, media_type, content, content_hash) "
+            "VALUES (?, 'application/json', CAST(? AS BLOB), ?)",
+            (res_deriv, deriv_json, content_hash(deriv_json)),
+        )
+        if candidate["mode"] == "revise":
+            base = lookup_kernel_version(conn, candidate["base_version"])
+            profile_id = base["profile_id"]
+            revision = conn.execute(
+                "SELECT COALESCE(MAX(revision), 0) + 1 FROM creator_profile_versions "
+                "WHERE profile_id = ?",
+                (profile_id,),
+            ).fetchone()[0]
+            version_id = f"creator-profile-version:{uuid.uuid4()}"
+            conn.execute(
+                "INSERT INTO creator_profile_versions "
+                "(id, profile_id, revision, content_resource_id, subject_hash, "
+                " parent_version_id, derivation_resource_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (version_id, profile_id, revision, res_kernel, kernel_hash,
+                 candidate["base_version"], res_deriv),
+            )
+            conn.execute(
+                "UPDATE creator_profiles SET version = version + 1, "
+                "updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                (profile_id,),
+            )
+        else:
+            profile_id = f"creator-profile:{uuid.uuid4()}"
+            version_id = f"creator-profile-version:{uuid.uuid4()}"
+            conn.execute(
+                "INSERT INTO creator_profiles (id, display_name, ownership) "
+                "VALUES (?, ?, 'author_kernel')",
+                (profile_id, candidate["display_name"]),
+            )
+            conn.execute(
+                "INSERT INTO creator_profile_versions "
+                "(id, profile_id, revision, content_resource_id, subject_hash, "
+                " parent_version_id, derivation_resource_id) VALUES (?, ?, 1, ?, ?, NULL, ?)",
+                (version_id, profile_id, res_kernel, kernel_hash, res_deriv),
+            )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+    return {
+        "kernel_profile": profile_id,
+        "kernel_version": version_id,
+        "resource_kernel": res_kernel,
+        "resource_deriv": res_deriv,
+        "subject_hash": kernel_hash,
+    }
+
+
 def validate_candidate(
     candidate: dict[str, Any],
     payload: dict[str, Any],
     cfg: dict[str, dict[str, Any]],
+    conn: sqlite3.Connection,
 ) -> tuple[list[str], str]:
     import jsonschema
 
@@ -287,27 +499,45 @@ def validate_candidate(
     except jsonschema.ValidationError as exc:
         errors.append(f"签名 schema v2 FAIL: {exc.message}")
 
-    parent = cfg.get(candidate.get("parent_version_id", ""))
-    if parent is None:
-        errors.append(f"parent_version_id={candidate.get('parent_version_id')!r} 不在 config")
+    parent_lists: dict[str, list[str]] = {}
+    if is_v3(payload):
+        ak = payload["setup"]["author_kernel"]
+        row = lookup_kernel_version(conn, ak["kernel_version_id"])
+        if row is None:
+            errors.append(f"parent 内核版本库中不存在: {ak['kernel_version_id']!r}")
+        else:
+            if candidate.get("parent_version_id") != ak["kernel_version_id"]:
+                errors.append("parent_version_id 与 payload 绑定的内核版本不符")
+            if candidate.get("parent_subject_hash") != row["subject_hash"]:
+                errors.append("parent_subject_hash 与内核库内反查不符")
+            if candidate.get("display_name") == row["display_name"]:
+                errors.append("display_name 逐字复制内核名——分身须凝聚为本书人格名")
+            identity = json.loads(row["kernel_json"]).get("identity", {})
+            for field in KERNEL_IDENTITY_LIST_FIELDS:
+                parent_lists[field] = list(identity.get(field, []))
     else:
-        if parent["subject_hash"] != candidate.get("parent_subject_hash"):
-            errors.append("parent_subject_hash 与 config 反查不符")
-        if candidate.get("display_name") == parent["display_name"]:
-            errors.append("display_name 逐字复制父原型名——须凝聚为本书人格名")
+        parent = cfg.get(candidate.get("parent_version_id", ""))
+        if parent is None:
+            errors.append(f"parent_version_id={candidate.get('parent_version_id')!r} 不在 config")
+        else:
+            if parent["subject_hash"] != candidate.get("parent_subject_hash"):
+                errors.append("parent_subject_hash 与 config 反查不符")
+            if candidate.get("display_name") == parent["display_name"]:
+                errors.append("display_name 逐字复制父原型名——须凝聚为本书人格名")
+            for field in SIGNATURE_FIELDS:
+                parent_lists[field] = list(parent["signature"].get(field, []))
+        selected = {
+            a["profile_version_id"] for a in payload["setup"]["creator"]["selected_archetypes"]
+        }
+        if candidate.get("parent_version_id") not in selected:
+            errors.append("parent 不属于用户勾选集")
 
-    selected = {
-        a["profile_version_id"] for a in payload["setup"]["creator"]["selected_archetypes"]
-    }
-    if candidate.get("parent_version_id") not in selected:
-        errors.append("parent 不属于用户勾选集")
-
-    if parent is not None:
+    if parent_lists:
         for field in SIGNATURE_FIELDS:
             for item in sig.get(field, []):
                 if any(
-                    item in parent["signature"].get(pf, [])
-                    for pf in SIGNATURE_FIELDS
+                    item in parent_list
+                    for parent_list in parent_lists.values()
                 ):
                     errors.append(f"逐字复制父值 [{field}]: {item[:30]}…")
             n = len(sig.get(field, []))
@@ -317,63 +547,6 @@ def validate_candidate(
     sig_json = json.dumps(sig, ensure_ascii=False, indent=2)
     sig_hash = content_hash(sig_json)
     return errors, sig_hash
-
-
-def _char_ngrams(text: str, n: int = 3) -> set[str]:
-    """中文按字符 n-gram；去空白与常见标点。"""
-    cleaned = "".join(
-        ch for ch in text if not ch.isspace() and ch not in "，。、；：？！—…「」『』""''（）,.:;?!"
-    )
-    if len(cleaned) < n:
-        return {cleaned} if cleaned else set()
-    return {cleaned[i:i + n] for i in range(len(cleaned) - n + 1)}
-
-
-def cross_archetype_similarity(
-    candidate: dict[str, Any],
-    cfg_list: list[dict[str, Any]],
-    selected_ids: set[str],
-) -> list[str]:
-    """候选 7 字段逐条与**未选中原型**逐条做 n-gram 包容度比对，取最大值。
-
-    条级比对而非整库聚合：单条措辞高度雷同即值得用户裁决，聚合会稀释
-    （一条照抄只占原型 1/7 内容）。选中集的逐字复制由 validate_candidate 另查。
-    融合 sub agent 只看选中原型条目全文（全库仅一行式清单），理论上不会长出
-    未选中原型的措辞——撞上即「清单泄漏」或「生成偏好撞库」，须用户裁决。
-    """
-    sig = candidate.get("signature", {})
-    cand_items: list[set[str]] = []
-    for field in SIGNATURE_FIELDS:
-        for item in sig.get(field, []) or []:
-            grams = _char_ngrams(str(item))
-            if grams:
-                cand_items.append(grams)
-    if not cand_items:
-        return []
-
-    warns: list[str] = []
-    for a in cfg_list:
-        pvid = f"creator-profile-version:{a['id']}:{a['revision']}"
-        if pvid in selected_ids:
-            continue
-        best = 0.0
-        for field in SIGNATURE_FIELDS:
-            for item in a.get("signature", {}).get(field, []) or []:
-                arch_grams = _char_ngrams(str(item))
-                if not arch_grams:
-                    continue
-                for cand_grams in cand_items:
-                    overlap = len(cand_grams & arch_grams) / min(
-                        len(cand_grams), len(arch_grams)
-                    )
-                    best = max(best, overlap)
-        if best > CROSS_ARCHETYPE_THRESHOLD:
-            warns.append(
-                f"候选签名与未选中原型 [{a['display_name']}] 条级 n-gram 包容度 "
-                f"{best:.0%} > {CROSS_ARCHETYPE_THRESHOLD:.0%}——疑似撞库，"
-                "须呈报用户裁决后方可落库"
-            )
-    return warns
 
 
 def persist(
@@ -386,54 +559,81 @@ def persist(
     sig = candidate["signature"]
     sig_json = json.dumps(sig, ensure_ascii=False, indent=2)
 
-    aux = sorted(
-        a["profile_version_id"]
-        for a in setup["creator"]["selected_archetypes"]
-        if a["profile_version_id"] != candidate["parent_version_id"]
-    )
-    parent_name = next(
-        (
-            a["display_name"]
-            for a in setup["creator"]["selected_archetypes"]
-            if a["profile_version_id"] == candidate["parent_version_id"]
-        ),
-        "",
-    )
-    deriv = {
-        "parent_version_id": candidate["parent_version_id"],
-        "parent_display_name": parent_name,
-        "parent_subject_hash": candidate["parent_subject_hash"],
-        "auxiliary_archetypes": aux,
-        "rationale": candidate["parent_rationale"],
-        "user_input_snapshot": {
-            "selected_archetypes": setup["creator"]["selected_archetypes"],
-            "user_persona_hints": setup["creator"]["user_persona_hints"],
-            "setup": {k: v for k, v in setup.items() if k != "creator"},
-        },
-    }
-    deriv_json = json.dumps(deriv, ensure_ascii=False, indent=2)
-
-    ids = {
-        "resource_sig": f"resource:{uuid.uuid4()}",
-        "resource_deriv": f"resource:{uuid.uuid4()}",
-        "profile": f"creator-profile:{uuid.uuid4()}",
-        "profile_version": f"creator-profile-version:{uuid.uuid4()}",
-        "project": f"project:{uuid.uuid4()}",
-    }
-    meta = {
-        "setup_schema_version": 2,
-        "setup": {k: v for k, v in setup.items() if k != "creator"},
-    }
-    description = (
-        f"{setup['channel']}·{setup['primary_genre']} | "
-        f"{setup['platform']}·{(setup['platform_traits'] or {}).get('model', '')} | "
-        f"{setup['scale']}"
-    )
-
     conn = sqlite3.connect(db_path)
     try:
         conn.execute("PRAGMA foreign_keys = ON")
         conn.execute("BEGIN IMMEDIATE")
+
+        if is_v3(payload):
+            ak = setup["author_kernel"]
+            kernel_row = lookup_kernel_version(conn, ak["kernel_version_id"])
+            if kernel_row is None or kernel_row["ownership"] != "author_kernel":
+                raise SystemExit(
+                    f"绑定的内核版本无效: {ak['kernel_version_id']!r}（落库前校验门应已拦截）"
+                )
+            deriv = {
+                "parent_version_id": ak["kernel_version_id"],
+                "parent_display_name": kernel_row["display_name"],
+                "parent_subject_hash": kernel_row["subject_hash"],
+                "auxiliary_archetypes": [],
+                "rationale": candidate["parent_rationale"],
+                "user_input_snapshot": {
+                    "author_kernel": {k: v for k, v in ak.items() if k != "kernel_hints"},
+                    "setup": {k: v for k, v in setup.items() if k != "author_kernel"},
+                },
+            }
+            binding_mode = "kernel_derive"
+            kernel_version_id = ak["kernel_version_id"]
+        else:
+            aux = sorted(
+                a["profile_version_id"]
+                for a in setup["creator"]["selected_archetypes"]
+                if a["profile_version_id"] != candidate["parent_version_id"]
+            )
+            parent_name = next(
+                (
+                    a["display_name"]
+                    for a in setup["creator"]["selected_archetypes"]
+                    if a["profile_version_id"] == candidate["parent_version_id"]
+                ),
+                "",
+            )
+            deriv = {
+                "parent_version_id": candidate["parent_version_id"],
+                "parent_display_name": parent_name,
+                "parent_subject_hash": candidate["parent_subject_hash"],
+                "auxiliary_archetypes": aux,
+                "rationale": candidate["parent_rationale"],
+                "user_input_snapshot": {
+                    "selected_archetypes": setup["creator"]["selected_archetypes"],
+                    "user_persona_hints": setup["creator"]["user_persona_hints"],
+                    "setup": {k: v for k, v in setup.items() if k != "creator"},
+                },
+            }
+            binding_mode = "derive"
+            kernel_version_id = None
+        deriv_json = json.dumps(deriv, ensure_ascii=False, indent=2)
+
+        ids = {
+            "resource_sig": f"resource:{uuid.uuid4()}",
+            "resource_deriv": f"resource:{uuid.uuid4()}",
+            "profile": f"creator-profile:{uuid.uuid4()}",
+            "profile_version": f"creator-profile-version:{uuid.uuid4()}",
+            "project": f"project:{uuid.uuid4()}",
+        }
+        meta = {
+            "setup_schema_version": 3 if is_v3(payload) else 2,
+            "setup": {
+                k: v for k, v in setup.items()
+                if k not in ("creator", "author_kernel")
+            },
+        }
+        description = (
+            f"{setup['channel']}·{setup['primary_genre']} | "
+            f"{setup['platform']}·{(setup['platform_traits'] or {}).get('model', '')} | "
+            f"{setup['scale']}"
+        )
+
         conn.execute(
             "INSERT INTO resources (id, media_type, content, content_hash) "
             "VALUES (?, 'application/json', CAST(? AS BLOB), ?)",
@@ -466,8 +666,10 @@ def persist(
         conn.execute(
             "INSERT INTO project_creator_bindings "
             "(project_id, profile_id, profile_version_id, profile_revision, "
-            " subject_hash, binding_mode) VALUES (?, ?, ?, 1, ?, 'derive')",
-            (ids["project"], ids["profile"], ids["profile_version"], sig_hash),
+            " subject_hash, binding_mode, kernel_version_id) "
+            "VALUES (?, ?, ?, 1, ?, ?, ?)",
+            (ids["project"], ids["profile"], ids["profile_version"], sig_hash,
+             binding_mode, kernel_version_id),
         )
         conn.commit()
     except Exception:
@@ -479,81 +681,146 @@ def persist(
     return ids
 
 
+def _emit_bound_payload(payload: dict[str, Any], kernel: dict[str, str], path: Path) -> None:
+    """mode=create 建核后，把 payload 缝合为 select 形态（机械回填 id/hash，不改内容）。"""
+    bound = json.loads(json.dumps(payload, ensure_ascii=False))
+    ak = bound["setup"]["author_kernel"]
+    stitched = {
+        "mode": "select",
+        "kernel_version_id": kernel["kernel_version"],
+        "subject_hash": kernel["subject_hash"],
+        "kernel_hints": ak.get("kernel_hints", {}),
+    }
+    if isinstance(ak.get("display_name"), str):
+        stitched["display_name"] = ak["display_name"]
+    bound["setup"]["author_kernel"] = stitched
+    path.write_text(json.dumps(bound, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--payload", required=True, help="向导 novelos.project.create.v2 JSON 路径")
-    parser.add_argument("--candidate", help="融合智能体产出的 creator_derivation_candidate JSON 路径")
+    parser.add_argument("--payload", help="向导 novelos.project.create.v2/v3 JSON 路径（--kernel-revise 修订模式可省）")
+    parser.add_argument("--kernel-candidate", help="内核融合智能体产出的 novelos.kernel.candidate.v1 JSON 路径")
+    parser.add_argument("--kernel-revise", help="独立内核修订的 revise 载荷 JSON 路径（novelos.kernel.revise.v1，不需要 --payload）")
+    parser.add_argument("--emit-payload", help="建核后输出缝合 select 形态 payload 的路径")
+    parser.add_argument("--candidate", help="分身融合智能体产出的 creator_derivation_candidate JSON 路径")
     parser.add_argument("--dry-run", action="store_true", help="只校验，不落库")
     parser.add_argument("--db", default=str(DEFAULT_DB))
     args = parser.parse_args()
 
-    wizard = load_wizard_data()
-    cfg_list = load_config_archetypes()
-    cfg = {
-        f"creator-profile-version:{a['id']}:{a['revision']}": a for a in cfg_list
-    }
+    if not args.payload and not args.kernel_revise:
+        parser.error("需要 --payload（向导载荷）或 --kernel-revise（独立内核修订）")
 
-    try:
-        payload = json.loads(Path(args.payload).read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        print(f"payload 读取失败: {exc}")
+    db_path = Path(args.db)
+    if not db_path.exists():
+        print(f"数据库不存在: {db_path}")
         return 2
+    conn = sqlite3.connect(db_path)
 
-    errors, warns = validate_request(payload, wizard, cfg)
-    for w in warns:
-        print(f"WARN {w}")
-    if errors:
-        for e in errors:
-            print(f"FAIL {e}")
-        print(f"\n入口校验失败（{len(errors)} FAIL / {len(warns)} WARN），拒绝继续。")
-        return 1
-    print(f"入口校验通过（0 FAIL / {len(warns)} WARN）。")
+    payload: dict[str, Any] | None = None
+    try:
+        if args.kernel_revise:
+            # 独立内核修订：不需要项目 payload，直接进内核阶段
+            payload = json.loads(Path(args.kernel_revise).read_text(encoding="utf-8"))
+        elif args.payload:
+            try:
+                payload = json.loads(Path(args.payload).read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as exc:
+                print(f"payload 读取失败: {exc}")
+                return 2
 
-    if not args.candidate:
+        if payload is not None and not args.kernel_revise:
+            wizard = load_wizard_data()
+            cfg_list = load_config_archetypes()
+            cfg = {
+                f"creator-profile-version:{a['id']}:{a['revision']}": a for a in cfg_list
+            }
+            errors, warns = validate_request(payload, wizard, cfg, conn)
+            for w in warns:
+                print(f"WARN {w}")
+            if errors:
+                for e in errors:
+                    print(f"FAIL {e}")
+                print(f"\n入口校验失败（{len(errors)} FAIL / {len(warns)} WARN），拒绝继续。")
+                return 1
+            print(f"入口校验通过（0 FAIL / {len(warns)} WARN）。")
+
+        if args.kernel_candidate:
+            raw = Path(args.kernel_candidate).read_text(encoding="utf-8")
+            candidate, notes = parse_candidate_text(raw, kind="kernel")
+            for n in notes:
+                print(f"NOTE 内核候选解析修复: {n}")
+            k_errors, kernel_hash = validate_kernel_candidate(candidate, conn)
+            if k_errors:
+                for e in k_errors:
+                    print(f"FAIL {e}")
+                print(f"\n内核校验门失败（{len(k_errors)} FAIL），拒绝落库。")
+                return 1
+            print("内核校验门通过（信封 + author-kernel 深层 + 基底反查）。")
+            if args.dry_run:
+                print(f"\n--dry-run：未落库。内核 hash = {kernel_hash}")
+            else:
+                kernel = persist_kernel(db_path, candidate, kernel_hash, payload)
+                print("\n内核落库成功（单事务提交）。")
+                print(f"  kernel_profile   {kernel['kernel_profile']}")
+                print(f"  kernel_version   {kernel['kernel_version']}")
+                print(f"  subject_hash     {kernel['subject_hash']}")
+                if args.emit_payload and payload is not None and is_v3(payload):
+                    if payload["setup"]["author_kernel"].get("mode") == "create":
+                        _emit_bound_payload(payload, kernel, Path(args.emit_payload))
+                        print(f"  bound payload    {args.emit_payload}（已缝合为 select 形态）")
+            if not args.candidate:
+                return 0
+
+        if args.candidate:
+            if payload is None or args.kernel_revise:
+                parser.error("--candidate 需要与 --payload（项目创建）同用")
+            raw = Path(args.candidate).read_text(encoding="utf-8")
+            candidate, notes = parse_candidate_text(raw)
+            for n in notes:
+                print(f"NOTE 候选解析修复: {n}")
+
+            wizard = load_wizard_data()
+            cfg_list = load_config_archetypes()
+            cfg = {
+                f"creator-profile-version:{a['id']}:{a['revision']}": a for a in cfg_list
+            }
+            gate_errors, sig_hash = validate_candidate(candidate, payload, cfg, conn)
+            if gate_errors:
+                for e in gate_errors:
+                    print(f"FAIL {e}")
+                print(f"\n校验门失败（{len(gate_errors)} FAIL），拒绝落库。")
+                return 1
+            print("校验门通过（信封 + 签名 v2 + parent 反查 + 逐字复制 + 条数）。")
+
+            rationale = candidate.get("parent_rationale", "")
+            if any(m in rationale for m in MISMATCH_MARKERS):
+                print(
+                    "\n!! parent_rationale 含错配警告字样——按协议必须把冲突与调和建议"
+                    "呈报用户裁决，未获裁决不得落库。"
+                )
+
+            if args.dry_run:
+                print(f"\n--dry-run：未落库。融合签名 hash = {sig_hash}")
+                return 0
+
+            ids = persist(db_path, payload, candidate, sig_hash)
+            print("\n落库成功（单事务提交，六表一次写入）。")
+            print(f"  project          {ids['project']}")
+            print(f"  creator_profile  {ids['profile']}")
+            print(f"  profile_version  {ids['profile_version']}")
+            print(f"  resource_sig     {ids['resource_sig']} ({ids['sig_hash']})")
+            print(f"  resource_deriv   {ids['resource_deriv']}")
+            return 0
+
+        if args.kernel_revise:
+            print("未提供 --kernel-candidate：revise 载荷本身无可校验项。")
+            return 0
+
         print("未提供 --candidate：入口校验完成。可注入融合智能体，产出后带 --candidate 重跑。")
         return 0
-
-    raw = Path(args.candidate).read_text(encoding="utf-8")
-    candidate, notes = parse_candidate_text(raw)
-    for n in notes:
-        print(f"NOTE 候选解析修复: {n}")
-
-    gate_errors, sig_hash = validate_candidate(candidate, payload, cfg)
-    if gate_errors:
-        for e in gate_errors:
-            print(f"FAIL {e}")
-        print(f"\n校验门失败（{len(gate_errors)} FAIL），拒绝落库。")
-        return 1
-    print("校验门通过（信封 + 签名 v2 + parent 反查 + 勾集 + 逐字复制 + 条数）。")
-
-    rationale = candidate.get("parent_rationale", "")
-    if any(m in rationale for m in MISMATCH_MARKERS):
-        print(
-            "\n!! parent_rationale 含错配警告字样——按协议必须把冲突与调和建议"
-            "呈报用户裁决，未获裁决不得落库。"
-        )
-
-    selected = {
-        a["profile_version_id"] for a in payload["setup"]["creator"]["selected_archetypes"]
-    }
-    for w in cross_archetype_similarity(candidate, cfg_list, selected):
-        print(f"\n!! 跨原型查重 WARN {w}")
-
-    if args.dry_run:
-        print(f"\n--dry-run：未落库。融合签名 hash = {sig_hash}")
-        return 0
-
-    if not Path(args.db).exists():
-        print(f"数据库不存在: {args.db}")
-        return 2
-    ids = persist(Path(args.db), payload, candidate, sig_hash)
-    print("\n落库成功（单事务提交，六表一次写入）。")
-    print(f"  project          {ids['project']}")
-    print(f"  creator_profile  {ids['profile']}")
-    print(f"  profile_version  {ids['profile_version']}")
-    print(f"  resource_sig     {ids['resource_sig']} ({ids['sig_hash']})")
-    print(f"  resource_deriv   {ids['resource_deriv']}")
-    return 0
+    finally:
+        conn.close()
 
 
 if __name__ == "__main__":
