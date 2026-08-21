@@ -439,36 +439,47 @@ def _slot_genre_pack(conn: sqlite3.Connection, project_id: str | None,
 
 def _slot_canon_minimal(conn: sqlite3.Connection, project_id: str | None,
                         subject_id: str | None = None) -> list[tuple[str, str]]:
-    """canon 最小集：六类账本近端条目 + 近期已接受章节摘要（SQL 与 sql-reference.md 模板同源）。"""
+    """canon 最小集：六类账本近端条目 + 近期已接受章节摘要（SQL 与 sql-reference.md 模板同源）。
+
+    账本描述统一存 resources（description_resource_id / state_resource_id 引用），
+    列名以 db/migrations/schema.sql 为准；查询失败显式降级打 stderr，禁止静默吞错。
+    """
     if project_id is None:
         raise SystemExit("canon_minimal 槽位需要 --project")
     queries = [
         ("facts（近 12 条）",
-         "SELECT cf.fact_type, cf.fact_json FROM chapter_facts cf "
-         "JOIN chapters c ON c.id = cf.chapter_id "
-         "WHERE c.status = 'accepted' ORDER BY c.updated_at DESC LIMIT 12"),
+         "SELECT cf.fact_type, cf.subject, CAST(r.content AS TEXT) AS description "
+         "FROM chapter_facts cf JOIN resources r ON r.id = cf.description_resource_id "
+         "WHERE cf.project_id = ? AND cf.status = 'accepted' ORDER BY cf.rowid DESC LIMIT 12"),
         ("narrative_promises（未决近 8 条）",
-         "SELECT promise_type, description, status FROM narrative_promises "
-         "WHERE project_id = ? AND status != 'broken' ORDER BY rowid DESC LIMIT 8"),
+         "SELECT np.promise_key, CAST(r.content AS TEXT) AS description, np.status "
+         "FROM narrative_promises np JOIN resources r ON r.id = np.description_resource_id "
+         "WHERE np.project_id = ? AND np.status = 'open' ORDER BY np.rowid DESC LIMIT 8"),
         ("expectations（近 6 条）",
-         "SELECT description, status FROM expectations WHERE project_id = ? "
-         "ORDER BY rowid DESC LIMIT 6"),
+         "SELECT el.expectation_key, CAST(r.content AS TEXT) AS description, el.status "
+         "FROM expectation_ledgers el JOIN resources r ON r.id = el.description_resource_id "
+         "WHERE el.project_id = ? ORDER BY el.rowid DESC LIMIT 6"),
         ("relationship_states（近 8 条）",
-         "SELECT character_a, character_b, relationship_type, description "
-         "FROM relationship_states WHERE project_id = ? ORDER BY rowid DESC LIMIT 8"),
+         "SELECT rs.subject_ref, rs.object_ref, CAST(r.content AS TEXT) AS state "
+         "FROM relationship_states rs JOIN resources r ON r.id = rs.state_resource_id "
+         "WHERE rs.project_id = ? ORDER BY rs.rowid DESC LIMIT 8"),
         ("arc_states（近 4 条）",
-         "SELECT arc_id, state_json FROM arc_states WHERE project_id = ? "
-         "ORDER BY rowid DESC LIMIT 4"),
+         "SELECT a.arc_ref, CAST(r.content AS TEXT) AS state "
+         "FROM arc_states a JOIN resources r ON r.id = a.state_resource_id "
+         "WHERE a.project_id = ? ORDER BY a.rowid DESC LIMIT 4"),
         ("近期已接受章节（近 5 章）",
          "SELECT c.number, c.title, c.summary FROM chapters c "
-         "WHERE c.status = 'accepted' ORDER BY c.updated_at DESC LIMIT 5"),
+         "JOIN volumes v ON v.id = c.volume_id JOIN books b ON b.id = v.book_id "
+         "WHERE b.project_id = ? AND c.status = 'accepted' "
+         "ORDER BY c.updated_at DESC LIMIT 5"),
     ]
     sections: list[tuple[str, str]] = []
     for title, sql in queries:
         params = (project_id,) if "?" in sql else ()
         try:
             rows = conn.execute(sql, params).fetchall()
-        except sqlite3.OperationalError:
+        except sqlite3.OperationalError as exc:
+            print(f"[canon_minimal] 账本查询降级（{title}）：{exc}", file=sys.stderr)
             rows = []
         body = "\n".join(json.dumps(list(r), ensure_ascii=False) for r in rows) or "（空）"
         sections.append((f"canon 最小集 · {title}", body))

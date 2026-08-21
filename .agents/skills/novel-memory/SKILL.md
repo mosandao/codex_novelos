@@ -22,8 +22,10 @@ WHERE c.volume_id = (SELECT id FROM volumes WHERE book_id = (SELECT id FROM book
   AND c.status = 'accepted'
 ORDER BY c.number DESC LIMIT 5;
 
--- 搜索事实
-SELECT * FROM chapter_facts WHERE fact_json LIKE '%关键词%';
+-- 搜索事实（描述存 resources，按 sql-reference.md 同源模板）
+SELECT cf.*, CAST(r.content AS TEXT) AS description FROM chapter_facts cf
+JOIN resources r ON cf.description_resource_id = r.id
+WHERE cf.subject LIKE '%关键词%' OR r.content LIKE '%关键词%';
 
 -- 当前 locked 规划资产（Canon 快照）
 SELECT id, asset_type, scope_ref, revision, metadata_json FROM planning_assets

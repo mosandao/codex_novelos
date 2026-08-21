@@ -34,11 +34,27 @@ def _make_db() -> sqlite3.Connection:
         CREATE TABLE planning_assets (
             id TEXT PRIMARY KEY, project_id TEXT, asset_type TEXT, scope_ref TEXT,
             revision INTEGER, status TEXT, content_resource_id TEXT, metadata_json TEXT);
+        CREATE TABLE books (id TEXT PRIMARY KEY, project_id TEXT);
+        CREATE TABLE volumes (id TEXT PRIMARY KEY, book_id TEXT, number INTEGER);
         CREATE TABLE chapters (
             id TEXT PRIMARY KEY, volume_id TEXT, number INTEGER, title TEXT,
             status TEXT, content_resource_id TEXT, summary TEXT DEFAULT '',
             metadata_json TEXT DEFAULT '{}', version INTEGER DEFAULT 1,
             created_at TEXT, updated_at TEXT);
+        CREATE TABLE chapter_facts (
+            id TEXT PRIMARY KEY, project_id TEXT, source_chapter_id TEXT,
+            fact_type TEXT, subject TEXT, description_resource_id TEXT, status TEXT);
+        CREATE TABLE narrative_promises (
+            id TEXT PRIMARY KEY, project_id TEXT, promise_key TEXT,
+            description_resource_id TEXT, status TEXT);
+        CREATE TABLE expectation_ledgers (
+            id TEXT PRIMARY KEY, project_id TEXT, expectation_key TEXT,
+            description_resource_id TEXT, status TEXT);
+        CREATE TABLE relationship_states (
+            id TEXT PRIMARY KEY, project_id TEXT, subject_ref TEXT,
+            object_ref TEXT, state_resource_id TEXT);
+        CREATE TABLE arc_states (
+            id TEXT PRIMARY KEY, project_id TEXT, arc_ref TEXT, state_resource_id TEXT);
         """
     )
     return conn
@@ -286,6 +302,76 @@ class FullChainSmoke(unittest.TestCase):
         self.assertTrue(sections[0][0].startswith("被审章节正文"))
         out = _compose(ASSET_DIRS["continuity-extraction"], {"setup": {}}, sections)
         self.assertIn("判定标准（五条边界）", out)
+
+
+def _seed_canon_ledgers(conn: sqlite3.Connection) -> None:
+    """按活库列名（schema.sql）seed 六类 canon 账本——P0-1 的注入断言素材。"""
+    conn.executemany(
+        "INSERT INTO resources VALUES (?, CAST(? AS BLOB))",
+        [("res:f1", "师弟私铸灵根被逐出师门"),
+         ("res:np1", "师门血案真相未明"), ("res:ep1", "每卷至少一次打脸兑现"),
+         ("res:rl1", "同门至交，渐生嫌隙"), ("res:ar1", "复仇弧进入第二阶段")])
+    conn.execute("INSERT INTO books VALUES ('book:1', 'project:p1')")
+    conn.execute("INSERT INTO volumes VALUES ('vol:1', 'book:1', 1)")
+    conn.execute(
+        "INSERT INTO chapters VALUES ('chapter:c9', 'vol:1', 9, '第九章', 'accepted', "
+        "'res:f1', '主角查明铸根案一角', '{}', 1, '2026-01-01', '2026-01-02')")
+    conn.execute(
+        "INSERT INTO chapter_facts VALUES "
+        "('fact:1', 'project:p1', 'chapter:c9', 'character_state', '林昭', 'res:f1', 'accepted')")
+    conn.execute(
+        "INSERT INTO narrative_promises VALUES "
+        "('promise:1', 'project:p1', '师门血案真相', 'res:np1', 'open')")
+    conn.execute(
+        "INSERT INTO expectation_ledgers VALUES "
+        "('exp:1', 'project:p1', '打脸节奏', 'res:ep1', 'open')")
+    conn.execute(
+        "INSERT INTO relationship_states VALUES "
+        "('rel:1', 'project:p1', '林昭', '沈青梧', 'res:rl1')")
+    conn.execute(
+        "INSERT INTO arc_states VALUES ('arc:1', 'project:p1', '复仇弧', 'res:ar1')")
+    # 干扰项：他项目的账本不得混入
+    conn.execute(
+        "INSERT INTO chapter_facts VALUES "
+        "('fact:2', 'project:other', 'chapter:c9', 'character_state', '别人家的角色', 'res:f1', 'accepted')")
+
+
+class CanonLedgerInjection(unittest.TestCase):
+    """P0-1：canon 账本 SQL 对齐活库列名——五账本 + 近期章节真实注入，且按项目隔离。"""
+
+    def test_ledgers_injected_with_live_columns(self):
+        from scripts.novelos_compose_prompt import _slot_canon_minimal
+        conn = _make_db()
+        _seed_canon_ledgers(conn)
+        sections = _slot_canon_minimal(conn, "project:p1")
+        self.assertEqual(len(sections), 6)
+        by_title = {t: b for t, b in sections}
+        facts = by_title["canon 最小集 · facts（近 12 条）"]
+        self.assertIn("林昭", facts)
+        self.assertIn("师弟私铸灵根被逐出师门", facts)  # 描述来自 resources JOIN
+        self.assertNotIn("别人家的角色", facts)
+        self.assertIn("师门血案真相", by_title["canon 最小集 · narrative_promises（未决近 8 条）"])
+        self.assertIn("打脸节奏", by_title["canon 最小集 · expectations（近 6 条）"])
+        rel = by_title["canon 最小集 · relationship_states（近 8 条）"]
+        self.assertIn("林昭", rel)
+        self.assertIn("沈青梧", rel)
+        self.assertIn("复仇弧", by_title["canon 最小集 · arc_states（近 4 条）"])
+        recent = by_title["canon 最小集 · 近期已接受章节（近 5 章）"]
+        self.assertIn("第九章", recent)
+        self.assertIn("主角查明铸根案一角", recent)
+
+    def test_degradation_is_visible(self):
+        """缺表降级必须打 stderr，禁止静默吞错（回归闸）。"""
+        import contextlib
+        import io
+        from scripts.novelos_compose_prompt import _slot_canon_minimal
+        conn = sqlite3.connect(":memory:")
+        stderr = io.StringIO()
+        with contextlib.redirect_stderr(stderr):
+            sections = _slot_canon_minimal(conn, "project:x")
+        self.assertEqual(len(sections), 6)
+        self.assertTrue(all("（空）" == b for _, b in sections))
+        self.assertIn("账本查询降级", stderr.getvalue())
 
 
 if __name__ == "__main__":

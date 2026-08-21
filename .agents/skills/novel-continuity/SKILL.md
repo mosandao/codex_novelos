@@ -12,25 +12,10 @@ description: 从已接受小说章节提取连续性数据。章节接受后需�
 1. 确认章节已接受：`SELECT status FROM chapters WHERE id=?` → 必须是 `accepted`。
 2. 读取章节正文和当前 Canon：`SELECT content FROM resources WHERE id=(SELECT content_resource_id FROM chapters WHERE id=?)`。
 3. 用 sub agent 从章节正文中提取候选：事实（fact）、叙事承诺（promise）、读者期待（expectation）、人物关系（relationship）、故事弧状态（arc）。每项必须有明确来源，不把推测写成事实。
-4. 直接写入数据库：
-
-```sql
--- 章节事实
-INSERT INTO chapter_facts (id, chapter_id, fact_type, fact_json)
-VALUES (?, ?, ?, ?);
-
--- 叙事承诺
-INSERT INTO narrative_promises (id, project_id, promise_type, description, status)
-VALUES (?, ?, ?, ?, 'open');
-
--- 人物关系
-INSERT INTO relationship_states (id, project_id, character_a, character_b, relationship_type, description)
-VALUES (?, ?, ?, ?, ?, ?);
-
--- 故事弧状态
-INSERT INTO arc_states (id, project_id, arc_id, state_json)
-VALUES (?, ?, ?, ?);
-```
+4. 直接写入数据库。SQL 模板以 `novel-project/sql-reference.md`「连续性账本统一模式」为**单一来源**（此处不复制模板，防止两处漂移），写入纪律：
+   - 描述文本先存 `resources`（`CAST(? AS BLOB)` + `novelos_hash.py` 算 content_hash），账本行只引用 resource id；
+   - 每条必须带 `source_chapter_id` + `source_content_hash` 溯源；
+   - 表与列名以 `db/migrations/schema.sql` 为准：`chapter_facts(fact_type/subject/description_resource_id)`、`narrative_promises(promise_key)`、`expectation_ledgers(expectation_key)`、`relationship_states(subject_ref/object_ref/state_resource_id)`、`arc_states(arc_ref/state_resource_id)`。
 
 5. 如果提取的事实与既有 Canon 冲突，列出双方来源让主控决策，不静默覆盖。
 
