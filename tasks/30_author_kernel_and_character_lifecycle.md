@@ -101,9 +101,9 @@
 
 ### P5 文档与协议收尾
 
-- [ ] **P5-1 AGENTS.md**：分层图 L0 注内核、创建向导 v3 流程、Agent 角色表增 kernel-fusion、「一书一分身」条款改写为「内核跨书共享+每书派生独一分身」。
-- [ ] **P5-2 documentation/flows.md + agent-recipes.md 表格再生成 + adapters 校验**。
-- [ ] **P5-3 用户实时打断协议**：AGENTS.md 小说工作流增条款（setup 级→UPDATE+propagate_stale；资产级→change proposal；章内→受控重组装；用户打断优先于进行中生成，主控先停手上报影响面）+ novel-writing/novel-planning SKILL 呼应。
+- [x] **P5-1 AGENTS.md**：分层图 L0 注内核、创建向导 v3 流程、Agent 角色表增 kernel-fusion、「一书一分身」条款改写为「内核跨书共享+每书派生独一分身」。
+- [x] **P5-2 documentation/flows.md + agent-recipes.md 表格再生成 + adapters 校验**。
+- [x] **P5-3 用户实时打断协议**：AGENTS.md 小说工作流增条款（setup 级→UPDATE+propagate_stale；资产级→change proposal；章内→受控重组装；用户打断优先于进行中生成，主控先停手上报影响面）+ novel-writing/novel-planning SKILL 呼应。
 - [ ] **P5-4 验收记录收尾，四命令全绿**。
 
 ## 依赖与并行
@@ -119,6 +119,16 @@
 - 内核取代原型后 26 原型退出创建链：config 保留为参考资料库，test_wizard_data 相应调整。
 
 ## 验收记录
+
+- **[T30-P5-1] AGENTS.md 更新** — 2026-08-21
+  - 验证：119 tests OK；四命令 + adapters check 全绿。
+  - 文档变更：`AGENTS.md`（L0 分层注内核/注册表/原型参考资料库、确定性脚本清单 +register_characters/export_kernel_roster、Agent 角色表引导融合拆内核/分身两行 + 连续性七类候选、小说工作流第 5 步 status-update 衔接）。
+- **[T30-P5-2] flows.md + adapters** — 2026-08-21
+  - 验证：同上；`novelos_build_adapters.py --check` OK（harness.yaml 无 v2/原型残留）。
+  - 文档变更：`documentation/flows.md`（向导流程 v3 三段重写[入口校验内核反查/6a 建核+独立修订/6b 分身派生 kernel_origin]、内核陈旧裁决段、新「人物生命周期（注册表状态机）」五步流程、新「用户实时打断」节、连续性第 5 步 character_status 衔接）。
+- **[T30-P5-3] 用户实时打断协议** — 2026-08-21
+  - 验证：同上。
+  - 文档变更：`AGENTS.md`（小说工作流第 6 条：立即暂停/三级分流[setup→propagate_stale、资产→change proposal、章内→--review-feedback]/影响面呈报）；`.agents/skills/novel-writing/SKILL.md` 与 `novel-planning/SKILL.md`（打断呼应条款）。
 
 - **[T30-P4-1] power-ecology expansion** — 2026-08-21
   - 验证：119 tests OK；四命令全绿。

@@ -73,3 +73,7 @@ Direction 候选的 `metadata.book_soul` 必须符合 `config/schemas/book-soul.
 ## 节奏密度约束
 
 战略骨架（Strategy）不宜过碎：每个阶段平均不少于 20 万字叙事空间。节奏密度在 Volume Outline 及以下实现。Volume Outline 必须产出并行冲突线（每卷≥3条）、阶段性副高潮（每20-30万字）、POV多样性。
+
+## 用户打断
+
+规划生成或审查进行中用户提出修改：立即停止当前候选，按 AGENTS.md「用户实时打断与修改」协议分流（setup 级/资产级），呈报将 stale 的资产清单后再执行。

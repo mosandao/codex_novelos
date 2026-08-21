@@ -2,21 +2,36 @@
 
 ## 项目创建向导
 
-参与者：用户、主控智能体、本地项目向导、引导融合智能体（onboarding_agent）。
+参与者：用户、主控智能体、本地项目向导、内核融合智能体、分身融合智能体（onboarding 双段）。
 
 1. 用户要求创建项目时，主控提供 `ui/project-wizard.html` 的绝对本地路径。页面和同目录的 `project-wizard-data.js` 可通过 `file://` 打开，不依赖 MCP Apps proxy。
 2. 用户填写项目名、频道（男频/女频/全向）、平台、规模和一级题材；平台列表、一级题材库、二级方向候选、基调池均随频道级联切换（女频=晋江/番茄/七猫 + 女频题材库与基调池），平台选定后显示平台画像。二级方向可多选，表里基调分表层（外显，最多 2 项）与内核（底色，恰 1 项，可留空），美学风格最多两项（按题材标「荐」，可混搭），创作资料可留空且最多 10,000 字。
-3. 页面按项目定位与原型 channel_affinity 确定性推荐三个系统叙事原型并显示匹配分；用户仍可浏览全部 18 个原型、查看只读的读者承诺参考，并可选填写人格素材（口味锚点/最想写的人与圈子/绝不触碰/执念话题）。提交只使用 `derive`，不允许 `create` 或 `reuse`。
-4. 页面生成 `novelos.project.create.v2` JSON，显示在页面底部并尝试自动复制；复制失败时提供手动复制按钮。用户把原始 JSON 发送给主控。
-5. 主控收到 JSON 后**第一动作**是入口校验：`.venv/bin/python scripts/novelos_create_project.py --payload <json>`——jsonschema 结构（`config/schemas/project-create-request.schema.json`）+ 词表级联 + 表里互斥 + platform_traits/genre_profile 随行快照核对 + 原型三方比对（payload × config × 向导镜像，含全 18 原型镜像漂移检测）。FAIL 拒绝继续。
-6. 主控运行 `.venv/bin/python scripts/novelos_compose_prompt.py --asset fusion --payload <json>` 产出完整注入文本（「先立人，再落规」方法论主干 + 按项目路由的条件模块——频道语法/库规模/parent 判定/题材资格——+ 输入数据区：`selected_archetypes` 选中条目全文 + 全库一行式清单 + `user_persona_hints` + `project_setup`（v2，含 platform_traits/表里基调/genre_profile）+ `existing_persona_fingerprints` 按量化范围自动取数，库空自动走空库模块），整段注入临时 onboarding_agent sub agent（**不注入 `system_archetypes.json` 全文**——跨原型撞车由第 7 步校验门条级查重兜底）。agent 判定 parent（多原型按推荐位次 + 基调契合度，输出 `parent_rationale`）→ 反推式五维生平化合出 persona（narrative + anchors，含盲区 refuses/cannot_write 每条附下游绕开方式；行业内生视角配额——履历不得全部来自网文行业外转行；跨批次去重校验按库规模模块条款执行：道具结构/烙印事件/张力形态/主题×频道组合不得与库中已有雷同，校验结果写入 `parent_rationale` 的 `cross_batch_check` 小节）→ 从 persona 长出带体温的 7 字段，产出 `creator_derivation_candidate`（含 `parent_version_id`/`parent_subject_hash`/`display_name`/`parent_rationale`/signature v2 含 persona）。
-7. 主控运行固化脚本完成校验门与落库：`.venv/bin/python scripts/novelos_create_project.py --payload <json> --candidate <json>`。脚本依次执行——候选容错解析（只做安全修复：去 Markdown 围栏、尾部截断补括号；中段缺括号导致字段错位即判解析失败，要求 agent 重出）→ jsonschema 信封（creator-derivation-candidate）+ 签名 v2 深层（creator-signature，persona 必填且 `cannot_write` 非空）→ `parent_subject_hash` 反查 config + parent 属于用户勾选集 + overrides 7 字段无逐字复制父值（语义继承须从 persona 重新长出）→ 融合签名 hash 计算 → `BEGIN IMMEDIATE` 单事务六表落库（外键开启，失败整体回滚）：签名资源 + 派生资源（完整用户输入快照：selected_archetypes + user_persona_hints + setup 全文）+ creator_profiles + creator_profile_versions（content + derivation 双资源链，parent 指向 system archetype）+ projects（metadata_json 写入 setup v2 快照，带 `setup_schema_version` 标记——后续阶段经 `json_extract(metadata_json,'$.setup')` 读取）+ project_creator_bindings（`binding_mode='derive'`）。禁止手工逐条 INSERT 绕过脚本。
-8. **上报裁决**：`parent_rationale` 含错配警告（基调相斥/频道×人格错配/素材冲突）时，主控把冲突与调和建议呈报用户裁决，未获裁决不得落库（脚本检测到警告字样会提示）；候选解析失败或校验门 FAIL 时要求 agent 重新输出，禁止主控手工改写候选内容。
+3. 页面第 07 步为「作者内核」双模式：`select` 从内核名册（`kernel-roster.js` 镜像，由 `novelos_export_kernel_roster.py` 从库生成——建核/修订后重跑刷新）单选既有内核；`create` 填写内核素材六字段（口味锚点/最想写的人与圈子/绝不触碰/执念话题/核心问题/知识背景，新建至少一条）。系统原型已退出创建链（Task 30 决策：内核完全取代原型，config 降为参考资料库）。
+4. 页面生成 `novelos.project.create.v3` JSON，显示在页面底部并尝试自动复制；复制失败时提供手动复制按钮。用户把原始 JSON 发送给主控。
+5. 主控收到 JSON 后**第一动作**是入口校验：`.venv/bin/python scripts/novelos_create_project.py --payload <json>`——jsonschema 结构（`config/schemas/project-create-request.schema.json`，v3）+ 词表级联 + 表里互斥 + platform_traits/genre_profile 随行快照核对 + select 模式内核库内反查（版本存在 + ownership='author_kernel' + status='active' + subject_hash 相符）。FAIL 拒绝继续。
+6a. **mode=create 先建核**：主控运行 `.venv/bin/python scripts/novelos_compose_prompt.py --asset kernel-fusion --payload <json>` 产出内核融合注入文本（identity 八字段 + 心理运作八维五段式 + 有限知识生态 + growth_log 四归因方法论；模式模块 mode-create/mode-revise；输入数据区 kernel_hints + project_setup 语境 + persona_fingerprints 撞车基准 + 原型一行式参考资料），注入内核融合智能体 → 产出 `novelos.kernel.candidate.v1` → 主控运行 `novelos_create_project.py --payload <json> --kernel-candidate <json> --emit-payload <bound.json>`（信封 + author-kernel 两步校验 + 落库 + 机械缝合 select 形态 payload），随后重跑 `novelos_export_kernel_roster.py` 刷新名册。内核修订（独立于项目）走 `--kernel-revise <revise载荷> --kernel-candidate`，growth_log 只追加。
+6b. **分身派生**：主控运行 `novelos_compose_prompt.py --asset fusion --payload <bound.json|json>` 产出分身融合注入文本（kernel_full 内核全文第一因 + 频道/库规模/题材/kernel-derive 条件模块 + 指纹去重基准），注入分身融合智能体——内核层继承不变（核心问题/价值公理/八维/知识边界语义继承，逐字复制由校验门拦截），表达层按本书频道/题材/平台适配（voice_samples/trait_profile/七字段）→ 产出 `creator_derivation_candidate`（signature 带 `kernel_origin` 溯源）。
+7. 主控运行固化脚本完成校验门与落库：`.venv/bin/python scripts/novelos_create_project.py --payload <bound.json> --candidate <json>`。脚本依次执行——候选容错解析 → jsonschema 信封（creator-derivation-candidate）+ 签名 v2 深层（creator-signature，persona 必填且 `cannot_write` 非空）→ parent=内核版本库内反查 + kernel_origin 一致性 + 七字段无逐字复制内核 identity 条目（语义继承须从 persona 重新长出）→ 融合签名 hash 计算 → `BEGIN IMMEDIATE` 单事务六表落库：签名资源 + 派生资源（完整用户输入快照：author_kernel + setup 全文）+ creator_profiles（ownership='user'）+ creator_profile_versions（双资源链，parent 指向内核版本）+ projects（metadata_json 写入 setup v3 快照）+ project_creator_bindings（`binding_mode='kernel_derive'` + `kernel_version_id`）。禁止手工逐条 INSERT 绕过脚本。
+8. **上报裁决**：`parent_rationale` 含错配警告（内核与基调相斥/频道错配）时，主控把冲突与调和建议呈报用户裁决，未获裁决不得落库（脚本检测到警告字样会提示）；候选解析失败或校验门 FAIL 时要求 agent 重新输出，禁止主控手工改写候选内容。
 9. 主控从 `projects.metadata_json` 读取 setup 快照，连同绑定签名中的 persona，启动方向智能体生成该项目的 `book_soul`（book_soul 从创作者人格与项目约束长出来；表里基调/题材信息包/平台耐心的消费规则见 story-direction prompt「上游消费」节）。向导本身不会生成、锁定或提交 Direction。
 
 拒绝路径：本地页面只生成 JSON，不声称项目已创建；入口校验 FAIL（结构/词表级联/镜像漂移）时拒绝继续；前端选择不替代规划或审查；jsonschema 校验门 FAIL 时拒绝写入；候选 JSON 解析失败或字段错位时要求 agent 重出，不接受手工改写的候选；错配警告未经用户裁决不得落库。
 
-作者 Profile 新建版本不会改变既有项目绑定。显式 rebind 必须提供用户原因；成功后 Direction 及全部规划后代变为 `stale`，不自动重生成。
+作者 Profile 新建版本不会改变既有项目绑定。显式 rebind 必须提供用户原因；成功后 Direction 及全部规划后代变为 `stale`，不自动重生成。内核出新 revision 后绑定旧版的项目照常运行（分身自带完整人格），是否重派生由用户裁决（novel-memory 构建上下文时标注内核陈旧，不静默换绑）。
+
+## 人物生命周期（注册表状态机）
+
+参与者：主控智能体、规划智能体、写作链、`$novel-continuity`、`scripts/novelos_register_characters.py`。
+
+1. **立档**：character_contract 锁定时，主控用 `novelos_register_characters.py --project <id> --roster <json>` 把 metadata.character_roster 落人物注册表（main/secondary，arc_role 与预期退场写 state_json）。
+2. **动态创建**：次要角色由章纲执行卡「新登场人物微档案」预登记（规划端造人，正文只消费不发明——Writer 写到未预登记新名字 = 违卡，entity-authority-review 判 blocking）；章节接受后主控用 `--entry` 落注册表（minor/secondary）。
+3. **状态迁移**：`$novel-continuity` 提取 character_status 候选（正文确认的退场/转化/休眠/死亡；新登场与下落不明不算），晋升后主控用 `--status-update` 更新注册表（dead 必带 死亡型 exit_type；未登记人物按 minor 补登）。
+4. **升级**：动态配角需要卷级职责/回归时走 change proposal → character_contract 新 revision（回归面孔名单为判定清单）→ 新 roster 重跑 `--roster`（升级 role_class，不覆盖 status）。
+5. **消费**：canon 最小集注入「人物状态」节（死/退/眠优先近 20 人）；投影渲染 `连续性/人物状态注册表.md` 与每人物档案的分类/状态/退场头部。
+
+## 用户实时打断
+
+创作链任何阶段用户提出修改：主控立即暂停进行中的生成与提交，按影响面分流（setup 级 → UPDATE + propagate_stale；资产级 → change proposal；章内级 → `--review-feedback` 受控重组装），呈报将 stale 的资产清单获确认后执行（详见 AGENTS.md「小说工作流」第 6 条）。
 
 ## 规划资产
 
@@ -43,7 +58,7 @@ Character 与 World 可以并行生成（上游相同、互不依赖），全部
 2. 没有有效 Chapter Plan 时，按规划流程生成并锁定；执行卡包含可追溯到 locked Direction 的 `soul_pressure` 和 `moral_residue`，纯过渡场景允许明确降低思想前景强度。
 3. 主控创建写作智能体 sub agent，注入 `style_refs`（至少含当前 Creator Profile 精确 ref 和 locked Direction 精确 ref）；sub agent 返回正文候选，主控 `INSERT INTO chapters (...,'draft',...)`。
 4. 主控创建独立审查 sub agent 审查不可变正文 Hash → `INSERT INTO reviews`；审查通过后 `UPDATE chapters SET status='accepted'`。
-5. `$novel-continuity` 从已接受正文提取候选（事实/承诺/期待/关系/故事弧状态），绑定正文 Hash，主控 SQL INSERT 到对应连续性账本。
+5. `$novel-continuity` 从已接受正文提取候选（事实/承诺/期待/关系/故事弧状态/人物状态迁移），绑定正文 Hash，主控 SQL INSERT 到对应连续性账本；character_status 晋升后经 `novelos_register_characters.py --status-update` 更新人物注册表。
 
 拒绝路径：正文修改使旧审查失效则不得接受；任一失败不得部分更新连续性账本。
 

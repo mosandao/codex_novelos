@@ -30,3 +30,7 @@ description: 根据已锁定 Chapter Plan 和已确认 Canon 上下文起草或�
 修改已接受章节：直接 UPDATE content_resource_id 指向新 resource（不需要重开 draft → review → accept 全流程，除非改动改变章节状态）。
 
 Writer 不接受、锁定或晋升任何结果——这些都是主控的职责。
+
+## 用户打断
+
+写作或修复进行中用户提出修改：立即停止当前生成，按 AGENTS.md「用户实时打断与修改」协议分流（setup 级/资产级/章内级），先呈报影响面再动。
