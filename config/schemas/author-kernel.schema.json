@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://novelos.local/schemas/author-kernel.schema.json",
+  "title": "NovelOS 作者内核（跨书持久的作者人格核心）",
+  "description": "作者内核 v1：跨题材深层一致的持久层。内核决定长期相信什么、如何观察判断（心理运作八维 + 知识生态）；每本书的文风/手法由分身（creator-signature v3，parent=内核版本）按 setup 适配。内核修正走 growth_log 四归因（express/slot/setting/kernel），一次读者意见或作品失败不自动重写内核。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "identity",
+    "psychology",
+    "knowledge_ecology",
+    "growth_log"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "display_name",
+        "core_questions",
+        "value_axioms",
+        "emotional_stance",
+        "aesthetic_commitments",
+        "knowledge_discipline",
+        "creative_axioms",
+        "kernel_blindspots"
+      ],
+      "properties": {
+        "display_name": {"type": "string", "minLength": 1, "maxLength": 60},
+        "core_questions": {"$ref": "#/$defs/non_empty_text_list"},
+        "value_axioms": {"$ref": "#/$defs/non_empty_text_list"},
+        "emotional_stance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["sympathies", "wariness"],
+          "properties": {
+            "sympathies": {"$ref": "#/$defs/non_empty_text_list"},
+            "wariness": {"$ref": "#/$defs/non_empty_text_list"}
+          }
+        },
+        "aesthetic_commitments": {"$ref": "#/$defs/non_empty_text_list"},
+        "knowledge_discipline": {"$ref": "#/$defs/non_empty_text"},
+        "creative_axioms": {"$ref": "#/$defs/non_empty_text_list"},
+        "kernel_blindspots": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["overcommits", "overlooks"],
+          "properties": {
+            "overcommits": {"$ref": "#/$defs/non_empty_text_list"},
+            "overlooks": {"$ref": "#/$defs/non_empty_text_list"}
+          }
+        }
+      }
+    },
+    "psychology": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "attention_bias",
+        "emotion_processing",
+        "core_needs",
+        "attachment_pattern",
+        "defense_compensation",
+        "uncertainty_tolerance",
+        "moral_intuition",
+        "belief_updating"
+      ],
+      "properties": {
+        "attention_bias": {"$ref": "#/$defs/dimension"},
+        "emotion_processing": {"$ref": "#/$defs/dimension"},
+        "core_needs": {"$ref": "#/$defs/dimension"},
+        "attachment_pattern": {"$ref": "#/$defs/dimension"},
+        "defense_compensation": {"$ref": "#/$defs/dimension"},
+        "uncertainty_tolerance": {"$ref": "#/$defs/dimension"},
+        "moral_intuition": {"$ref": "#/$defs/dimension"},
+        "belief_updating": {"$ref": "#/$defs/dimension"}
+      }
+    },
+    "knowledge_ecology": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["domains"],
+      "properties": {
+        "domains": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 12,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["domain", "depth", "primary_use", "verification", "common_errors"],
+            "properties": {
+              "domain": {"$ref": "#/$defs/non_empty_text"},
+              "depth": {"enum": ["深研", "工作知识", "涉猎", "道听途说"]},
+              "primary_use": {"$ref": "#/$defs/non_empty_text"},
+              "verification": {"$ref": "#/$defs/non_empty_text"},
+              "common_errors": {"$ref": "#/$defs/non_empty_text_list"}
+            }
+          }
+        }
+      }
+    },
+    "growth_log": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["trigger", "attribution", "change"],
+        "properties": {
+          "trigger": {"$ref": "#/$defs/non_empty_text"},
+          "attribution": {"enum": ["express", "slot", "setting", "kernel"]},
+          "change": {"$ref": "#/$defs/non_empty_text"}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "non_empty_text": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000,
+      "pattern": "\\S"
+    },
+    "non_empty_text_list": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 24,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/non_empty_text"}
+    },
+    "dimension": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tendency", "triggers", "reactions", "blindspots", "revision"],
+      "properties": {
+        "tendency": {"$ref": "#/$defs/non_empty_text"},
+        "triggers": {"$ref": "#/$defs/non_empty_text_list"},
+        "reactions": {"$ref": "#/$defs/non_empty_text_list"},
+        "blindspots": {"$ref": "#/$defs/non_empty_text_list"},
+        "revision": {"$ref": "#/$defs/non_empty_text"}
+      }
+    }
+  }
+}
