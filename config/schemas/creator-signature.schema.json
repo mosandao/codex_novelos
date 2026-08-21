@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://novelos.local/schemas/creator-signature.schema.json",
   "title": "NovelOS 作者签名",
-  "description": "v1 = 系统原型签名（无 persona）；v2 = 派生签名（persona 必填，先立人再落规）",
+  "description": "v1 = 系统原型签名（无 persona）；v2 = 派生签名（persona 必填，先立人再落规）。v3 内核派生的 v2 签名另带可选 kernel_origin（内核层继承的可追溯锚点——内核版本 id + hash + 表达层适配说明）",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -18,6 +18,19 @@
   "properties": {
     "schema_version": {"enum": [1, 2]},
     "persona": {"$ref": "#/$defs/persona"},
+    "kernel_origin": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kernel_version_id", "kernel_subject_hash"],
+      "properties": {
+        "kernel_version_id": {
+          "type": "string",
+          "pattern": "^creator-profile-version:[a-z0-9][a-z0-9-]*(:[0-9]+)?$"
+        },
+        "kernel_subject_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "adaptation_notes": {"type": "string", "minLength": 1, "maxLength": 1000}
+      }
+    },
     "sympathies": {"$ref": "#/$defs/non_empty_text_list"},
     "distrusts": {"$ref": "#/$defs/non_empty_text_list"},
     "recurring_attention": {"$ref": "#/$defs/non_empty_text_list"},

@@ -36,6 +36,7 @@
       "composer_key": "fusion",
       "skill": "onboarding/creator-signature-fusion",
       "slots": [
+        "kernel_full",
         "selected_archetypes",
         "archetype_roster",
         "persona_hints",
@@ -44,7 +45,7 @@
       ],
       "divergence": "expansive",
       "decision_scope": "flag",
-      "output": "creator_derivation_candidate（jsonschema 信封 + 签名 v2 深层校验）",
+      "output": "creator_derivation_candidate（jsonschema 信封 + 签名 v2 深层校验；v3 带 kernel_origin）",
       "failure": "错配警告 → 呈报用户裁决，未获裁决不落库；候选解析失败要求融合智能体重出，主控禁手工改写"
     },
     {

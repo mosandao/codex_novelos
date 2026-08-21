@@ -133,6 +133,18 @@ def _seed_user_persona(conn: sqlite3.Connection) -> None:
         (json.dumps({"setup": {"channel": "男频", "title": "测试书"}}, ensure_ascii=False),))
 
 
+def _seed_kernel_for_fusion(conn: sqlite3.Connection) -> None:
+    kernel = {"schema_version": 1,
+              "identity": {"display_name": "测试内核", "core_questions": ["秩序的代价"]}}
+    conn.execute("INSERT INTO resources VALUES ('res:k1', CAST(? AS BLOB))",
+                 (json.dumps(kernel, ensure_ascii=False),))
+    conn.execute("INSERT INTO creator_profiles VALUES ('cp:k1', 'author_kernel', '测试内核')")
+    conn.execute(
+        "INSERT INTO creator_profile_versions VALUES "
+        "('creator-profile-version:k1:1', 'cp:k1', NULL, '2026-01-01', 'res:k1', ?)",
+        ("sha256:" + "c" * 64,))
+
+
 def _fusion_payload() -> dict:
     a = ARCHETYPES[0]
     version_id = f"creator-profile-version:{a['id']}:{a['revision']}"
@@ -218,6 +230,7 @@ class FusionSlots(unittest.TestCase):
         self.assertEqual(
             [t for t, _ in sections],
             [
+                "作者内核（kernel 全文）",  # v2 载荷 → 占位节
                 "selected_archetypes（选中条目全文——parent 判定与气质溯因只用这些）",
                 "系统原型全库一行式清单（仅作语境：库里还有什么；禁止从清单外原型取材）",
                 "user_persona_hints（人格素材）",
@@ -225,14 +238,42 @@ class FusionSlots(unittest.TestCase):
                 "跨批次比对基准人格（existing_persona_fingerprints，按量化范围取数）",
             ],
         )
-        self.assertIn("display_name", sections[0][1])
+        self.assertIn("无内核来源", sections[0][1])
+        self.assertIn("display_name", sections[1][1])
         self.assertEqual(build_context_fusion(conn, payload)["selected_count"], 1)
+
+    def test_v3_kernel_derive_sections_and_marker(self):
+        """v3 内核派生：kernel_full 注入内核全文，原型/素材槽占位，kernel-derive 模块命中。"""
+        from scripts.novelos_compose_prompt import (
+            build_context_fusion as _bcf, compose as _compose,
+        )
+        conn = _make_db()
+        _seed_kernel_for_fusion(conn)
+        payload = _fusion_payload()
+        payload["request_type"] = "novelos.project.create.v3"
+        payload["setup"]["author_kernel"] = {
+            "mode": "select", "kernel_version_id": "creator-profile-version:k1:1",
+            "subject_hash": "sha256:" + "c" * 64, "kernel_hints": {}}
+        payload["setup"].pop("creator")
+        validate_fusion_payload(payload)
+        context = _bcf(conn, payload)
+        self.assertEqual(context["selected_count"], 0)
+        sections = resolve_slots(conn, ASSET_DIRS["fusion"], payload=payload)
+        by_title = {t: b for t, b in sections}
+        kernel_sec = next(b for t, b in sections if t.startswith("作者内核"))
+        self.assertIn("测试内核", kernel_sec)
+        self.assertIn("sha256:", kernel_sec)
+        self.assertIn("v3 内核派生路径", by_title["selected_archetypes（选中条目全文）"])
+        self.assertIn("素材已在建核时消费", by_title["user_persona_hints（人格素材）"])
+        out = _compose(ASSET_DIRS["fusion"], context, sections)
+        self.assertIn("内核派生分支（v3）", out)
+        self.assertIn("kernel_origin", out)
 
     def test_empty_library_placeholder(self):
         conn = _make_db()
         sections = resolve_slots(conn, ASSET_DIRS["fusion"], payload=_fusion_payload())
-        self.assertEqual(sections[4][0], "跨批次比对基准人格")
-        self.assertIn("人格库为空", sections[4][1])
+        self.assertEqual(sections[5][0], "跨批次比对基准人格")
+        self.assertIn("人格库为空", sections[5][1])
 
     def test_invalid_payload_rejected(self):
         with self.assertRaises(SystemExit):

@@ -10,7 +10,8 @@
 
 ## 输入
 
-- `selected_archetypes`（选中条目全文——parent 判定与气质溯因**只用这些**）：向导勾选原型的完整 7 字段签名与 temperament_tags
+- `kernel_full`（v3 内核派生路径的第一因）：payload 携带 `setup.author_kernel` 时注入的**作者内核全文**（identity 八字段 + 心理运作八维 + 知识生态 + growth_log）。此时 parent 即内核版本，按「内核派生分支」模块执行——系统原型退为参考资料。占位声明「无内核来源」时走 v2 原型路径。
+- `selected_archetypes`（v2 原型路径；选中条目全文——parent 判定与气质溯因**只用这些**）：向导勾选原型的完整 7 字段签名与 temperament_tags
 - 系统原型全库一行式清单（仅作语境：库里还有什么；**禁止从清单外原型取材**）
 - `user_persona_hints`：用户在向导填写的人格素材（可能粗糙、可能为空）——`taste_anchors`（口味锚点）/ `people_and_scenes`（最想写的人与圈子）/ `hard_nos`（绝不触碰）/ `obsessions`（执念话题）
 - `project_setup`（v2）：项目名、频道、平台（含 platform_traits 平台画像）、规模、一级题材、二级方向、表里基调（emotional_surface 表层 / emotional_core 内核 / tonal_contrast 表里声明）、美学风格、genre_profile（题材信息包，可能为 null）、创作资料
@@ -170,6 +171,11 @@
   "parent_rationale": "parent 判定理由 + 辅助原型取舍 + 错配警告（如有）",
   "signature": {
     "schema_version": 2,
+    "kernel_origin": {
+      "kernel_version_id": "（v3 内核派生必填）",
+      "kernel_subject_hash": "sha256:...",
+      "adaptation_notes": "本次频道/题材/平台的表达层适配说明"
+    },
     "persona": {
       "narrative": "300-500 字连贯人格叙事（五维生平织入，含目光/执念来路/恐惧/内在矛盾/不体面的毛病）",
       "anchors": {

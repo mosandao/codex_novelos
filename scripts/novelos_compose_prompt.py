@@ -283,7 +283,8 @@ def build_context_direction(conn: sqlite3.Connection, project_id: str) -> dict[s
 
 
 def build_context_fusion(conn: sqlite3.Connection, payload: dict[str, Any]) -> dict[str, Any]:
-    selected = payload["setup"]["creator"]["selected_archetypes"]
+    creator = (payload.get("setup") or {}).get("creator") or {}
+    selected = creator.get("selected_archetypes") or []
     return {
         "setup": payload["setup"],
         "selected_count": len(selected),
@@ -362,6 +363,39 @@ def _slot_persona_full(conn: sqlite3.Connection, project_id: str | None,
     return ("创作者人格签名", "（未查到项目绑定——停下来上报，禁止无签名生成方向）")
 
 
+def _slot_kernel_full(conn: sqlite3.Connection, project_id: str | None,
+                      payload: dict[str, Any] | None,
+                      subject_id: str | None = None) -> tuple[str, str]:
+    """内核全文：项目域走绑定 kernel_version_id；融合域走 payload.author_kernel（select 形态）。
+
+    无内核来源（v2 原型直连的旧项目 / 未缝合载荷）给占位不阻断——v2 分身自带
+    完整人格七字段，按无内核路径执行。
+    """
+    version_id: str | None = None
+    if project_id is not None:
+        row0 = conn.execute(
+            "SELECT kernel_version_id FROM project_creator_bindings WHERE project_id = ?",
+            (project_id,),
+        ).fetchone()
+        version_id = row0[0] if row0 else None
+    elif payload:
+        ak = (payload.get("setup") or {}).get("author_kernel") or {}
+        if ak.get("mode") == "select":
+            version_id = ak.get("kernel_version_id")
+    if version_id is None:
+        return ("作者内核（kernel 全文）",
+                "（无内核来源——v2 原型直连项目或未缝合载荷；分身自带完整人格，按无内核路径执行）")
+    row = conn.execute(
+        "SELECT CAST(r.content AS TEXT), v.subject_hash FROM creator_profile_versions v "
+        "JOIN resources r ON r.id = v.content_resource_id WHERE v.id = ?",
+        (version_id,),
+    ).fetchone()
+    if row is None:
+        raise SystemExit(f"内核版本库中不存在: {version_id}")
+    return ("作者内核（第一因的根，kernel 全文——内核层继承不变，表达层按本书适配）",
+            f"subject_hash: {row[1]}\n" + row[0])
+
+
 def _fusion_selected_ids(payload: dict[str, Any]) -> list[str]:
     return [a["profile_version_id"] for a in payload["setup"]["creator"]["selected_archetypes"]]
 
@@ -369,6 +403,10 @@ def _fusion_selected_ids(payload: dict[str, Any]) -> list[str]:
 def _slot_selected_archetypes(conn: sqlite3.Connection, project_id: str | None,
                               payload: dict[str, Any] | None,
                               subject_id: str | None = None) -> tuple[str, str]:
+    creator = ((payload or {}).get("setup") or {}).get("creator")
+    if not (isinstance(creator, dict) and creator.get("selected_archetypes")):
+        return ("selected_archetypes（选中条目全文）",
+                "（v3 内核派生路径——原型退出创建链，参考资料库不作 parent 取材）")
     archetypes = _load_archetypes()
     by_key = {f"creator-profile-version:{a['id']}:{a['revision']}": a for a in archetypes}
     selected_ids = _fusion_selected_ids(payload)
@@ -390,7 +428,11 @@ def _slot_archetype_roster(conn: sqlite3.Connection, project_id: str | None,
 def _slot_persona_hints(conn: sqlite3.Connection, project_id: str | None,
                         payload: dict[str, Any] | None,
                         subject_id: str | None = None) -> tuple[str, str]:
-    hints = payload["setup"]["creator"]["user_persona_hints"]
+    creator = ((payload or {}).get("setup") or {}).get("creator")
+    if not (isinstance(creator, dict) and "user_persona_hints" in creator):
+        return ("user_persona_hints（人格素材）",
+                "（v3 路径——素材已在建核时消费，分身由内核+setup 派生，无额外素材）")
+    hints = creator["user_persona_hints"]
     return ("user_persona_hints（人格素材）", json.dumps(hints, ensure_ascii=False, indent=1))
 
 
@@ -578,6 +620,7 @@ SLOT_REGISTRY: dict[str, Any] = {
     "persona_fingerprints": _slot_persona_fingerprints,
     "kernel_hints": _slot_kernel_hints,
     "kernel_subject": _slot_kernel_subject,
+    "kernel_full": _slot_kernel_full,
     "subject": _slot_subject,
     "genre_pack": _slot_genre_pack,
 }

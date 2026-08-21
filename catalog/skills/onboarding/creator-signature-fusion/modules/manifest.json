@@ -93,9 +93,18 @@
         "field": "setup.genre_profile",
         "is_null": true
       }
+    },
+    {
+      "id": "kernel-derive",
+      "file": "kernel-derive.md",
+      "when": {
+        "field": "setup.author_kernel",
+        "not_null": true
+      }
     }
   ],
   "data_slots": [
+    "kernel_full",
     "selected_archetypes",
     "archetype_roster",
     "persona_hints",

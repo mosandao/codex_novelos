@@ -515,6 +515,12 @@ def validate_candidate(
             identity = json.loads(row["kernel_json"]).get("identity", {})
             for field in KERNEL_IDENTITY_LIST_FIELDS:
                 parent_lists[field] = list(identity.get(field, []))
+            origin = sig.get("kernel_origin")
+            if origin is not None:
+                if origin.get("kernel_version_id") != ak["kernel_version_id"]:
+                    errors.append("kernel_origin.kernel_version_id 与绑定内核不符")
+                if origin.get("kernel_subject_hash") != row["subject_hash"]:
+                    errors.append("kernel_origin.kernel_subject_hash 与内核反查不符")
     else:
         parent = cfg.get(candidate.get("parent_version_id", ""))
         if parent is None:
