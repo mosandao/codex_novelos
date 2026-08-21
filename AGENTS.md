@@ -65,9 +65,11 @@ direction → architecture → strategy → character‖world（可并行）→ 
 
 ## 项目创建向导
 
-**强制首步**：收到「创建/新建小说项目」请求，第一个动作必须是 `open ui/project-wizard.html`。禁止用 CLI 问卷/自由文本替代（频道级联、原型打分、人格素材编辑都依赖页面交互）。仅用户明确无法用浏览器时才 fallback 并说明原因。
+**强制首步**：收到「创建/新建小说项目」请求，第一个动作必须是 `open ui/project-wizard.html`。禁止用 CLI 问卷/自由文本替代（频道级联、内核选择/新建、内核素材编辑都依赖页面交互）。仅用户明确无法用浏览器时才 fallback 并说明原因。
 
-流程：① 向导产出 `novelos.project.create.v2` JSON（setup v2 + selected_archetypes + user_persona_hints）；② **入口校验** `novelos_create_project.py --payload <json>`（schema + 词表级联 + 原型三方比对，FAIL 拒绝）；③ **原型融合** `novelos_compose_prompt.py --asset fusion --payload <json>` 产出完整注入文本 → 引导融合智能体（先立人再落规，含跨批次指纹去重）；④ **落库** `--payload <json> --candidate <json>`（校验门 + 单事务六表，禁手工 INSERT）。`parent_rationale` 含错配警告时**呈报用户裁决，未获裁决不落库**；候选解析失败要求 agent 重出，主控禁改写内容。一书一分身是有意设计（只允许 derive，无 reuse）。
+流程：① 向导产出 `novelos.project.create.v3` JSON（setup v3 + `author_kernel`：`select`=绑定既有内核 / `create`=新建内核素材六字段）；② **入口校验** `novelos_create_project.py --payload <json>`（schema + 词表级联 + select 模式内核库内反查，FAIL 拒绝）；③a **mode=create 先建核**：`novelos_compose_prompt.py --asset kernel-fusion --payload <json>` 产出完整注入文本 → 内核融合智能体（identity 八字段 + 心理运作八维五段式 + 知识生态）→ `novelos_create_project.py --payload <json> --kernel-candidate <json> --emit-payload <bound.json>`（内核校验门 + 落库 + 缝合 select 形态），随后重跑 `novelos_export_kernel_roster.py` 刷新向导名册；③b **分身派生**：`novelos_compose_prompt.py --asset fusion --payload <bound.json>` → 分身融合智能体（内核层继承不变、表达层按本书频道/题材适配，含跨批次指纹去重）；④ **落库** `--payload <bound.json> --candidate <json>`（校验门 + 单事务六表，binding `kernel_derive` + `kernel_version_id`，禁手工 INSERT）。`parent_rationale` 含错配警告时**呈报用户裁决，未获裁决不落库**；候选解析失败要求 agent 重出，主控禁改写内容。**内核跨书共享（ownership=author_kernel 的 profile），每书派生独一分身（parent=内核版本；分身间禁 reuse）**——内核完全取代原型直连（决策 T30），系统原型降为参考资料库。
+
+**内核修订**（读者反馈/作品复盘后）：先四归因（express/slot/setting/kernel）——只有归因 kernel 才改内核；`novelos_compose_prompt.py --asset kernel-fusion --payload <revise载荷>`（revise 模式）→ `novelos_create_project.py --kernel-revise <revise载荷> --kernel-candidate <json>`（growth_log 只追加，display_name 连续）；修订后重报名册。绑定旧版内核的项目照常运行（分身自带完整人格），升级与否由用户裁决。
 
 **setup 变更**（连载中改频道/平台/基调）：① `UPDATE projects SET metadata_json = json_set(metadata_json,'$.setup',json('…'))`；② 立即全部 locked 资产标 stale（propagate_stale）重走审查。禁止静默改后继续写作。
 

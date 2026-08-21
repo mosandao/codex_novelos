@@ -73,7 +73,7 @@ ORDER BY c.number;
 
 ## 作者签名链（项目创建落库——固化脚本执行）
 
-onboarding_agent 产出 `creator_derivation_candidate` 后，主控运行 `scripts/novelos_create_project.py --payload <向导JSON> --candidate <候选JSON>` 一步完成校验门与落库，**不手工逐条执行以下 SQL**（模板仅作结构说明与排查参照）。落库在单事务内执行（`BEGIN IMMEDIATE` + `PRAGMA foreign_keys=ON`，任一步失败整体回滚——六表写入没有孤儿）。签名 JSON（schema v2，含 persona）存 resources；派生记录存第二个 resource，内容固定为：`parent_version_id` + `parent_display_name` + `parent_subject_hash` + `auxiliary_archetypes` + `rationale` + `user_input_snapshot`（**完整用户输入快照** = selected_archetypes + user_persona_hints + setup 全文，不得缩略——它是用户原始意图的唯一持久化副本）。
+onboarding_agent 产出 `creator_derivation_candidate` 后，主控运行 `scripts/novelos_create_project.py --payload <向导JSON> --candidate <候选JSON>` 一步完成校验门与落库，**不手工逐条执行以下 SQL**（模板仅作结构说明与排查参照）。落库在单事务内执行（`BEGIN IMMEDIATE` + `PRAGMA foreign_keys=ON`，任一步失败整体回滚——六表写入没有孤儿）。签名 JSON（schema v2，含 persona，v3 内核派生另带 `kernel_origin`）存 resources；派生记录存第二个 resource，内容固定为：`parent_version_id` + `parent_display_name` + `parent_subject_hash` + `auxiliary_archetypes` + `rationale` + `user_input_snapshot`（**完整用户输入快照** = author_kernel + setup 全文，不得缩略——它是用户原始意图的唯一持久化副本）。
 
 ```sql
 -- 1. 签名内容（含 persona 的完整签名 JSON）
@@ -88,21 +88,21 @@ VALUES ('resource:deriv', 'application/json', CAST(? AS BLOB), ?);
 INSERT INTO creator_profiles (id, display_name, ownership)
 VALUES ('creator-profile:xxx', '一句话人格名', 'user');
 
--- 4. profile version（parent 指向系统原型版本，双资源链）
+-- 4. profile version（parent 指向内核版本，双资源链）
 INSERT INTO creator_profile_versions (id, profile_id, revision, content_resource_id,
     subject_hash, parent_version_id, derivation_resource_id)
 VALUES ('creator-profile-version:xxx', 'creator-profile:xxx', 1,
     'resource:sig', 'sha256:...',          -- 签名 JSON 的 content_hash
-    'creator-profile-version:system-xxx:1', -- parent = 选定系统原型（单/多原型均为判定出的 parent）
+    'creator-profile-version:<内核版本id>', -- parent = 绑定的作者内核版本
     'resource:deriv');
 
 -- 5. 项目 + 绑定（metadata_json 写 setup 快照，结构见上方项目模板）
 INSERT INTO projects (id, name, description, version, metadata_json)
-VALUES ('project:xxx', '书名', '描述', 1, json('{"setup_schema_version": 2, "setup": {...}}'));
+VALUES ('project:xxx', '书名', '描述', 1, json('{"setup_schema_version": 3, "setup": {...}}'));
 INSERT INTO project_creator_bindings (project_id, profile_id, profile_version_id,
-    profile_revision, subject_hash, binding_mode)
+    profile_revision, subject_hash, binding_mode, kernel_version_id)
 VALUES ('project:xxx', 'creator-profile:xxx', 'creator-profile-version:xxx', 1,
-    'sha256:...', 'derive');  -- subject_hash 与 profile version 一致
+    'sha256:...', 'kernel_derive', 'creator-profile-version:<内核版本id>');
 
 -- 查询项目绑定的完整签名（含 persona）
 SELECT v.id, v.revision, v.subject_hash, CAST(r.content AS TEXT) AS signature_json
@@ -110,12 +110,40 @@ FROM project_creator_bindings b
 JOIN creator_profile_versions v ON v.id = b.profile_version_id
 JOIN resources r ON r.id = v.content_resource_id
 WHERE b.project_id = 'project:xxx';
+
+-- 查询项目绑定的作者内核全文（内核层溯源；组装器 kernel_full 槽同源查询）
+SELECT v.id, v.revision, v.subject_hash, cp.display_name, CAST(r.content AS TEXT) AS kernel_json
+FROM project_creator_bindings b
+JOIN creator_profile_versions v ON v.id = b.kernel_version_id
+JOIN creator_profiles cp ON cp.id = v.profile_id
+JOIN resources r ON r.id = v.content_resource_id
+WHERE b.project_id = 'project:xxx';
+
+-- 查询内核名册（active 内核每 profile 取最高 revision——roster 导出同源）
+SELECT v.id AS kernel_version_id, v.subject_hash, v.revision, cp.display_name
+FROM creator_profile_versions v
+JOIN creator_profiles cp ON cp.id = v.profile_id
+WHERE cp.ownership = 'author_kernel' AND cp.status = 'active'
+  AND v.revision = (SELECT MAX(v2.revision) FROM creator_profile_versions v2
+                    WHERE v2.profile_id = v.profile_id);
+
+-- 内核陈旧检查：绑定旧版内核的项目（内核出新 revision 后待裁决是否重派生）
+SELECT b.project_id, b.kernel_version_id, b.profile_version_id
+FROM project_creator_bindings b
+JOIN creator_profile_versions bound ON bound.id = b.kernel_version_id
+WHERE b.binding_mode = 'kernel_derive'
+  AND bound.revision < (SELECT MAX(v2.revision) FROM creator_profile_versions v2
+                        WHERE v2.profile_id = bound.profile_id);
 ```
 
 落库校验门（INSERT 前必须全部通过）：
 - `config/schemas/creator-signature.schema.json` 校验签名（v2 必须含 persona，`blindspots.cannot_write` 非空）
-- overrides 字段在 7 个签名字段内且无逐字复制父值（语义继承允许，须从 persona 重新长出）
-- `parent_version_id` / `parent_subject_hash` 与 `config/system_archetypes.json` 中的原型一致
+- overrides 字段在 7 个签名字段内且无逐字复制内核 identity 条目（语义继承允许，须从 persona 重新长出）
+- `parent_version_id` / `parent_subject_hash` 与库内绑定内核版本一致；`kernel_origin`（如有）与绑定内核一致
+
+## 作者内核链（建核/修订——固化脚本执行）
+
+内核（`ownership='author_kernel'`）是跨书持久的根：建核/修订走 `scripts/novelos_create_project.py --payload <向导JSON> --kernel-candidate <内核候选JSON> [--emit-payload <缝合路径>]`（独立修订用 `--kernel-revise <revise载荷>`），**禁止手工 INSERT**。修订在同一 profile 上出新 revision（`parent_version_id` 指向基底版本），growth_log 只追加不删改。建核/修订后重跑 `scripts/novelos_export_kernel_roster.py` 刷新向导名册镜像。
 
 ## 人格库指纹（融合前跨批次去重注入）
 
