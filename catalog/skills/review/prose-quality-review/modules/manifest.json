@@ -7,7 +7,7 @@
     {"id": "check-channel-omni", "file": "check-channel-omni.md",
      "when": {"field": "setup.channel", "equals": "全向"}}
   ],
-  "data_slots": ["subject", "upstream:chapter_plan"],
+  "data_slots": ["subject", "upstream:chapter_plan", "persona_full"],
   "craft_refs": ["scene-pacing", "dash-ellipsis-guide", "mobile-formatting",
                   "prose-anti-ai-fingerprint", "prose-format-hardrules",
                   "prose-webnovel-accessibility", "worldview-lexicon"],

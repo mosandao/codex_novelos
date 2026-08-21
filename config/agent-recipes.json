@@ -286,6 +286,7 @@
       "slots": [
         "subject",
         "upstream:chapter_plan",
+        "persona_full",
         "craft_refs"
       ],
       "divergence": null,

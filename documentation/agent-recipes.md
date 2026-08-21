@@ -36,7 +36,7 @@
 | chapter_plan（planning/chapter-plan-execution-card） | upstream:volume_outline, upstream:character_contract, upstream:world_contract | balanced | propose_only | 章纲候选（含 soul_pressure 与 moral_residue） | 修复循环 |
 | chapter-plan-review（review/planning-chapter-plan-review） | subject, upstream:volume_outline | 跟随被审对象 | judge | Review Receipt | 修复循环 |
 | chapter_draft（writing/chapter-draft-generation） | upstream:chapter_plan, persona_full, canon_minimal, craft_refs, review_feedback | constrained | execute | 章节正文（style_refs 逐字锚定 + 防指纹禁令） | prose-quality-review 循环；persona 盲区场景按绕开方式处理 |
-| prose-quality-review（review/prose-quality-review） | subject, upstream:chapter_plan, craft_refs | 跟随被审对象 | judge | Review Receipt（盲区场景未绕开 = blocking） | 修复循环；3 轮未收敛/同因复发 → 升级用户 |
+| prose-quality-review（review/prose-quality-review） | subject, upstream:chapter_plan, persona_full, craft_refs | 跟随被审对象 | judge | Review Receipt（盲区场景未绕开 = blocking） | 修复循环；3 轮未收敛/同因复发 → 升级用户 |
 | continuity-extraction（continuity/continuity-candidate-extraction） | subject, canon_minimal | constrained | execute | 连续性候选条目（六类账本） | continuity-quality-review 后晋升；不实条目拒绝 |
 | continuity-quality-review（review/continuity-quality-review） | subject, canon_minimal | 跟随被审对象 | judge | Review Receipt | 条目拒绝/修订循环 |
 | cross-consistency-review（review/planning-cross-consistency-review） | subject, upstream:direction, upstream:architecture, upstream:strategy | 跟随被审对象 | judge | Review Receipt（跨资产一致性） | 修复循环 |
