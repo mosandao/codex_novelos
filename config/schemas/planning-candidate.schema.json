@@ -71,7 +71,9 @@
           "登场卷": {"type": "integer", "minimum": 1, "maximum": 99},
           "预期退场": {
             "enum": ["完成型", "迁移型", "转化型", "关系型", "功能转移型", "休眠型", "死亡型", "持续活跃"]
-          }
+          },
+          "seat_ref": {"type": "string", "minLength": 1, "maxLength": 40},
+          "essence": {"type": "string", "minLength": 1, "maxLength": 160}
         }
       }
     },
@@ -90,7 +92,9 @@
             "enum": ["完成型", "迁移型", "转化型", "关系型", "功能转移型", "休眠型", "死亡型", "持续活跃"]
           },
           "微档案": {"type": "string", "maxLength": 200},
-          "登记备注": {"type": "string", "maxLength": 200}
+          "登记备注": {"type": "string", "maxLength": 200},
+          "seat_ref": {"type": "string", "minLength": 1, "maxLength": 40},
+          "essence": {"type": "string", "minLength": 1, "maxLength": 160}
         }
       }
     }

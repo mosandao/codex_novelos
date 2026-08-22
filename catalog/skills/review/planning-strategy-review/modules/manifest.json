@@ -11,6 +11,6 @@
     {"id": "check-platform-paid", "file": "check-platform-paid.md",
      "when": {"field": "setup.platform_traits.model", "equals": "付费订阅"}}
   ],
-  "data_slots": ["subject", "upstream:direction", "upstream:architecture"],
+  "data_slots": ["subject", "upstream:direction", "upstream-reviews:direction", "upstream:architecture", "upstream-reviews:architecture", "project_setup", "persona_full", "genre_pack"],
   "decision_scope": "judge"
 }

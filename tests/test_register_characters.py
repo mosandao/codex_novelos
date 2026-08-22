@@ -355,5 +355,96 @@ class ContinuityCharacterStatusSchema(unittest.TestCase):
             jsonschema.validate(bad, schema)
 
 
+        bad = {"owners": ["character"], "candidates": [
+            {"type": "character_status", "name": "x", "status": "zombie", "description": "y"}]}
+        with self.assertRaises(jsonschema.ValidationError):
+            jsonschema.validate(bad, schema)
+
+
+def _world_meta() -> dict:
+    return {"seats": [
+        {"name": "掌门", "org": "玄阳宗", "disposition": "待契约认领"},
+        {"name": "客卿", "org": "玄阳宗", "disposition": "待卷级班底"},
+    ]}
+
+
+class RegisterSeatsEssenceT37(unittest.TestCase):
+    """T37：roster 落库带 seat_ref/essence；--world 席位对账；近重名 WARN。"""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.db = Path(self.tmp.name) / "test.db"
+        _make_db(self.db)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_roster_persists_seat_and_essence(self):
+        roster = [
+            {"name": "林昭", "role_class": "main", "arc_role": "主角", "登场卷": 1,
+             "预期退场": "持续活跃", "seat_ref": "掌门",
+             "essence": "对除名牌位执念（谈宗族失措三秒）｜市井口癖藏锋"},
+            {"name": "沈青梧", "role_class": "main", "arc_role": "主锚点", "登场卷": 1,
+             "预期退场": "死亡型"},
+        ]
+        self.assertEqual(reg.run(self.db, "project:p1", roster, None, None, _world_meta()), 0)
+        state = json.loads(self._rows()["林昭"]["state_json"])
+        self.assertEqual(state["seat_ref"], "掌门")
+        self.assertIn("执念", state["essence"])
+        self.assertNotIn("seat_ref", json.loads(self._rows()["沈青梧"]["state_json"]))
+
+    def test_world_bad_seat_ref_fails(self):
+        roster = [
+            {"name": "林昭", "role_class": "main", "arc_role": "主角", "登场卷": 1,
+             "预期退场": "持续活跃", "seat_ref": "不存在席"},
+        ]
+        self.assertEqual(reg.run(self.db, "project:p1", roster, None, None, _world_meta()), 1)
+
+    def test_world_unclaimed_promise_seats_warn(self):
+        import contextlib
+        import io
+        roster = [
+            {"name": "林昭", "role_class": "main", "arc_role": "主角", "登场卷": 1,
+             "预期退场": "持续活跃", "seat_ref": "掌门"},
+        ]
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rc = reg.run(self.db, "project:p1", roster, None, None, _world_meta())
+        self.assertEqual(rc, 0)
+        out = buf.getvalue()
+        self.assertIn("客卿", out)          # 待卷级班底 无人认领 → WARN
+        self.assertNotIn("掌门", out.split("完成")[0].replace("roster 林昭", ""))  # 掌门已认领
+
+    def test_near_dup_normalized_warns(self):
+        import contextlib
+        import io
+        roster = [
+            {"name": "林昭", "role_class": "main", "arc_role": "主角", "登场卷": 1,
+             "预期退场": "持续活跃"},
+        ]
+        self.assertEqual(reg.run(self.db, "project:p1", roster, None, None), 0)
+        entries = [{"name": "林　昭", "role_class": "minor",
+                    "notes": "全角空格变体"}]
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rc = reg.run(self.db, "project:p1", None, entries, None)
+        self.assertEqual(rc, 0)
+        self.assertIn("近重名", buf.getvalue())
+        # 完全同名（幂等合并）不触发近重名 WARN
+        buf2 = io.StringIO()
+        with contextlib.redirect_stdout(buf2):
+            rc2 = reg.run(self.db, "project:p1", roster, None, None)
+        self.assertEqual(rc2, 0)
+        self.assertNotIn("近重名", buf2.getvalue())
+
+    def _rows(self):
+        conn = sqlite3.connect(self.db)
+        conn.row_factory = sqlite3.Row
+        rows = {r["name"]: dict(r) for r in conn.execute(
+            "SELECT * FROM characters WHERE project_id='project:p1'")}
+        conn.close()
+        return rows
+
+
 if __name__ == "__main__":
     unittest.main()

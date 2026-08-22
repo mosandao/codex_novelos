@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "world-metadata.schema.json",
+  "title": "World Contract Metadata v1",
+  "description": "世界契约结构化出口：岗位表（设位不设人）/ 术语语域表机器可读形态 / 维度代价两轴。T36 起 world 候选必带；正文执行端（chapter-draft / prose-review）经 world_lexicon 槽消费 lexicon。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "seats", "lexicon", "dimension_costs"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "seats": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 40,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "org", "duty", "power_tier", "first_consumption"],
+        "properties": {
+          "name": {"type": "string", "minLength": 1, "maxLength": 40},
+          "org": {"type": "string", "minLength": 1, "maxLength": 60},
+          "duty": {"type": "string", "minLength": 1, "maxLength": 200},
+          "power_tier": {"type": "string", "minLength": 1, "maxLength": 40},
+          "rule_links": {"type": "array", "maxItems": 8, "items": {"type": "string", "maxLength": 60}},
+          "first_consumption": {"type": "string", "minLength": 1, "maxLength": 80},
+          "disposition": {"enum": ["待契约认领", "待卷级班底", "显式虚位"]}
+        }
+      }
+    },
+    "lexicon": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["positive_terms", "banned_categories", "measure_system", "exceptions"],
+      "properties": {
+        "positive_terms": {
+          "type": "array", "minItems": 3, "maxItems": 60,
+          "items": {"type": "string", "minLength": 1, "maxLength": 20}
+        },
+        "banned_categories": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["物理术语", "生物医学术语", "现代计量", "现代认知框架"],
+          "properties": {
+            "物理术语": {"type": "array", "minItems": 1, "maxItems": 40, "items": {"type": "string", "minLength": 1, "maxLength": 20}},
+            "生物医学术语": {"type": "array", "minItems": 1, "maxItems": 40, "items": {"type": "string", "minLength": 1, "maxLength": 20}},
+            "现代计量": {"type": "array", "minItems": 1, "maxItems": 40, "items": {"type": "string", "minLength": 1, "maxLength": 20}},
+            "现代认知框架": {"type": "array", "minItems": 1, "maxItems": 40, "items": {"type": "string", "minLength": 1, "maxLength": 20}}
+          }
+        },
+        "measure_system": {"type": "string", "minLength": 1, "maxLength": 300},
+        "exceptions": {"type": "array", "maxItems": 10, "items": {"type": "string", "maxLength": 120}}
+      }
+    },
+    "dimension_costs": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["dimension", "form", "reversibility"],
+        "properties": {
+          "dimension": {"type": "string", "minLength": 1, "maxLength": 40},
+          "form": {"type": "string", "minLength": 1, "maxLength": 300},
+          "reversibility": {"enum": ["可逆", "压制", "不可逆"]},
+          "threshold": {"type": "string", "maxLength": 200},
+          "release": {"type": "string", "maxLength": 200},
+          "bearer": {"enum": ["world", "plot_character", "item", "protagonist_temporary", "protagonist_permanent"]},
+          "book_soul_ref": {"type": "string", "maxLength": 200}
+        },
+        "allOf": [
+          {"if": {"properties": {"reversibility": {"const": "压制"}}, "required": ["reversibility"]},
+           "then": {"required": ["release"]}},
+          {"if": {"properties": {"bearer": {"const": "protagonist_permanent"}}, "required": ["bearer"]},
+           "then": {"required": ["book_soul_ref"]}}
+        ]
+      }
+    },
+    "decision_points": {
+      "type": "array",
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["question", "options", "source_excerpt"],
+        "properties": {
+          "question": {"type": "string", "minLength": 1, "maxLength": 200},
+          "options": {
+            "type": "array", "minItems": 3, "maxItems": 4,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["label", "detail", "tradeoff"],
+              "properties": {
+                "label": {"type": "string", "minLength": 1, "maxLength": 60},
+                "detail": {"type": "string", "minLength": 1, "maxLength": 300},
+                "tradeoff": {"type": "string", "minLength": 1, "maxLength": 300}
+              }
+            }
+          },
+          "source_excerpt": {"type": "string", "minLength": 1, "maxLength": 500}
+        }
+      }
+    }
+  }
+}

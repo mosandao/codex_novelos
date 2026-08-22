@@ -482,9 +482,14 @@ def _slot_subject(conn: sqlite3.Connection, project_id: str | None,
 
 def _slot_upstream(conn: sqlite3.Connection, asset_type: str,
                    project_id: str | None) -> list[tuple[str, str]]:
-    """locked 上游资产原文，按 scope 分节（每 scope 取最高 revision）。缺失即停。"""
+    """locked 上游资产原文 + metadata，按 scope 分节（每 scope 取最高 revision）。缺失即停。
+
+    metadata_json 一并注入：lineage / cadence_plan / 机制清单等结构化产物存 metadata，
+    只注正文会让上游的机器门产物在阶段边界蒸发（下游与审查都拿不到数字骨架）。
+    """
     rows = conn.execute(
-        "SELECT pa.scope_ref, pa.revision, CAST(r.content AS TEXT) AS body "
+        "SELECT pa.scope_ref, pa.revision, pa.metadata_json, "
+        "       CAST(r.content AS TEXT) AS body "
         "FROM planning_assets pa JOIN resources r ON r.id = pa.content_resource_id "
         "WHERE pa.project_id = ? AND pa.asset_type = ? AND pa.status = 'locked' "
         "ORDER BY pa.scope_ref, pa.revision",
@@ -492,12 +497,64 @@ def _slot_upstream(conn: sqlite3.Connection, asset_type: str,
     ).fetchall()
     if not rows:
         raise SystemExit(f"无 locked 上游 {asset_type}——上游缺失即停止，禁止无上游生成")
-    latest: dict[str, tuple[int, str]] = {}
-    for scope, revision, body in rows:
+    latest: dict[str, tuple[int, str, str]] = {}
+    for scope, revision, meta, body in rows:
         if scope not in latest or revision > latest[scope][0]:
-            latest[scope] = (revision, body)
-    return [(f"上游 {asset_type}（scope: {scope}，locked rev {rev}，原文）", body)
-            for scope, (rev, body) in sorted(latest.items())]
+            latest[scope] = (revision, meta or "{}", body)
+    return [(f"上游 {asset_type}（scope: {scope}，locked rev {rev}，原文）",
+             f"{body}\n\n--- 上游 metadata（结构化产物，跨阶段权威） ---\n{meta}")
+            for scope, (rev, meta, body) in sorted(latest.items())]
+
+
+def _slot_upstream_reviews(conn: sqlite3.Connection, asset_type: str,
+                           project_id: str | None) -> list[tuple[str, str]]:
+    """locked 上游资产的最新审查回执（每 scope 一节）——strength 与豁免的跨阶段传递。
+
+    上游锁定时的审查结论（尤其 strength 指认与 accepted_risk 豁免）是下游的
+    保护性输入：direction 被 strength 认定的特质不得在架构翻译中静默削平。
+    无回执注入显式占位节，不静默跳过。
+    """
+    if project_id is None:
+        raise SystemExit(f"upstream-reviews:{asset_type} 槽位需要 --project")
+    try:
+        rows = conn.execute(
+            "SELECT pa.id, pa.scope_ref, rv.verdict, rv.findings_json, "
+            "       rv.created_at, rv.rowid AS rv_rowid "
+            "FROM planning_assets pa JOIN reviews rv ON rv.subject_ref = pa.id "
+            "WHERE pa.project_id = ? AND pa.asset_type = ? AND pa.status = 'locked' "
+            "ORDER BY pa.scope_ref, rv.created_at, rv.rowid",
+            (project_id, asset_type),
+        ).fetchall()
+    except sqlite3.OperationalError as exc:
+        print(f"[upstream-reviews] 回执查询降级（{asset_type}）：{exc}", file=sys.stderr)
+        rows = []
+    if not rows:
+        return [(f"上游 {asset_type} 审查回执", "（无回执记录——上游未经审查即锁定，或回执未入库）")]
+    latest: dict[str, tuple[str, str, str]] = {}  # asset_id -> (scope, verdict, findings_json)
+    for r in rows:
+        latest[r["id"]] = (r["scope_ref"], r["verdict"], r["findings_json"])  # 排序后末条=最新
+    sections = []
+    for scope, verdict, findings_json in sorted(latest.values(), key=lambda t: t[0]):
+        try:
+            findings = json.loads(findings_json or "[]")
+        except json.JSONDecodeError:
+            findings = []
+        lines = []
+        for f in findings:
+            tag = f.get("severity", "?")
+            marks = []
+            if f.get("accepted_risk"):
+                marks.append("accepted_risk（艺术风险豁免，不得削平）")
+            if f.get("defer_to_downstream"):
+                marks.append(f"defer→{f.get('defer_to_downstream')}")
+            line = f"[{tag}] {f.get('message', '')}"
+            if marks:
+                line += f"（{'；'.join(marks)}）"
+            lines.append(line)
+        body = f"verdict: {verdict}\n" + ("\n".join(lines) or "（findings 为空）")
+        sections.append((f"上游 {asset_type} 审查回执（scope: {scope}，最新一条——"
+                         "strength 特质与豁免记录跨阶段有效，翻译时不得静默削平）", body))
+    return sections
 
 
 def _slot_genre_pack(conn: sqlite3.Connection, project_id: str | None,
@@ -510,7 +567,96 @@ def _slot_genre_pack(conn: sqlite3.Connection, project_id: str | None,
     if pack:
         return ("题材信息包（genre_profile，硬输入）",
                 json.dumps(pack, ensure_ascii=False, indent=1))
-    return ("题材信息包", "（本项目未声明 genre_profile——按 genre-null 模块执行，不从 config 回填）")
+    return ("题材信息包",
+            "（本项目未声明 genre_profile——题材缺位：按本资产方法论中的题材缺位分支"
+            "显式处置，不从 config 回填）")
+
+
+def _slot_world_lexicon(conn: sqlite3.Connection, project_id: str | None,
+                        payload: dict[str, Any] | None,
+                        subject_id: str | None = None) -> tuple[str, str]:
+    """世界语域表最小注入：locked world_contract 的 metadata.lexicon（T36 机器可读形态）。
+
+    正文执行端（chapter-draft / prose-review）从此槽消费语域表，不读契约全文。
+    未锁定世界契约或语域表未结构化（T36 前旧资产）时降级为警示占位不阻断——
+    按 worldview-lexicon 方法卡保底纪律执行，并提示经 change proposal 补齐。
+    """
+    if project_id is None:
+        raise SystemExit("world_lexicon 槽位需要 --project")
+    row = conn.execute(
+        "SELECT metadata_json FROM planning_assets WHERE project_id = ? "
+        "AND asset_type = 'world_contract' AND status = 'locked' "
+        "ORDER BY revision DESC LIMIT 1",
+        (project_id,),
+    ).fetchone()
+    lex: dict[str, Any] | None = None
+    if row is not None:
+        try:
+            lex = (json.loads(row[0] or "{}")).get("lexicon")
+        except json.JSONDecodeError:
+            lex = None
+    if not isinstance(lex, dict):
+        return ("世界语域表（world_lexicon）",
+                "⚠ 未锁定世界契约或语域表未结构化（metadata.lexicon 缺位）——按注入的 "
+                "worldview-lexicon 方法卡保底纪律执行；建议经 change proposal 为 "
+                "world_contract 补 metadata.lexicon（正文执行端从此槽消费）")
+    lines = ["正面词汇表: " + "、".join(lex.get("positive_terms") or []) or "（缺位）"]
+    for cat, words in (lex.get("banned_categories") or {}).items():
+        lines.append(f"禁用·{cat}: " + ("、".join(words) if words else "（整类禁用，示例词缺位）"))
+    lines.append("计量体系: " + str(lex.get("measure_system") or "（缺位）"))
+    exc = lex.get("exceptions") or []
+    lines.append("例外通道: " + ("；".join(exc) if exc else "无声明即无例外"))
+    return ("世界语域表（world_lexicon——正文执行端消费，与 worldview-lexicon 方法卡配套）",
+            "\n".join(lines))
+
+
+def _slot_character_roster(conn: sqlite3.Connection, project_id: str | None,
+                           payload: dict[str, Any] | None,
+                           subject_id: str | None = None) -> tuple[str, str]:
+    """人物名册镜像：locked 契约 roster + 注册表在库人物——卷纲班底指认来源与查重的权威输入。
+
+    T36 前卷纲只注 story_arc，班底「契约 roster / 在库配角」来源无从校验；此槽补齐
+    （契约 metadata.character_roster + characters 表全量，紧凑渲染）。
+    """
+    if project_id is None:
+        raise SystemExit("character_roster 槽位需要 --project")
+    parts: list[str] = []
+    row = conn.execute(
+        "SELECT metadata_json FROM planning_assets WHERE project_id = ? "
+        "AND asset_type = 'character_contract' AND status = 'locked' "
+        "ORDER BY revision DESC LIMIT 1",
+        (project_id,),
+    ).fetchone()
+    if row is not None:
+        try:
+            roster = (json.loads(row[0] or "{}")).get("character_roster") or []
+        except json.JSONDecodeError:
+            roster = []
+        for p in roster:
+            seat = f"｜席位:{p['seat_ref']}" if p.get("seat_ref") else ""
+            parts.append(f"[契约] {p.get('name')}（{p.get('role_class')}｜{p.get('arc_role')}"
+                         f"｜登场卷{p.get('登场卷')}｜{p.get('预期退场')}{seat}）")
+    try:
+        chars = conn.execute(
+            "SELECT name, role_class, status, exit_type, state_json FROM characters "
+            "WHERE project_id = ? ORDER BY role_class, updated_at DESC",
+            (project_id,),
+        ).fetchall()
+    except sqlite3.OperationalError as exc:
+        print(f"[character_roster] 注册表查询降级：{exc}", file=sys.stderr)
+        chars = []
+    for c in chars:
+        try:
+            state = json.loads(c["state_json"] or "{}")
+        except json.JSONDecodeError:
+            state = {}
+        seat = f"｜席位:{state['seat_ref']}" if state.get("seat_ref") else ""
+        tail = f"｜已退场:{c['exit_type']}" if c["exit_type"] else ""
+        parts.append(f"[注册表] {c['name']}（{c['role_class']}｜{c['status']}{seat}{tail}）")
+    if not parts:
+        return ("人物名册镜像（character_roster）",
+                "（契约 roster 与注册表均为空——班底来源只剩本卷新生成，注意与既有人物查重无从做起）")
+    return ("人物名册镜像（character_roster——班底指认来源/查重权威）", "\n".join(parts))
 
 
 def _slot_canon_minimal(conn: sqlite3.Connection, project_id: str | None,
@@ -580,6 +726,89 @@ def _slot_review_feedback(feedback: dict[str, Any] | None) -> tuple[str, str] | 
             f"verdict: {feedback.get('verdict', '?')}\n" + "\n".join(lines))
 
 
+def _slot_character_essence(conn: sqlite3.Connection, project_id: str | None,
+                            payload: dict[str, Any] | None,
+                            subject_id: str | None = None) -> tuple[str, str]:
+    """出场人物卡：注册表 main/secondary 的 essence 要点 + 死活状态。
+
+    T37 前契约只设计不交付——执念/失稳/语域要点到 Writer 手里两次衰减归零；
+    此槽从注册表 state_json 取 essence（契约 roster 落库时写入），写作/审校
+    端按行消费。旧契约数据无 essence 时逐行标注降级，不阻断。
+    """
+    if project_id is None:
+        raise SystemExit("character_essence 槽位需要 --project")
+    try:
+        rows = conn.execute(
+            "SELECT name, role_class, status, exit_type, state_json FROM characters "
+            "WHERE project_id = ? AND role_class IN ('main', 'secondary') "
+            "ORDER BY role_class, updated_at DESC",
+            (project_id,),
+        ).fetchall()
+    except sqlite3.OperationalError as exc:
+        print(f"[character_essence] 注册表查询降级：{exc}", file=sys.stderr)
+        rows = []
+    lines: list[str] = []
+    for r in rows:
+        try:
+            state = json.loads(r["state_json"] or "{}")
+        except json.JSONDecodeError:
+            state = {}
+        exited = f"｜已退场:{r['exit_type']}" if r["exit_type"] else ""
+        head = f"{r['name']}（{r['role_class']}｜{r['status']}{exited}）"
+        bits = [state.get("arc_role"), f"席位:{state['seat_ref']}" if state.get("seat_ref") else ""]
+        tail = "｜".join(b for b in bits if b)
+        if tail:
+            head += "｜" + tail
+        essence = state.get("essence")
+        lines.append(f"{head}：{essence}" if essence else f"{head}：（无 essence——旧契约数据，升级 roster 后生效）")
+    if not lines:
+        return ("出场人物卡（character_essence）",
+                "（注册表无 main/secondary 人物——契约未锁定或旧项目；"
+                "锁定契约 roster（含 essence）并 register --roster 后生效）")
+    return ("出场人物卡（character_essence——执念/失稳/语域一句话要点 + 死活状态；"
+            "已退场人物不得无连续性依据复活出场）", "\n".join(lines))
+
+
+def _slot_persona_gate(conn: sqlite3.Connection, project_id: str | None,
+                       payload: dict[str, Any] | None,
+                       subject_id: str | None = None) -> tuple[str, str]:
+    """persona 硬边界门（轻量）：盲区 refuses/cannot_write（自带绕开方式）
+    + 表达偏好 + 负向约束——二级造人端（卷纲班底/执行卡微档案）的消费形态，
+    不注入全文。旧版分身无结构化盲区时按可取字段降级，无任何字段给占位不阻断。
+    """
+    if project_id is None:
+        raise SystemExit("persona_gate 槽位需要 --project")
+    row = conn.execute(
+        "SELECT CAST(r.content AS TEXT) FROM project_creator_bindings b "
+        "JOIN creator_profile_versions v ON v.id = b.profile_version_id "
+        "JOIN resources r ON r.id = v.content_resource_id "
+        "WHERE b.project_id = ?",
+        (project_id,),
+    ).fetchone()
+    if row is None:
+        return ("persona 硬边界门", "（未绑定分身——按无门执行）")
+    try:
+        doc = json.loads(row[0])
+    except json.JSONDecodeError:
+        return ("persona 硬边界门", "（分身内容非结构化 JSON——按无门执行）")
+    anchors = ((doc.get("persona") or {}).get("anchors") or {}) \
+        if isinstance(doc.get("persona"), dict) else {}
+    blindspots = anchors.get("blindspots") or {}
+    lines: list[str] = []
+    for item in blindspots.get("cannot_write") or []:
+        lines.append(f"- 写不了：{item}")
+    for item in blindspots.get("refuses") or []:
+        lines.append(f"- 拒绝写：{item}")
+    for item in doc.get("expression_preferences") or []:
+        lines.append(f"- 表达偏好：{item}")
+    for item in doc.get("negative_constraints") or []:
+        lines.append(f"- 负向约束：{item}")
+    if not lines:
+        return ("persona 硬边界门", "（旧版分身无结构化盲区/约束——按无门执行）")
+    return ("persona 硬边界门（造人/微档案适用：盲区条目自带绕开方式，"
+            "新造人物不得整档落在「写不了」场景）", "\n".join(lines))
+
+
 SLOT_REGISTRY: dict[str, Any] = {
     "project_setup": _slot_project_setup,
     "persona_full": _slot_persona_full,
@@ -590,6 +819,10 @@ SLOT_REGISTRY: dict[str, Any] = {
     "kernel_full": _slot_kernel_full,
     "subject": _slot_subject,
     "genre_pack": _slot_genre_pack,
+    "world_lexicon": _slot_world_lexicon,
+    "character_roster": _slot_character_roster,
+    "character_essence": _slot_character_essence,
+    "persona_gate": _slot_persona_gate,
 }
 
 
@@ -610,6 +843,10 @@ def resolve_slots(conn: sqlite3.Connection, skill_dir: Path, *,
     for slot in manifest.get("data_slots", []):
         if slot.startswith("upstream:"):
             sections.extend(_slot_upstream(conn, slot[len("upstream:"):], project_id))
+            continue
+        if slot.startswith("upstream-reviews:"):
+            sections.extend(_slot_upstream_reviews(
+                conn, slot[len("upstream-reviews:"):], project_id))
             continue
         if slot == "canon_minimal":
             sections.extend(_slot_canon_minimal(conn, project_id, subject_id))

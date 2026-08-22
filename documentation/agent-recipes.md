@@ -23,21 +23,21 @@
 | direction（planning/story-direction） | project_setup, kernel_full, persona_full, genre_pack | expansive | propose_only | 候选正文（七节骨架）+ book_soul v2 十三字段（jsonschema） | 审查-修复循环；表里失联/假多样性自检不过即重做 |
 | direction-review（review/planning-direction-review） | project_setup, kernel_full, persona_full, subject | 跟随被审对象 | judge | Review Receipt（findings: blocking/warning/note + evidence_refs） | blocking → 修复循环；对称可预算代价 → warning；同因复发/3 轮未收敛 → 升级用户 |
 | architecture（planning/story-architecture） | project_setup, persona_full, upstream:direction, genre_pack | expansive | propose_only | planning-candidate 正文 + metadata（双引擎/四段式/防火墙） | 审查-修复循环；翻译完整度缺陷（字段无机制形态无豁免）blocking |
-| architecture-review（review/planning-architecture-review） | subject, upstream:direction | 跟随被审对象 | judge | Review Receipt | 修复循环 |
-| strategy（planning/story-strategy） | project_setup, upstream:direction, upstream:architecture | balanced | propose_only | planning-candidate（承诺-收益配对/阶段战略） | 修复循环；阶段不得消解 unresolved_claims |
-| strategy-review（review/planning-strategy-review） | subject, upstream:direction, upstream:architecture | 跟随被审对象 | judge | Review Receipt | 修复循环 |
-| character_contract（planning/character-contract） | kernel_full, persona_full, upstream:architecture, upstream:strategy | balanced | propose_only | 人物契约候选（契约维度按 skill 定义） | 修复循环；与上游矛盾 → change proposal 不隐式改上游 |
-| character-contract-review（review/planning-character-contract-review） | subject, kernel_full, persona_full, upstream:architecture, upstream:strategy | 跟随被审对象 | judge | Review Receipt | 修复循环 |
-| world_contract（planning/world-contract） | project_setup, upstream:architecture, upstream:strategy | balanced | propose_only | 世界契约候选 | 修复循环；规则自洽缺陷 blocking |
-| world-contract-review（review/planning-world-contract-review） | subject, upstream:architecture, upstream:strategy | 跟随被审对象 | judge | Review Receipt | 修复循环 |
+| architecture-review（review/planning-architecture-review） | subject, upstream:direction, upstream-reviews:direction, project_setup, persona_full | 跟随被审对象 | judge | Review Receipt | 修复循环 |
+| strategy（planning/story-strategy） | project_setup, persona_full, upstream:direction, upstream:architecture, genre_pack | balanced | propose_only | planning-candidate（阶段骨架/承诺-债务周期/代价账本） | 修复循环；阶段不得消解 unresolved_claims |
+| strategy-review（review/planning-strategy-review） | subject, upstream:direction, upstream-reviews:direction, upstream:architecture, upstream-reviews:architecture, project_setup, persona_full, genre_pack | 跟随被审对象 | judge | Review Receipt | 修复循环 |
+| character_contract（planning/character-contract） | kernel_full, persona_full, project_setup, genre_pack, upstream:architecture, upstream:strategy, upstream:world_contract | balanced | propose_only | 人物契约候选（席位认领/strategy 弧职责挂接/persona 四用法；roster 档位机器门） | 修复循环；与上游矛盾 → change proposal 不隐式改上游 |
+| character-contract-review（review/planning-character-contract-review） | subject, kernel_full, persona_full, project_setup, genre_pack, upstream:architecture, upstream:strategy, upstream:world_contract, upstream-reviews:architecture, upstream-reviews:strategy, upstream-reviews:world_contract | 跟随被审对象 | judge | Review Receipt | 修复循环 |
+| world_contract（planning/world-contract） | project_setup, persona_full, genre_pack, upstream:architecture, upstream:strategy | balanced | propose_only | 世界契约候选（岗位表/代价两轴/语域机器可读/strategy 对账） | 修复循环；规则自洽缺陷 blocking |
+| world-contract-review（review/planning-world-contract-review） | subject, project_setup, persona_full, genre_pack, upstream:architecture, upstream:strategy, upstream-reviews:architecture, upstream-reviews:strategy | 跟随被审对象 | judge | Review Receipt | 修复循环 |
 | story_arc（planning/story-arc） | upstream:strategy, upstream:character_contract, upstream:world_contract | balanced | propose_only | 跨卷弧线候选（recurring_tests 分配到卷） | 修复循环 |
 | story-arc-review（review/planning-story-arc-review） | subject, upstream:strategy | 跟随被审对象 | judge | Review Receipt | 修复循环 |
-| volume_outline（planning/volume-outline） | upstream:story_arc | balanced | propose_only | 卷纲候选（节奏密度约束） | 修复循环 |
-| volume-outline-review（review/planning-volume-outline-review） | subject, upstream:story_arc | 跟随被审对象 | judge | Review Receipt | 修复循环 |
-| chapter_plan（planning/chapter-plan-execution-card） | upstream:volume_outline, upstream:character_contract, upstream:world_contract | balanced | propose_only | 章纲候选（含 soul_pressure 与 moral_residue） | 修复循环 |
-| chapter-plan-review（review/planning-chapter-plan-review） | subject, upstream:volume_outline | 跟随被审对象 | judge | Review Receipt | 修复循环 |
-| chapter_draft（writing/chapter-draft-generation） | kernel_full, persona_full, upstream:chapter_plan, canon_minimal, review_feedback | constrained | execute | 章节正文（style_refs 逐字锚定 + 防指纹禁令） | prose-quality-review 循环；persona 盲区场景按绕开方式处理 |
-| prose-quality-review（review/prose-quality-review） | subject, kernel_full, persona_full, upstream:chapter_plan | 跟随被审对象 | judge | Review Receipt（盲区场景未绕开 = blocking） | 修复循环；3 轮未收敛/同因复发 → 升级用户 |
+| volume_outline（planning/volume-outline） | upstream:story_arc, upstream:world_contract, character_roster, persona_gate | balanced | propose_only | 卷纲候选（节奏密度约束 + 世界消费对账） | 修复循环 |
+| volume-outline-review（review/planning-volume-outline-review） | subject, upstream:story_arc, upstream:world_contract, character_roster, persona_gate | 跟随被审对象 | judge | Review Receipt | 修复循环 |
+| chapter_plan（planning/chapter-plan-execution-card） | upstream:volume_outline, upstream:character_contract, upstream:world_contract, character_roster, persona_gate | balanced | propose_only | 章纲候选（含 soul_pressure 与 moral_residue） | 修复循环 |
+| chapter-plan-review（review/planning-chapter-plan-review） | subject, upstream:volume_outline, character_roster, persona_gate | 跟随被审对象 | judge | Review Receipt | 修复循环 |
+| chapter_draft（writing/chapter-draft-generation） | kernel_full, persona_full, upstream:chapter_plan, canon_minimal, review_feedback, world_lexicon, character_essence | constrained | execute | 章节正文（style_refs 逐字锚定 + 防指纹禁令） | prose-quality-review 循环；persona 盲区场景按绕开方式处理 |
+| prose-quality-review（review/prose-quality-review） | subject, kernel_full, persona_full, upstream:chapter_plan, world_lexicon, character_essence | 跟随被审对象 | judge | Review Receipt（盲区场景未绕开 = blocking） | 修复循环；3 轮未收敛/同因复发 → 升级用户 |
 | continuity-extraction（continuity/continuity-candidate-extraction） | subject, canon_minimal | constrained | execute | 连续性候选条目（六类账本） | continuity-quality-review 后晋升；不实条目拒绝 |
 | continuity-quality-review（review/continuity-quality-review） | subject, canon_minimal | 跟随被审对象 | judge | Review Receipt | 条目拒绝/修订循环 |
 | cross-consistency-review（review/planning-cross-consistency-review） | subject, upstream:direction, upstream:architecture, upstream:strategy | 跟随被审对象 | judge | Review Receipt（跨资产一致性） | 修复循环 |

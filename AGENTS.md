@@ -19,7 +19,7 @@ L5 会话编排  .agents/skills/novel-*（手写操作层）+ 本文件路由协
 
 写库三件事：① ID 格式 `类型:uuid`（Python `uuid.uuid4()`）；② 写 `resources.content` 必须 `CAST(? AS BLOB)`；③ 写 resource 同时算 content_hash（`scripts/novelos_hash.py`）。
 
-确定性脚本：`novelos_create_project.py`（创建管线：入口校验→候选容错→校验门→单事务落库，**禁止手工 INSERT 绕过**）、`novelos_compose_prompt.py`（方法论组装器）、`novelos_hash.py`、`novelos_validate_book_soul.py`、`novelos_render_projection.py`、`novelos_propagate_stale.py`、`novelos_delete_project.py`、`novelos_build_adapters.py`、`novelos_register_characters.py`（人物注册表三入口）、`novelos_export_kernel_roster.py`（内核名册镜像）。
+确定性脚本：`novelos_create_project.py`（创建管线：入口校验→候选容错→校验门→单事务落库，**禁止手工 INSERT 绕过**）、`novelos_compose_prompt.py`（方法论组装器）、`novelos_hash.py`、`novelos_validate_book_soul.py`、`novelos_validate_architecture.py`、`novelos_validate_strategy.py`、`novelos_validate_world.py`、`novelos_validate_character.py`、`novelos_render_projection.py`、`novelos_propagate_stale.py`、`novelos_delete_project.py`、`novelos_build_adapters.py`、`novelos_register_characters.py`（人物注册表三入口）、`novelos_export_kernel_roster.py`（内核名册镜像）。
 
 ## 路由顺序
 
@@ -29,7 +29,7 @@ L5 会话编排  .agents/skills/novel-*（手写操作层）+ 本文件路由协
 
 ## 规划资产依赖顺序
 
-direction → architecture → strategy → character‖world（可并行）→ story_arc → volume_outline → chapter_plan。资产存 `planning_assets`，状态 `candidate` → `locked` → （上游变更时）`stale`；上游修订后运行 `novelos_propagate_stale.py`。
+direction → architecture → strategy → world → character → story_arc → volume_outline → chapter_plan（T36 起世界先行：world 设岗位不造人，character 认领席位；sibling 并行退役，world 修订沿依赖边自动标 character stale）。资产存 `planning_assets`，状态 `candidate` → `locked` → （上游变更时）`stale`；上游修订后运行 `novelos_propagate_stale.py`。
 
 ## Agent 角色
 
@@ -40,7 +40,8 @@ direction → architecture → strategy → character‖world（可并行）→ 
 | 方向 | `direction` | `planning/story-direction` |
 | 架构 | `architecture` | `planning/story-architecture` |
 | 策略 | `strategy` | `planning/story-strategy` |
-| 人物 ‖ 世界 | `character_contract` / `world_contract` | `planning/character-contract` / `world-contract` |
+| 世界 | `world_contract`（岗位表/语域机器可读/代价两轴） | `planning/world-contract` |
+| 人物 | `character_contract`（席位认领/strategy 挂接/persona 四用法） | `planning/character-contract` |
 | 故事弧 | `story_arc` | `planning/story-arc` |
 | 卷规划 | `volume_outline` | `planning/volume-outline` |
 | 章节规划 | `chapter_plan` | `planning/chapter-plan-execution-card` |

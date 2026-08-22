@@ -1,0 +1,283 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://novelos.local/schemas/strategy-metadata.schema.json",
+  "title": "NovelOS 全书战略结构化产物",
+  "description": "strategy 资产 metadata 的结构化阶段骨架 v1：上游消费表（七行全覆盖，机器核验）、persona 四用法、题材阶段形态、阶段清单（payoff/progress/代价分桶）、登记承诺三分类账、中盘续命与终局纪律（closed/open 双模式）、下游交接清单。供 validate --scale 机器门核验（阶段数×档位区间、存债连续上限、收束预算、终局字数下限）",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "consumption", "genre_stage_form", "persona_usages", "stages", "claim_ledger", "pairing_cycle", "terminal_mode", "handoffs", "decision_points"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "consumption": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 7,
+      "description": "上游消费表 v3：七行全覆盖（validate 逐项核验枚举齐全），静默缺行 = 未消费上游",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["output", "translation", "ref"],
+        "properties": {
+          "output": {
+            "type": "string",
+            "enum": ["rhythm_table", "reveal_ladder", "promise_cadence", "power_escalation", "spiral_rotation", "engine_config", "upstream_receipts"]
+          },
+          "translation": {"$ref": "#/$defs/non_empty_text"},
+          "ref": {"$ref": "#/$defs/non_empty_text"}
+        }
+      }
+    },
+    "genre_stage_form": {
+      "$ref": "#/$defs/non_empty_text",
+      "description": "题材阶段阶梯（境界突破弧/案件升级弧/赛季弧/副本难度弧/事业里程碑弧等）；题材缺位时写显式声明文本，禁止默认模糊升级"
+    },
+    "persona_usages": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["gaze", "blindspot_gate", "pov_contract", "inventory"],
+      "description": "persona 四用法 strategy 版：目光→揭层节奏；盲区→终局场面形态门；有限视角→阶段 POV 契约；差异化库存→阶段燃料",
+      "properties": {
+        "gaze": {"$ref": "#/$defs/non_empty_text"},
+        "blindspot_gate": {"$ref": "#/$defs/non_empty_text"},
+        "pov_contract": {"$ref": "#/$defs/non_empty_text"},
+        "inventory": {"$ref": "#/$defs/non_empty_text"}
+      }
+    },
+    "stages": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "word_range", "dominant_spiral", "payoff", "progress_types", "pov", "costs", "end_condition", "cause_bridge"],
+        "properties": {
+          "name": {"$ref": "#/$defs/non_empty_text"},
+          "word_range": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["min", "max"],
+            "description": "申报项（万字），供 volume_outline 估卷——不是下限门，阶段判据是事件不是字数",
+            "properties": {
+              "min": {"type": "integer", "minimum": 1, "maximum": 500},
+              "max": {"type": "integer", "minimum": 1, "maximum": 500}
+            }
+          },
+          "dominant_spiral": {"$ref": "#/$defs/non_empty_text"},
+          "payoff": {
+            "type": "string",
+            "enum": ["heavy", "light", "debt"],
+            "description": "heavy=兑付爆发；light=部分兑付；debt=纯存债（合法但连续上限由 pairing_cycle 约束，且仍须有 progress）"
+          },
+          "progress_types": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 8,
+            "uniqueItems": true,
+            "description": "本阶段的可感知推进类型——存债阶段也必须有 progress，零推进 = 弃书点",
+            "items": {"type": "string", "enum": ["信息", "能力", "位置", "关系", "地位", "资源", "认知", "对手"]}
+          },
+          "pov": {"$ref": "#/$defs/non_empty_text"},
+          "costs": {
+            "type": "array",
+            "maxItems": 6,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["type", "landing", "form", "source"],
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": ["irreversible", "suppression"],
+                  "description": "不可逆（回不来）与压制（可逆但付利息）分桶——禁止扁平「不可逆」"
+                },
+                "landing": {
+                  "type": "string",
+                  "enum": ["world", "plot_character", "item", "protagonist_temporary", "protagonist_permanent"],
+                  "description": "代价落点：protagonist_permanent（情感永久创伤/残废/灵魂损伤）不在默认菜单，须 book_soul 显式声明"
+                },
+                "form": {"$ref": "#/$defs/non_empty_text"},
+                "source": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["source_type", "ref"],
+                  "properties": {
+                    "source_type": {"type": "string", "enum": ["book_soul_field", "architecture_mechanism", "persona_part", "genre_pack"]},
+                    "ref": {"$ref": "#/$defs/non_empty_text"}
+                  }
+                },
+                "release": {"$ref": "#/$defs/non_empty_text"},
+                "declared_in_book_soul": {"type": "boolean"},
+                "book_soul_ref": {"$ref": "#/$defs/non_empty_text"}
+              },
+              "allOf": [
+                {
+                  "if": {"properties": {"type": {"const": "suppression"}}},
+                  "then": {"required": ["release"]}
+                },
+                {
+                  "if": {"properties": {"landing": {"const": "protagonist_permanent"}}},
+                  "then": {
+                    "required": ["declared_in_book_soul", "book_soul_ref"],
+                    "properties": {"declared_in_book_soul": {"const": true}}
+                  }
+                }
+              ]
+            }
+          },
+          "end_condition": {"$ref": "#/$defs/non_empty_text"},
+          "cause_bridge": {"$ref": "#/$defs/non_empty_text"}
+        }
+      }
+    },
+    "claim_ledger": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 24,
+      "description": "登记承诺三分类：unresolved_claims + direction 正文登记承诺逐条处置——未登记的即兴铺垫允许烂尾，登记承诺不许遗忘",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["claim", "disposition", "anchor"],
+        "properties": {
+          "claim": {"$ref": "#/$defs/non_empty_text"},
+          "disposition": {"type": "string", "enum": ["midstory", "terminal", "silence"]},
+          "anchor": {"$ref": "#/$defs/non_empty_text"}
+        }
+      }
+    },
+    "pairing_cycle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["debt_streak_limit"],
+      "properties": {
+        "debt_streak_limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3,
+          "description": "连续纯存债（payoff=debt）阶段上限——validate 核验实际连续段不超限"
+        }
+      }
+    },
+    "midpoint_renewal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stage", "form", "note"],
+      "description": "中盘续命换挡事件：阶段数 ≥3 时必备（validate 核验），防中盘塌陷",
+      "properties": {
+        "stage": {"type": "integer", "minimum": 1, "maximum": 12},
+        "form": {"type": "string", "enum": ["换地图", "矛盾换轨", "势力重组", "规则改写", "其他"]},
+        "note": {"$ref": "#/$defs/non_empty_text"}
+      }
+    },
+    "terminal_mode": {
+      "type": "string",
+      "enum": ["closed", "open"],
+      "description": "closed=完结设计（终局纪律全查）；open=开放引擎（商业连载永不完结，须显式声明喂料机制——无尾化必须是设计不是事故）"
+    },
+    "terminal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["closure_budget", "echo", "word_floor"],
+      "properties": {
+        "closure_budget": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 12,
+          "description": "终局收束预算：terminal 类承诺条数上限——validate 对照 claim_ledger 实际条数（超限 = 赶工烂尾形态）"
+        },
+        "echo": {"$ref": "#/$defs/non_empty_text"},
+        "word_floor": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 500,
+          "description": "终局阶段字数下限（万字）——validate 对照末阶段 word_range.min（防压缩赶工）"
+        }
+      }
+    },
+    "open_note": {"$ref": "#/$defs/non_empty_text"},
+    "handoffs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["character_arcs", "world_changes"],
+      "description": "下游交接清单：character_contract/world_contract 以 strategy 为输入，不许自创与阶段骨架冲突的弧线",
+      "properties": {
+        "character_arcs": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["stage", "requirement"],
+            "properties": {
+              "stage": {"type": "integer", "minimum": 1, "maximum": 12},
+              "requirement": {"$ref": "#/$defs/non_empty_text"}
+            }
+          }
+        },
+        "world_changes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["stage", "change"],
+            "properties": {
+              "stage": {"type": "integer", "minimum": 1, "maximum": 12},
+              "change": {"$ref": "#/$defs/non_empty_text"}
+            }
+          }
+        }
+      }
+    },
+    "decision_points": {
+      "type": "array",
+      "maxItems": 4,
+      "description": "命门级决策点（错了会崩盘的抉择，不是所有细节）；对本阶段无关可空数组省略，不得凑数",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["question", "options", "source_excerpt"],
+        "properties": {
+          "question": {"$ref": "#/$defs/non_empty_text"},
+          "options": {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 4,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["label", "detail", "tradeoff"],
+              "properties": {
+                "label": {"$ref": "#/$defs/non_empty_text"},
+                "detail": {"$ref": "#/$defs/non_empty_text"},
+                "tradeoff": {"$ref": "#/$defs/non_empty_text"}
+              }
+            }
+          },
+          "source_excerpt": {"$ref": "#/$defs/non_empty_text"}
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"terminal_mode": {"const": "closed"}}},
+      "then": {"required": ["terminal"]}
+    },
+    {
+      "if": {"properties": {"terminal_mode": {"const": "open"}}},
+      "then": {"required": ["open_note"]}
+    }
+  ],
+  "$defs": {
+    "non_empty_text": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000,
+      "pattern": "\\S"
+    }
+  }
+}

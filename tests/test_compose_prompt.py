@@ -23,13 +23,24 @@ SIZE_BUDGET = {
     "direction-review": 120,
     "fusion": 280,
     "kernel-fusion": 200,
-    "architecture": 130,
+    # 2026-08 方向阶段反向审查批次有意扩充（T33）：direction 190→210、direction-review 120 保持。
+    # 2026-08 架构阶段双层引擎重构（T34）：architecture 130→170（嵌套模型/密度声明/耦合规格/
+    # 题材与美学翻译位/验证记录落正文）；architecture-review 60 保持（重写在原预算内）。
+    # 2026-08 战略阶段深度整改（T35）：strategy 110→150（七行消费表/题材阶段形态/persona 四用法/
+    # 代价类型学/承诺-债务周期/档位区间/中盘终局/交接清单）；strategy-review 60→75（实测 63）。
+    # 2026-08 人物‖世界串行化与结构化出口（T36）：world-contract 150→170（上游消费表/岗位表/
+    # 代价两轴/语域机器可读/persona 盲区门/中盘演化预留/open 喂料）；character-contract 130→175
+    # （世界移交消费/persona 四用法/strategy 挂接/席位认领/roster 档位）；双侧 review 与
+    # volume/chapter-draft/prose-review 在原预算内（实测 63/53/70/42/49/54）。
+    # 2026-08 人物阶段深度整改（T37）：character-contract 175→180（实测 175 顶格——essence
+    # 人物卡出口/写法对照/自检两项）；volume/chapter-plan/draft/prose 在原预算内。
+    "architecture": 170,
     "architecture-review": 60,
-    "strategy": 110,
-    "strategy-review": 60,
-    "world-contract": 150,
+    "strategy": 150,
+    "strategy-review": 75,
+    "world-contract": 170,
     "world-contract-review": 70,
-    "character-contract": 130,
+    "character-contract": 180,
     "character-contract-review": 70,
     "story-arc": 100,
     "story-arc-review": 70,
@@ -330,13 +341,13 @@ class StrategyRouting(unittest.TestCase):
         self.assertIn("频道轴的阶段收益：男频", out)
         self.assertIn("平台节奏：免费算法", out)
         self.assertNotIn("频道轴的阶段收益：女频", out)
-        self.assertIn("每阶段平均 ≥ 20 万字", out)  # 体量指引落地
+        self.assertIn("阶段数区间", out)  # T35：体量指引档位区间化（旧 ≥20 万下限废除）
         self.assertIn("晋升-收费配对表", out)
 
     def test_review_dual(self):
         rev = compose(ASSET_DIRS["strategy-review"], _ctx_direction(channel="女频"), [])
         self.assertIn("频道轴审查：女频", rev)
-        self.assertIn("上游机制消费完整", rev)
+        self.assertIn("七行翻译", rev)  # T35：上游消费表 v3 全覆盖核验
 
 
 class P2RoutingBatch(unittest.TestCase):

@@ -55,6 +55,9 @@ def _make_db() -> sqlite3.Connection:
             object_ref TEXT, state_resource_id TEXT);
         CREATE TABLE arc_states (
             id TEXT PRIMARY KEY, project_id TEXT, arc_ref TEXT, state_resource_id TEXT);
+        CREATE TABLE reviews (
+            id TEXT PRIMARY KEY, subject_type TEXT, subject_ref TEXT, subject_hash TEXT,
+            verdict TEXT, findings_json TEXT, reviewer_profile TEXT, created_at TEXT);
         CREATE TABLE characters (
             id TEXT PRIMARY KEY, project_id TEXT, name TEXT,
             role_class TEXT DEFAULT 'secondary', status TEXT DEFAULT 'active',
@@ -71,10 +74,39 @@ def _seed_locked_direction(conn: sqlite3.Connection) -> None:
                  ("# 故事方向（locked）\n力量货币：名望账。",))
     conn.execute(
         "INSERT INTO planning_assets VALUES "
-        "('pa:d1', 'project:p1', 'direction', 'book', 1, 'locked', 'res:d1', '{}')")
+        "('pa:d1', 'project:p1', 'direction', 'book', 1, 'locked', 'res:d1', "
+        "'{\"book_soul\": {\"cadence_plan\": {\"fulfillment_count\": 4, \"interval_volumes\": 2}}}')")
     conn.execute(
         "INSERT INTO planning_assets VALUES "
         "('pa:a1', 'project:p1', 'architecture', 'book', 1, 'candidate', 'res:d1', '{\"engines\": []}')")
+
+
+def _seed_direction_review(conn: sqlite3.Connection) -> None:
+    """direction 锁定时的审查回执：strength 指认 + 豁免记录，供跨阶段注入断言。"""
+    findings = [
+        {"severity": "strength", "message": "低密度主线的赌注是设计意图，不得削平"},
+        {"severity": "note", "message": "次要提示"},
+        {"severity": "warning", "message": "下游执行边界提醒",
+         "defer_to_downstream": "volume_outline"},
+    ]
+    conn.execute(
+        "INSERT INTO reviews VALUES "
+        "('rv:d1', 'planning_asset', 'pa:d1', ?, 'approved', ?, 'direction-review', '2026-01-02')",
+        ("sha256:" + "b" * 64, json.dumps(findings, ensure_ascii=False)))
+
+
+def _seed_locked_architecture_with_review(conn: sqlite3.Connection) -> None:
+    """architecture 锁定 + 回执（defer→strategy 移交项），供 strategy-review 注入断言。"""
+    conn.execute("UPDATE planning_assets SET status='locked' WHERE id='pa:a1'")
+    findings = [
+        {"severity": "warning", "message": "阶段侧须兑现单元配额对账",
+         "defer_to_downstream": "strategy"},
+        {"severity": "strength", "message": "双层引擎嵌套形态是本书独有赌注"},
+    ]
+    conn.execute(
+        "INSERT INTO reviews VALUES "
+        "('rv:a1', 'planning_asset', 'pa:a1', ?, 'approved', ?, 'architecture-review', '2026-01-03')",
+        ("sha256:" + "d" * 64, json.dumps(findings, ensure_ascii=False)))
 
 
 class UpstreamAndSubjectSlots(unittest.TestCase):
@@ -90,6 +122,37 @@ class UpstreamAndSubjectSlots(unittest.TestCase):
         self.assertEqual(titles[0], "project_setup v2 快照（硬输入）")
         self.assertTrue(titles[2].startswith("上游 direction（scope: book，locked rev 1"))
         self.assertIn("力量货币：名望账", sections[2][1])
+        # T34：上游 metadata（cadence_plan 等机器门产物）随 upstream 槽注入，不在阶段边界蒸发
+        self.assertIn("--- 上游 metadata", sections[2][1])
+        self.assertIn("cadence_plan", sections[2][1])
+        self.assertIn("fulfillment_count", sections[2][1])
+
+    def test_upstream_reviews_slot_flows_strength(self):
+        """T34：direction 锁定回执（strength/豁免）跨阶段注入 architecture-review。"""
+        conn = _make_db()
+        _seed_user_persona(conn)
+        _seed_locked_direction(conn)
+        _seed_direction_review(conn)
+        sections = resolve_slots(conn, ASSET_DIRS["architecture-review"],
+                                 project_id="project:p1", subject_id="pa:a1")
+        titles = [t for t, _ in sections]
+        self.assertTrue(any(t.startswith("上游 direction 审查回执") for t in titles))
+        receipt = next(b for t, b in sections if t.startswith("上游 direction 审查回执"))
+        self.assertIn("[strength]", receipt)
+        self.assertIn("低密度主线", receipt)
+        self.assertIn("defer→volume_outline", receipt)
+        # 槽位贫血修复：审查侧补注 persona 全文与 setup 快照
+        self.assertTrue(any(t.startswith("创作者人格签名") for t in titles))
+        self.assertTrue(any(t.startswith("project_setup") for t in titles))
+
+    def test_upstream_reviews_placeholder_when_absent(self):
+        conn = _make_db()
+        _seed_user_persona(conn)
+        _seed_locked_direction(conn)  # 无审查回执
+        sections = resolve_slots(conn, ASSET_DIRS["architecture-review"],
+                                 project_id="project:p1", subject_id="pa:a1")
+        receipt = next(b for t, b in sections if t.startswith("上游 direction 审查回执"))
+        self.assertIn("无回执记录", receipt)
 
     def test_missing_upstream_stops(self):
         conn = _make_db()
@@ -113,6 +176,44 @@ class UpstreamAndSubjectSlots(unittest.TestCase):
         _seed_locked_direction(conn)
         with self.assertRaises(SystemExit):
             resolve_slots(conn, ASSET_DIRS["architecture-review"], project_id="project:p1")
+
+
+class StrategySlots(unittest.TestCase):
+    """T35：strategy 双侧槽位补齐——生成侧 persona/genre，审查侧双上游回执 + persona + setup。"""
+
+    def test_generation_slots_include_persona_and_genre(self):
+        conn = _make_db()
+        _seed_user_persona(conn)
+        _seed_locked_direction(conn)
+        conn.execute("UPDATE planning_assets SET status='locked' WHERE id='pa:a1'")
+        sections = resolve_slots(conn, ASSET_DIRS["strategy"], project_id="project:p1",
+                                 context={"setup": {"genre_profile": None}})
+        titles = [t for t, _ in sections]
+        self.assertIn("project_setup v2 快照（硬输入）", titles)
+        self.assertTrue(any(t.startswith("创作者人格签名") for t in titles))
+        self.assertTrue(any(t.startswith("上游 direction") for t in titles))
+        self.assertTrue(any(t.startswith("上游 architecture") for t in titles))
+        self.assertIn("题材信息包", titles)  # genre 缺位 → 占位节（题材缺位分支）
+
+    def test_review_receives_both_upstream_receipts(self):
+        conn = _make_db()
+        _seed_user_persona(conn)
+        _seed_locked_direction(conn)
+        _seed_direction_review(conn)
+        _seed_locked_architecture_with_review(conn)
+        conn.execute(
+            "INSERT INTO planning_assets VALUES "
+            "('pa:s1', 'project:p1', 'strategy', 'book', 1, 'candidate', 'res:d1', '{}')")
+        sections = resolve_slots(conn, ASSET_DIRS["strategy-review"],
+                                 project_id="project:p1", subject_id="pa:s1")
+        titles = [t for t, _ in sections]
+        self.assertTrue(any(t.startswith("上游 direction 审查回执") for t in titles))
+        self.assertTrue(any(t.startswith("上游 architecture 审查回执") for t in titles))
+        arch_receipt = next(b for t, b in sections if t.startswith("上游 architecture 审查回执"))
+        self.assertIn("defer→strategy", arch_receipt)  # 移交给 strategy 的豁免项落地
+        self.assertIn("[strength]", arch_receipt)  # 跨阶段 strength 保护
+        self.assertTrue(any(t.startswith("创作者人格签名") for t in titles))
+        self.assertTrue(any(t.startswith("project_setup") for t in titles))
 
 
 def _seed_user_persona(conn: sqlite3.Connection) -> None:
@@ -428,6 +529,261 @@ class CanonLedgerInjection(unittest.TestCase):
         self.assertEqual(len(sections), 7)
         self.assertTrue(all("（空）" == b for _, b in sections))
         self.assertIn("账本查询降级", stderr.getvalue())
+
+
+def _seed_locked_world_with_meta(conn: sqlite3.Connection) -> None:
+    """T36：locked world_contract，带 metadata（seats/lexicon/dimension_costs）。"""
+    meta = {
+        "seats": [
+            {"name": "掌门", "org": "玄阳宗", "duty": "掌法度", "power_tier": "化神",
+             "first_consumption": "第1卷·入门考核", "disposition": "待契约认领"},
+        ],
+        "lexicon": {
+            "positive_terms": ["灵潮", "洗髓", "观星台"],
+            "banned_categories": {"物理术语": ["能量"], "生物医学术语": ["神经"],
+                                  "现代计量": ["米"], "现代认知框架": ["效率"]},
+            "measure_system": "里丈尺·一炷香·斤两",
+            "exceptions": [],
+        },
+        "dimension_costs": [
+            {"dimension": "力量", "form": "灵潮反噬", "reversibility": "不可逆",
+             "threshold": "第三次引潮后灵路焦结"},
+        ],
+    }
+    conn.execute("INSERT INTO resources VALUES ('res:w1', CAST(? AS BLOB))",
+                 ("# 世界契约（locked）\n力量体系：灵潮九阶。",))
+    conn.execute(
+        "INSERT INTO planning_assets VALUES "
+        "('pa:w1', 'project:p1', 'world_contract', 'book', 1, 'locked', 'res:w1', ?)",
+        (json.dumps(meta, ensure_ascii=False),))
+
+
+def _seed_character_roster(conn: sqlite3.Connection) -> None:
+    """T36：locked character_contract（roster 含 seat_ref）+ 注册表在库人物。"""
+    meta = {"character_roster": [
+        {"name": "沈青梧", "role_class": "main", "arc_role": "主角", "登场卷": 1,
+         "预期退场": "持续活跃", "seat_ref": "掌门"},
+    ]}
+    conn.execute("INSERT INTO resources VALUES ('res:c1', CAST(? AS BLOB))",
+                 ("# 人物契约（locked）\n## 人物档案：主角｜沈青梧",))
+    conn.execute(
+        "INSERT INTO planning_assets VALUES "
+        "('pa:c1', 'project:p1', 'character_contract', 'book', 1, 'locked', 'res:c1', ?)",
+        (json.dumps(meta, ensure_ascii=False),))
+    conn.execute(
+        "INSERT INTO characters VALUES ('char:1', 'project:p1', '陆沉舟', 'main', 'active', "
+        "NULL, '{}', NULL, NULL, NULL, 1, '2026-01-01', '2026-01-01')")
+
+
+class WorldCharacterSlots(unittest.TestCase):
+    """T36：世界先行串行化——character 消费 world 上游；world_lexicon/character_roster 新槽。"""
+
+    def test_character_compose_consumes_world_upstream(self):
+        conn = _make_db()
+        _seed_user_persona(conn)
+        _seed_locked_direction(conn)
+        conn.execute("UPDATE planning_assets SET status='locked' WHERE id='pa:a1'")
+        conn.execute(
+            "INSERT INTO planning_assets VALUES "
+            "('pa:s1', 'project:p1', 'strategy', 'book', 1, 'locked', 'res:d1', '{}')")
+        _seed_locked_world_with_meta(conn)
+        sections = resolve_slots(conn, ASSET_DIRS["character-contract"], project_id="project:p1",
+                                 context={"setup": {"genre_profile": None}})
+        titles = [t for t, _ in sections]
+        world = next(b for t, b in sections if t.startswith("上游 world_contract"))
+        self.assertIn("灵潮九阶", world)
+        self.assertIn("--- 上游 metadata", world)   # seats/语域表随 metadata 到达人物层
+        self.assertIn("掌门", world)
+        self.assertTrue(any(t.startswith("创作者人格签名") for t in titles))
+        self.assertTrue(any(t.startswith("project_setup") for t in titles))
+
+    def test_character_compose_stops_without_world(self):
+        """串行化后 world 是 character 硬上游——缺失即停（链形完整性）。"""
+        conn = _make_db()
+        _seed_user_persona(conn)
+        _seed_locked_direction(conn)
+        conn.execute("UPDATE planning_assets SET status='locked' WHERE id='pa:a1'")
+        conn.execute(
+            "INSERT INTO planning_assets VALUES "
+            "('pa:s1', 'project:p1', 'strategy', 'book', 1, 'locked', 'res:d1', '{}')")
+        with self.assertRaises(SystemExit):
+            resolve_slots(conn, ASSET_DIRS["character-contract"], project_id="project:p1")
+
+    def test_world_generation_slots(self):
+        conn = _make_db()
+        _seed_user_persona(conn)
+        _seed_locked_direction(conn)
+        conn.execute("UPDATE planning_assets SET status='locked' WHERE id='pa:a1'")
+        conn.execute(
+            "INSERT INTO planning_assets VALUES "
+            "('pa:s1', 'project:p1', 'strategy', 'book', 1, 'locked', 'res:d1', "
+            "'{\"handoffs\": {\"world_changes\": [\"第三卷宗门改制\"]}}')")
+        sections = resolve_slots(conn, ASSET_DIRS["world-contract"], project_id="project:p1",
+                                 context={"setup": {"genre_profile": None}})
+        titles = [t for t, _ in sections]
+        self.assertTrue(any(t.startswith("创作者人格签名") for t in titles))  # persona 盲区门
+        strat = next(b for t, b in sections if t.startswith("上游 strategy"))
+        self.assertIn("world_changes", strat)  # strategy 结构化产物随 metadata 注入
+
+    def test_world_lexicon_slot_present_and_absent(self):
+        conn = _make_db()
+        _seed_user_persona(conn)
+        _seed_locked_world_with_meta(conn)
+        title, body = SLOT_REGISTRY["world_lexicon"](conn, "project:p1", None)
+        self.assertIn("正面词汇表", body)
+        self.assertIn("灵潮", body)
+        self.assertIn("禁用·物理术语", body)
+        self.assertIn("无声明即无例外", body)
+        # 未锁定世界（旧项目）→ 警示占位不阻断
+        conn2 = _make_db()
+        _seed_user_persona(conn2)
+        title2, body2 = SLOT_REGISTRY["world_lexicon"](conn2, "project:p1", None)
+        self.assertIn("未锁定世界契约", body2)
+        self.assertIn("change proposal", body2)
+
+    def test_volume_compose_sees_world_and_roster(self):
+        """卷纲盲区修复：world 全文 + 契约 roster/注册表镜像注入卷规划。"""
+        conn = _make_db()
+        _seed_user_persona(conn)
+        conn.execute("INSERT INTO resources VALUES ('res:sa1', CAST(? AS BLOB))",
+                     ("# 故事弧（locked）",))
+        conn.execute(
+            "INSERT INTO planning_assets VALUES "
+            "('pa:sa1', 'project:p1', 'story_arc', 'book', 1, 'locked', 'res:sa1', '{}')")
+        _seed_locked_world_with_meta(conn)
+        _seed_character_roster(conn)
+        sections = resolve_slots(conn, ASSET_DIRS["volume-outline"], project_id="project:p1")
+        titles = [t for t, _ in sections]
+        self.assertTrue(any(t.startswith("上游 world_contract") for t in titles))
+        mirror = next(b for t, b in sections if t.startswith("人物名册镜像"))
+        self.assertIn("[契约] 沈青梧", mirror)
+        self.assertIn("席位:掌门", mirror)
+        self.assertIn("[注册表] 陆沉舟", mirror)
+
+    def test_character_roster_slot_empty_placeholder(self):
+        conn = _make_db()
+        _seed_user_persona(conn)
+        title, body = SLOT_REGISTRY["character_roster"](conn, "project:p1", None)
+        self.assertIn("均为空", body)
+
+
+def _seed_persona_with_blindspots(conn: sqlite3.Connection) -> None:
+    """T37：带结构化盲区与约束的分身（persona_gate 消费形态）。"""
+    signature = {
+        "persona": {"anchors": {
+            "blindspots": {
+                "refuses": ["拒绝写未成年人受虐细节"],
+                "cannot_write": ["写不了 old money 酒局暗语——绕开：以外来者疏离感侧写，不展开黑话对白"],
+            },
+        }},
+        "expression_preferences": ["偏好冷峻克制的叙述笔触"],
+        "negative_constraints": ["不得放弃力量体系的严密性"],
+    }
+    conn.execute("INSERT INTO resources VALUES ('res:2', CAST(? AS BLOB))",
+                 (json.dumps(signature, ensure_ascii=False),))
+    conn.execute("INSERT INTO creator_profiles VALUES ('cp:2', 'user', '盲区分身')")
+    conn.execute(
+        "INSERT INTO creator_profile_versions VALUES "
+        "('cpv:2', 'cp:2', 'creator-profile-version:system-test:2', '2026-01-01', 'res:2', ?)",
+        ("sha256:" + "b" * 64,))
+    conn.execute(
+        "INSERT INTO project_creator_bindings (project_id, profile_version_id) "
+        "VALUES ('project:p1', 'cpv:2')")
+    conn.execute(
+        "INSERT INTO projects VALUES ('project:p1', ?)",
+        (json.dumps({"setup": {"channel": "男频", "title": "测试书"}}, ensure_ascii=False),))
+
+
+def _seed_essence_registry(conn: sqlite3.Connection) -> None:
+    """T37：注册表 main/secondary 带 essence/seat_ref（roster 落库形态）+ 退场态。"""
+    conn.execute(
+        "INSERT INTO characters VALUES ('char:e1', 'project:p1', '沈青梧', 'main', 'active', "
+        "NULL, ?, NULL, NULL, NULL, 1, '2026-01-01', '2026-01-01')",
+        (json.dumps({"arc_role": "主角", "seat_ref": "掌门",
+                     "essence": "对除名牌位执念（谈宗族失措三秒）｜仙门雅言避市井俚语"},
+                    ensure_ascii=False),))
+    conn.execute(
+        "INSERT INTO characters VALUES ('char:e2', 'project:p1', '白鹤鸣', 'secondary', "
+        "'departed', NULL, '{}', NULL, 'chapter:x', '迁移型', 1, '2026-01-01', '2026-01-02')")
+
+
+class EssenceGateSlots(unittest.TestCase):
+    """T37：出场人物卡（character_essence）与 persona 硬边界门（persona_gate）双新槽。"""
+
+    def test_character_essence_slot_present(self):
+        conn = _make_db()
+        _seed_essence_registry(conn)
+        title, body = SLOT_REGISTRY["character_essence"](conn, "project:p1", None)
+        self.assertIn("执念", body)
+        self.assertIn("席位:掌门", body)
+        self.assertIn("已退场:迁移型", body)   # 死活状态随行——正文端防无因复活
+
+    def test_character_essence_slot_absent_placeholder(self):
+        conn = _make_db()
+        _seed_user_persona(conn)
+        title, body = SLOT_REGISTRY["character_essence"](conn, "project:p1", None)
+        self.assertIn("注册表无 main/secondary", body)
+
+    def test_persona_gate_present_legacy_and_unbound(self):
+        conn = _make_db()
+        _seed_persona_with_blindspots(conn)
+        title, body = SLOT_REGISTRY["persona_gate"](conn, "project:p1", None)
+        self.assertIn("写不了", body)
+        self.assertIn("绕开", body)
+        self.assertIn("表达偏好", body)
+        conn2 = _make_db()
+        _seed_user_persona(conn2)   # 旧版分身：无结构化盲区/约束
+        _, body2 = SLOT_REGISTRY["persona_gate"](conn2, "project:p1", None)
+        self.assertIn("无结构化盲区", body2)
+        conn3 = _make_db()
+        _, body3 = SLOT_REGISTRY["persona_gate"](conn3, "project:p1", None)   # 未绑定
+        self.assertIn("未绑定分身", body3)
+
+    def test_chapter_plan_compose_gets_roster_and_gate(self):
+        """T37：执行卡注入名册镜像（微档案查重数据）+ persona 硬边界门。"""
+        conn = _make_db()
+        _seed_persona_with_blindspots(conn)
+        conn.execute("INSERT INTO resources VALUES ('res:vo1', CAST(? AS BLOB))",
+                     ("# 卷纲（locked）",))
+        conn.execute(
+            "INSERT INTO planning_assets VALUES "
+            "('pa:vo1', 'project:p1', 'volume_outline', 'book', 1, 'locked', 'res:vo1', '{}')")
+        _seed_locked_world_with_meta(conn)
+        _seed_character_roster(conn)
+        _seed_essence_registry(conn)
+        sections = resolve_slots(conn, ASSET_DIRS["chapter-plan"], project_id="project:p1")
+        titles = [t for t, _ in sections]
+        mirror = next(b for t, b in sections if t.startswith("人物名册镜像"))
+        self.assertIn("沈青梧", mirror)
+        gate = next(b for t, b in sections if t.startswith("persona 硬边界门"))
+        self.assertIn("写不了", gate)
+
+    def test_volume_and_draft_compose_get_new_slots(self):
+        """卷纲 persona_gate；正文端 character_essence（出场人物卡）。"""
+        conn = _make_db()
+        _seed_persona_with_blindspots(conn)
+        conn.execute("INSERT INTO resources VALUES ('res:sa1', CAST(? AS BLOB))",
+                     ("# 故事弧（locked）",))
+        conn.execute(
+            "INSERT INTO planning_assets VALUES "
+            "('pa:sa1', 'project:p1', 'story_arc', 'book', 1, 'locked', 'res:sa1', '{}')")
+        _seed_locked_world_with_meta(conn)
+        _seed_character_roster(conn)
+        sections = resolve_slots(conn, ASSET_DIRS["volume-outline"], project_id="project:p1")
+        self.assertTrue(any(b and "写不了" in b for t, b in sections
+                            if t.startswith("persona 硬边界门")))
+        conn2 = _make_db()
+        _seed_persona_with_blindspots(conn2)
+        conn2.execute("INSERT INTO resources VALUES ('res:cp1', CAST(? AS BLOB))",
+                      ("# 执行卡（locked）",))
+        conn2.execute(
+            "INSERT INTO planning_assets VALUES "
+            "('pa:cp1', 'project:p1', 'chapter_plan', 'book', 1, 'locked', 'res:cp1', '{}')")
+        _seed_essence_registry(conn2)
+        sections2 = resolve_slots(conn2, ASSET_DIRS["chapter-draft"], project_id="project:p1")
+        essence = next(b for t, b in sections2 if t.startswith("出场人物卡"))
+        self.assertIn("执念", essence)
+        self.assertIn("已退场:迁移型", essence)
 
 
 if __name__ == "__main__":

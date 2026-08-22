@@ -23,9 +23,15 @@
 - `--pending-status`：账本↔注册表对账——比对已 promoted 候选集中每个
   人物的最新 character_status 候选与注册表现状，漂移即逐条列出并以
   非零码退出（novel-continuity 收尾必跑）。
+- `--world <json>`（T37）：world_contract metadata——登记时席位对账：
+  roster/entry 的 seat_ref 引用不存在的席位 = FAIL；写库后报告 world
+  标注「待契约认领/待卷级班底」但仍无任何注册表认领人的席位（WARN
+  提示，主要席位闭环的最后核对点）。
 
 幂等：同名（project_id+name 唯一）已存在时更新 role_class 与 state_json
 补充字段，**不覆盖** status/exit 字段（状态迁移只走连续性提取路径）。
+roster 路径写 state_json 的字段：arc_role / 预期退场 / 登场卷 / seat_ref /
+essence（T37 起人物卡要点，正文执行端 character_essence 槽消费）。
 
 用法::
 
@@ -120,6 +126,67 @@ def _validate_status_update(update: dict[str, Any]) -> list[str]:
             "（复活/回归会整体清空退场痕迹）"
         )
     return errors
+
+
+def _norm_name(name: str) -> str:
+    """近重名归一化：NFKC（全半角/组合字符）+ 去空白 + casefold。
+    语义判级仍是 LLM 审查职责，这里只拦机器可判的归一化撞名。"""
+    import unicodedata
+    return "".join(unicodedata.normalize("NFKC", name).split()).casefold()
+
+
+def _near_dup_warns(conn: sqlite3.Connection, project_id: str,
+                    incoming: list[dict[str, Any]]) -> list[str]:
+    """登记名 vs 在库名 + 批内的归一化撞名（原始名不同才算——完全同名走幂等合并）。"""
+    warns: list[str] = []
+    existing: dict[str, str] = {
+        _norm_name(r["name"]): r["name"] for r in conn.execute(
+            "SELECT name FROM characters WHERE project_id = ?", (project_id,))
+    }
+    batch: dict[str, str] = {}
+    for item in incoming:
+        raw, norm = item.get("name", ""), _norm_name(item.get("name", ""))
+        if not norm:
+            continue
+        hit = existing.get(norm)
+        if hit is not None and hit != raw:
+            warns.append(f"WARN 近重名：{raw!r} 与在库人物 {hit!r} 归一化后相同"
+                         "（全半角/空白/大小写）——确认是否笔误")
+        elif norm in batch and batch[norm] != raw:
+            warns.append(f"WARN 批内近重名：{raw!r} 与 {batch[norm]!r} 归一化后相同——确认是否笔误")
+        batch.setdefault(norm, raw)
+    return warns
+
+
+def _seat_reconciliation(conn: sqlite3.Connection, project_id: str,
+                         world: dict[str, Any],
+                         incoming: list[dict[str, Any]]) -> tuple[list[str], list[str]]:
+    """席位对账：引用存在性（error）+ 写库后未认领承诺席位清单（warn）。"""
+    seat_names = {s.get("name") for s in world.get("seats", []) if s.get("name")}
+    errors: list[str] = []
+    for item in incoming:
+        ref = item.get("seat_ref")
+        if ref and ref not in seat_names:
+            errors.append(f"{item.get('name', '?')}.seat_ref 引用不存在的席位: {ref!r}")
+    claimed: set[str] = set()
+    for r in conn.execute(
+            "SELECT state_json FROM characters WHERE project_id = ?", (project_id,)):
+        try:
+            ref = json.loads(r["state_json"] or "{}").get("seat_ref")
+        except json.JSONDecodeError:
+            continue
+        if ref:
+            claimed.add(ref)
+    for item in incoming:
+        if item.get("seat_ref"):
+            claimed.add(item["seat_ref"])
+    warns = [
+        f"WARN 席位「{s['name']}」world 标注「{s.get('disposition')}」但注册表尚无认领人"
+        for s in world.get("seats", [])
+        if s.get("name") and s.get("disposition") in ("待契约认领", "待卷级班底")
+        and s["name"] not in claimed
+    ]
+    return errors, warns
 
 
 def _upsert(conn: sqlite3.Connection, project_id: str, name: str, role_class: str,
@@ -258,7 +325,8 @@ def check_pending_status(db_path: Path, project_id: str) -> int:
 
 def run(db_path: Path, project_id: str, roster: list[dict[str, Any]] | None,
         entries: list[dict[str, Any]] | None,
-        status_update: dict[str, Any] | list[dict[str, Any]] | None) -> int:
+        status_update: dict[str, Any] | list[dict[str, Any]] | None,
+        world: dict[str, Any] | None = None) -> int:
     updates = None
     if status_update is not None:
         updates = [status_update] if isinstance(status_update, dict) else list(status_update)
@@ -272,6 +340,12 @@ def run(db_path: Path, project_id: str, roster: list[dict[str, Any]] | None,
 
         errors: list[str] = []
         roster_warns: list[str] = []
+        incoming = list(roster or []) + list(entries or [])
+        roster_warns += _near_dup_warns(conn, project_id, incoming)
+        if world is not None and incoming:
+            seat_errors, seat_warns = _seat_reconciliation(conn, project_id, world, incoming)
+            errors += seat_errors
+            roster_warns += seat_warns
         if roster is not None:
             errors += _validate_roster(roster)
             # 重锁对账：曾在旧 roster（state_json 带 arc_role）但不在新 roster 的人物
@@ -303,11 +377,12 @@ def run(db_path: Path, project_id: str, roster: list[dict[str, Any]] | None,
         conn.execute("BEGIN IMMEDIATE")
         try:
             for item in roster or []:
-                char_id = _upsert(
-                    conn, project_id, item["name"], item["role_class"],
-                    {"arc_role": item["arc_role"], "预期退场": item["预期退场"],
-                     "登场卷": item["登场卷"]},
-                )
+                patch = {"arc_role": item["arc_role"], "预期退场": item["预期退场"],
+                         "登场卷": item["登场卷"]}
+                for extra in ("seat_ref", "essence"):
+                    if item.get(extra):
+                        patch[extra] = item[extra]
+                char_id = _upsert(conn, project_id, item["name"], item["role_class"], patch)
                 results.append(f"roster {item['name']} -> {char_id}")
             for item in entries or []:
                 patch = {k: v for k, v in item.items() if k not in ("name", "role_class")}
@@ -340,6 +415,8 @@ def main() -> int:
     parser.add_argument("--status-update", help="状态迁移 JSON 路径或内联 JSON（单对象或数组，character_status 晋升后）")
     parser.add_argument("--pending-status", action="store_true",
                         help="账本↔注册表对账：promoted character_status 候选 vs 注册表现状，漂移非零退出")
+    parser.add_argument("--world", type=Path,
+                        help="world_contract metadata JSON——启用席位对账（seat_ref 存在性 FAIL + 未认领承诺席位 WARN）")
     parser.add_argument("--db", default=str(DEFAULT_DB))
     args = parser.parse_args()
 
@@ -367,7 +444,8 @@ def main() -> int:
     if not db_path.exists():
         print(f"数据库不存在: {db_path}")
         return 2
-    return run(db_path, args.project, roster, entries, status_update)
+    world = _load(args.world) if args.world else None
+    return run(db_path, args.project, roster, entries, status_update, world)
 
 
 if __name__ == "__main__":

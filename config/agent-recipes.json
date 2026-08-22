@@ -15,6 +15,10 @@
     "review_feedback",
     "subject",
     "craft_refs",
+    "world_lexicon",
+    "character_roster",
+    "character_essence",
+    "persona_gate",
     "upstream:<asset_type>"
   ],
   "divergence_tiers": {
@@ -111,7 +115,10 @@
       "skill": "review/planning-architecture-review",
       "slots": [
         "subject",
-        "upstream:direction"
+        "upstream:direction",
+        "upstream-reviews:direction",
+        "project_setup",
+        "persona_full"
       ],
       "divergence": null,
       "decision_scope": "judge",
@@ -124,12 +131,14 @@
       "skill": "planning/story-strategy",
       "slots": [
         "project_setup",
+        "persona_full",
         "upstream:direction",
-        "upstream:architecture"
+        "upstream:architecture",
+        "genre_pack"
       ],
       "divergence": "balanced",
       "decision_scope": "propose_only",
-      "output": "planning-candidate（承诺-收益配对/阶段战略）",
+      "output": "planning-candidate（阶段骨架/承诺-债务周期/代价账本）",
       "failure": "修复循环；阶段不得消解 unresolved_claims"
     },
     {
@@ -139,7 +148,12 @@
       "slots": [
         "subject",
         "upstream:direction",
-        "upstream:architecture"
+        "upstream-reviews:direction",
+        "upstream:architecture",
+        "upstream-reviews:architecture",
+        "project_setup",
+        "persona_full",
+        "genre_pack"
       ],
       "divergence": null,
       "decision_scope": "judge",
@@ -153,12 +167,15 @@
       "slots": [
         "kernel_full",
         "persona_full",
+        "project_setup",
+        "genre_pack",
         "upstream:architecture",
-        "upstream:strategy"
+        "upstream:strategy",
+        "upstream:world_contract"
       ],
       "divergence": "balanced",
       "decision_scope": "propose_only",
-      "output": "人物契约候选（契约维度按 skill 定义）",
+      "output": "人物契约候选（席位认领/strategy 弧职责挂接/persona 四用法；roster 档位机器门）",
       "failure": "修复循环；与上游矛盾 → change proposal 不隐式改上游"
     },
     {
@@ -169,8 +186,14 @@
         "subject",
         "kernel_full",
         "persona_full",
+        "project_setup",
+        "genre_pack",
         "upstream:architecture",
-        "upstream:strategy"
+        "upstream:strategy",
+        "upstream:world_contract",
+        "upstream-reviews:architecture",
+        "upstream-reviews:strategy",
+        "upstream-reviews:world_contract"
       ],
       "divergence": null,
       "decision_scope": "judge",
@@ -183,12 +206,14 @@
       "skill": "planning/world-contract",
       "slots": [
         "project_setup",
+        "persona_full",
+        "genre_pack",
         "upstream:architecture",
         "upstream:strategy"
       ],
       "divergence": "balanced",
       "decision_scope": "propose_only",
-      "output": "世界契约候选",
+      "output": "世界契约候选（岗位表/代价两轴/语域机器可读/strategy 对账）",
       "failure": "修复循环；规则自洽缺陷 blocking"
     },
     {
@@ -197,8 +222,13 @@
       "skill": "review/planning-world-contract-review",
       "slots": [
         "subject",
+        "project_setup",
+        "persona_full",
+        "genre_pack",
         "upstream:architecture",
-        "upstream:strategy"
+        "upstream:strategy",
+        "upstream-reviews:architecture",
+        "upstream-reviews:strategy"
       ],
       "divergence": null,
       "decision_scope": "judge",
@@ -237,11 +267,14 @@
       "composer_key": "volume-outline",
       "skill": "planning/volume-outline",
       "slots": [
-        "upstream:story_arc"
+        "upstream:story_arc",
+        "upstream:world_contract",
+        "character_roster",
+        "persona_gate"
       ],
       "divergence": "balanced",
       "decision_scope": "propose_only",
-      "output": "卷纲候选（节奏密度约束）",
+      "output": "卷纲候选（节奏密度约束 + 世界消费对账）",
       "failure": "修复循环"
     },
     {
@@ -250,7 +283,10 @@
       "skill": "review/planning-volume-outline-review",
       "slots": [
         "subject",
-        "upstream:story_arc"
+        "upstream:story_arc",
+        "upstream:world_contract",
+        "character_roster",
+        "persona_gate"
       ],
       "divergence": null,
       "decision_scope": "judge",
@@ -264,7 +300,9 @@
       "slots": [
         "upstream:volume_outline",
         "upstream:character_contract",
-        "upstream:world_contract"
+        "upstream:world_contract",
+        "character_roster",
+        "persona_gate"
       ],
       "divergence": "balanced",
       "decision_scope": "propose_only",
@@ -277,7 +315,9 @@
       "skill": "review/planning-chapter-plan-review",
       "slots": [
         "subject",
-        "upstream:volume_outline"
+        "upstream:volume_outline",
+        "character_roster",
+        "persona_gate"
       ],
       "divergence": null,
       "decision_scope": "judge",
@@ -293,7 +333,9 @@
         "persona_full",
         "upstream:chapter_plan",
         "canon_minimal",
-        "review_feedback"
+        "review_feedback",
+        "world_lexicon",
+        "character_essence"
       ],
       "divergence": "constrained",
       "decision_scope": "execute",
@@ -308,7 +350,9 @@
         "subject",
         "kernel_full",
         "persona_full",
-        "upstream:chapter_plan"
+        "upstream:chapter_plan",
+        "world_lexicon",
+        "character_essence"
       ],
       "divergence": null,
       "decision_scope": "judge",

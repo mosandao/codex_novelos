@@ -23,13 +23,24 @@
         "field": "setup.channel",
         "equals": "全向"
       }
+    },
+    {
+      "id": "genre-present",
+      "file": "genre-present.md",
+      "when": {
+        "field": "setup.genre_profile",
+        "not_null": true
+      }
     }
   ],
   "data_slots": [
     "kernel_full",
     "persona_full",
+    "project_setup",
+    "genre_pack",
     "upstream:architecture",
-    "upstream:strategy"
+    "upstream:strategy",
+    "upstream:world_contract"
   ],
   "divergence": "balanced",
   "decision_scope": "propose_only"

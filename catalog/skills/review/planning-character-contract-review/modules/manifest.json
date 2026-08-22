@@ -29,8 +29,14 @@
     "subject",
     "kernel_full",
     "persona_full",
+    "project_setup",
+    "genre_pack",
     "upstream:architecture",
-    "upstream:strategy"
+    "upstream:strategy",
+    "upstream:world_contract",
+    "upstream-reviews:architecture",
+    "upstream-reviews:strategy",
+    "upstream-reviews:world_contract"
   ],
   "decision_scope": "judge"
 }
