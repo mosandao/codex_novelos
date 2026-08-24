@@ -1,6 +1,6 @@
 # NovelOS Agent 规则（零 Python 演进期）
 
-本仓库正在执行**零 Python 演进路线**（路线图见 `tasks/README.md`）：视图链已 JS 化，写路径校验门暂存 `legacy-python/` 待 JS 门替代。本文件按过渡期现状书写，R1/R2 交付后同步收敛。
+本仓库正在执行**零 Python 演进路线**（路线图见 `tasks/README.md`）：视图链已 JS 化，R2 六个业务写门已全部 JS 化并收口为插件 defineTool（见「数据库访问」节）；`legacy-python/` 仅剩只读/非库写工具（组装器等）待处置。本文件按 R2 后现状书写。
 
 ## 分层架构
 
@@ -8,7 +8,7 @@
 L0 权威存储   data/novelos-v2.db + config/（schemas ×18 · genre-packs · system_archetypes）
               —— schemas 与 SQL migrations 与语言无关，是 JS 门直接复用的资产
 L1 运行时     目标态：插件 host JS 工具（唯一读写口）
-              过渡态：legacy-python/scripts/*.py（只维护不新增，待整体删除）
+              过渡态：legacy-python/scripts/*.py 仅剩只读/非库写工具，待整体删除
 L2 方法论     catalog/skills/**（prompt.md 主干 + modules/ + manifest v2）——语言无关，原样有效
 L3 组装产物   data/compositions/
 L4 harness 适配 adapters/（单源 adapters/source/harness.yaml）
@@ -16,11 +16,24 @@ L5 会话编排   .agents/skills/novel-*（六个操作层技能）+ 本文件�
 UI            plugin/client/（viewer 原型 docs/novelos-viewer-prototype.html + wizard 三件套）
 ```
 
-## 数据库访问（过渡期规则）
+## 数据库访问（R2 后规则）
 
-**写路径**：当前唯一守门人 = `legacy-python\scripts\novelos_create_project.py`（jsonschema 门 + BEGIN IMMEDIATE 单事务）。禁止手工 INSERT 绕过校验门直接写库。写库三件事不变：① ID 格式 `类型:uuid`；② 写 `resources.content` 必须 `CAST(? AS BLOB)`；③ 写 resource 同时算 content_hash。R2 交付后写入口收敛为插件 defineTool，届时 legacy-python 整体删除。
+**写路径**：唯一写入口 = `dsh-novelos-viewer` 插件六个 defineTool 门工具（ajv 校验 + node:sqlite BEGIN IMMEDIATE 单事务，FAIL 返回 ok:false 零写入）：
 
-**读路径**：人类看 `dsh-novelos-viewer` 面板（sql.js 只读）；agent 查库用一次性 node:sqlite 查询或等插件查询工具就绪。Python MCP 通道已删除，不要再寻找它。
+| 工具 | 用途 |
+|---|---|
+| `novelos_gate_entry` | 入口校验（只读）：向导 payload 结构+词表级联+内核反查 |
+| `novelos_kernel_commit` | 内核候选校验落库；mode=create 可缝合返回 boundPayload |
+| `novelos_project_commit` | 分身六表单事务落库；mismatch 须 `userAdjudicated:true`（F2 裁决门红线） |
+| `novelos_register_characters` | 人物重锁登记/动态配角/状态迁移；pendingStatus/auditEntries 只读对账 |
+| `novelos_propagate_stale` | 上游修订后沿依赖图标 stale（fine=精细不误伤） |
+| `novelos_delete_project` | 项目整体删除（dryRun 调查/backup 备份/cleanOrphans 孤儿清理） |
+
+禁止手工 INSERT/UPDATE 绕过门直接写库——agent 没有裸 SQL 写通道。写库三件事已在门内固化：① ID 格式 `类型:uuid`；② resources.content 经 BLOB 写入并同步 content_hash。
+
+**读路径**：人类看 `dsh-novelos-viewer` 面板（sql.js 只读）；agent 查库用一次性 node:sqlite 只读查询。Python MCP 通道已删除，不要再寻找它。
+
+**过渡态残留**：`legacy-python/scripts/` 仅剩只读或非库写工具（backup/export/compose_prompt/build_adapters/check_hygiene 等），其中 `novelos_compose_prompt.py` 组装器仍被 `.agents/skills/novel-*` 六技能依赖；业务写面 py 门已全部退役，待组装器 JS 化或用户拍板后整目录删除。
 
 ## 路由顺序
 

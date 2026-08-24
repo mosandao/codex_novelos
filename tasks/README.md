@@ -34,8 +34,8 @@ py `main()` 在 parent_rationale 含错配标记时仅 print 提示仍继续落�
 
 ## R3 · 编排层适配
 
-- [ ] `IN PROGRESS` AGENTS.md 路由随 R1/R2/R3 落地同步收敛（当前为过渡期表述；多模型分工节已补）
-- [ ] `IN PROGRESS` 多模型分工设置卡：**host 侧已落地（本轮）**——Config 新增 roleWriter/roleReviewer/roleMemory（`provider:model` 或裸 model 名，留空=沿用主会话），`/model-roles` 只读路由 + `novelos_model_roles` 工具供 workflow/subagent per-agent 覆盖消费；AGENTS.md 已加「多模型分工」节。待注入验证 + client 面板展示（可选）
+- [x] `DONE` AGENTS.md 路由随 R1/R2/R3 落地同步收敛。**验证（2026-08-24）：「数据库访问」节重写为 R2 后规则——写路径唯一入口=插件六门工具（表格列明六工具用途与裁决门红线），读路径=viewer 面板/node:sqlite 只读；头部与 L1 分层改为「业务写面已 JS 化，legacy-python 仅剩只读/非库写工具待处置」；多模型分工节保留**
+- [x] `DONE` 多模型分工设置卡：Config 新增 roleWriter/roleReviewer/roleMemory（`provider:model` 或裸 model 名，留空=沿用主会话），`GET /model-roles` 只读路由 + `novelos_model_roles` 工具；AGENTS.md 已加「多模型分工」节。**注入验证：dev_uninject_plugin→dev_inject_plugin 全链路 host ✓ client ✓（2026-08-24）。client 面板可视化展示为可选项暂缓——设置值经 dsh 标准设置界面即可配置**
 
 ## R1 实施记录（2026-08-24）
 
