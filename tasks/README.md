@@ -12,11 +12,15 @@
 
 ## R2 · JS 写门（写路径收口，三件套捆绑交付）
 
-- [ ] `TODO` ajv 消费 `config/schemas/*.json` 复刻 jsonschema 校验门（含词表级联、内核库内反查）
-- [ ] `TODO` node:sqlite BEGIN IMMEDIATE 单事务落库 + crypto content_hash
+- [x] `DONE` ajv(Ajv2020/Draft 2020-12) 消费 `config/schemas/*.json` 复刻 jsonschema 校验门（含词表级联、内核库内反查）。**验证（2026-08-24）：`plugin/dsh-novelos-viewer/src/gate/create-project.ts` 全量移植 validate_request / validate_kernel_candidate / validate_candidate（E0 结构短路、其余累加）；快照比对用键序无关 deepEqual；真实词表 project-wizard-data.js + 真实 schema 冒烟全过**
+- [x] `DONE` node:sqlite BEGIN IMMEDIATE 单事务落库 + crypto content_hash。**验证：persistKernel/persistProject 两事务逐条 INSERT 与 py 同序；UNIQUE(content_hash,media_type) 撞车译成业务 GateFail 且整体回滚（测试断言资源计数不变）；金样哈希等价 4/4——py json.dumps(indent=2,ensure_ascii=False) vs JS pyJson 对 CJK/转义/emoji/浮点向量 sha256 字节级一致**
 - [ ] `TODO` 写旁路封死：唯一写入口 = 插件 defineTool；agent 无裸 SQL 写通道
-- [ ] `TODO` legacy-python/tests 门相关断言 vitest 等价迁移并全绿
+- [x] `DONE` 门测试 vitest 迁移并全绿。**验证：test/create-project.test.ts 12 用例（入口门/内核门/分身门三查/缝合回填/六表落库+metadata_json 快照/UNIQUE 回滚/裁决门/schema 编译冒烟）+ 原语 9 + 夹具 2 = 23/23 通过；tsc --noEmit 干净；dev_build_plugin 构建链通过，dev_reload_package 后 fiber active、novelos_viewer_status 实测 ok**
 - [ ] `BLOCKED(依赖R2全绿)` 删除 `legacy-python/`，仓库达成零 Python
+
+### ⚠️ 有意行为变更（F2 整改，与 py 版差异显式声明）
+
+py `main()` 在 parent_rationale 含错配标记时仅 print 提示仍继续落库（红队判定的「纸面化裁决门」）。JS 版 `checkMismatchAdjudication()` 默认抛 `GateFail` 阻断落库，仅当调用方显式传入 `userAdjudicated: true`（用户已裁决）才放行。这是红线「任何 FAIL 必须阻断」的直接落实，非等价移植。
 
 ### R2 准备记录（2026-08-24）
 
