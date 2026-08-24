@@ -1,14 +1,16 @@
 /**
  * JS 写门 · defineTool 注册层（R2 写口收口）。
  *
- * 这是 NovelOS 权威库的**唯一写入口**：三个工具对应 py CLI 三段管线，
+ * 这是 NovelOS 权威库的**唯一写入口**：五个工具对应 py CLI 五段管线，
  * 每次调用独立开连接、过门、事务落库；任何 FAIL 返回 ok:false 且不产生写入。
  * agent 无裸 SQL 写通道——绕过此层的写请求没有工具面。
  *
  * 与 py CLI 的对应：
- * - novelos_gate_entry   ← --payload（入口校验，只读）
- * - novelos_kernel_commit← --kernel-candidate [--payload] [--dry-run]
- * - novelos_project_commit ← --candidate --payload [--dry-run]
+ * - novelos_gate_entry      ← --payload（入口校验，只读）
+ * - novelos_kernel_commit   ← --kernel-candidate [--payload] [--dry-run]
+ * - novelos_project_commit  ← --candidate --payload [--dry-run]
+ * - novelos_propagate_stale ← --asset [--check] [--fine]
+ * - novelos_delete_project  ← --project [--dry-run] [--backup] [--clean-orphans]
  */
 import { DatabaseSync } from 'node:sqlite'
 import { defineTool } from '@deepseek-ai/dsh-tools'
@@ -23,6 +25,15 @@ import {
   validatePersonaCandidate,
   validateRequest,
 } from './create-project.js'
+import { propagateStale } from './propagate-stale.js'
+import {
+  backupDatabase,
+  cleanOrphans,
+  collectIds,
+  deleteProject,
+  surveyProject,
+  verify,
+} from './delete-project.js'
 
 export interface WriteToolDeps {
   /** 解析当前权威库路径（null = 未找到） */
@@ -177,9 +188,76 @@ export function createWriteTools(deps: WriteToolDeps) {
     },
   })
 
+  const propagateStaleTool = defineTool({
+    name: 'novelos_propagate_stale',
+    description: 'NovelOS stale 传播写门：上游规划资产修订后沿 planning_asset_dependencies 依赖图标记下游 '
+      + 'locked 资产为 stale。默认粗模式（直接+间接全量标）；fine=true 精细模式（依赖边版本+content_hash 双重比对，'
+      + '内容未变的下游不误伤，间接下游仅列待重估不自动标）。dryRun=true 干跑只报告。',
+    parameters: {
+      asset: { type: 'string', description: '变更的上游 asset_id（如 planning:xxx）', required: true },
+      fine: { type: 'boolean', description: '精细模式：内容未变不误伤（默认 false=粗模式全量标）' },
+      dryRun: { type: 'boolean', description: '干跑：只显示会被标记的资产，不执行 UPDATE' },
+    },
+    output: STRING_OUTPUT,
+    async execute(args: any) {
+      const { db } = requireCtx()
+      const conn = openDb(db)
+      try {
+        const report = propagateStale(conn, String(args.asset), {
+          fine: args.fine === true,
+          dryRun: args.dryRun === true,
+        })
+        return JSON.stringify({ ok: true, ...report })
+      } catch (e) {
+        return JSON.stringify({ ok: false, stage: 'propagate_stale', error: errText(e) })
+      } finally {
+        conn.close()
+      }
+    },
+  })
+
+  const deleteProjectTool = defineTool({
+    name: 'novelos_delete_project',
+    description: 'NovelOS 项目删除写门：按依赖逆序在 foreign_keys=OFF 下逐表删除项目全部内容'
+      + '（不动 creator_profile_versions 引用的跨项目共享系统原型资源），删后 foreign_keys=ON 复验完整性。'
+      + 'dryRun=true 只调查规模不删除；backup=true 删前备份数据库文件。'
+      + 'md 投影目录已随视图链退役，无需清理。',
+    parameters: {
+      project: { type: 'string', description: '项目 ID（如 project:xxx）', required: true },
+      dryRun: { type: 'boolean', description: '只调查项目范围，不删除' },
+      backup: { type: 'boolean', description: '删前备份数据库文件（.bak-时间戳）' },
+      cleanOrphans: { type: 'boolean', description: '额外清理全库孤儿 reviews/dependencies' },
+    },
+    output: STRING_OUTPUT,
+    async execute(args: any) {
+      const { db } = requireCtx()
+      const pid = String(args.project)
+      const conn = openDb(db)
+      try {
+        const survey = surveyProject(conn, pid)
+        if (args.dryRun === true) {
+          return JSON.stringify({ ok: true, dryRun: true, survey })
+        }
+        let backupPath: string | undefined
+        if (args.backup === true) backupPath = backupDatabase(db)
+        const steps = deleteProject(conn, pid, collectIds(conn, pid))
+        let orphans: ReturnType<typeof cleanOrphans> | undefined
+        if (args.cleanOrphans === true) orphans = cleanOrphans(conn)
+        const verification = verify(conn, pid)
+        return JSON.stringify({ ok: true, project: survey.project, steps, orphans, verification, backupPath })
+      } catch (e) {
+        return JSON.stringify({ ok: false, stage: 'delete_project', error: errText(e) })
+      } finally {
+        conn.close()
+      }
+    },
+  })
+
   return [
     { tool: gateEntry, label: '@dsh-external/dsh-novelos-viewer: gate entry tool' },
     { tool: kernelCommit, label: '@dsh-external/dsh-novelos-viewer: kernel commit tool' },
     { tool: projectCommit, label: '@dsh-external/dsh-novelos-viewer: project commit tool' },
+    { tool: propagateStaleTool, label: '@dsh-external/dsh-novelos-viewer: propagate stale tool' },
+    { tool: deleteProjectTool, label: '@dsh-external/dsh-novelos-viewer: delete project tool' },
   ]
 }
