@@ -20,12 +20,14 @@
   "devDependencies": {
     "@types/node": "^24.13.3",
     "tsdown": "^0.22.14",
-    "typescript": "^5.9.0"
+    "typescript": "^5.9.0",
+    "vitest": "^4.1.11"
   },
   "scripts": {
     "build": "bash scripts/build.sh",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "build:client": "tsdown"
+    "build:client": "tsdown",
+    "test": "vitest run"
   },
   "exports": {
     ".": {

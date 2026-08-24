@@ -18,6 +18,13 @@
 - [ ] `TODO` legacy-python/tests 门相关断言 vitest 等价迁移并全绿
 - [ ] `BLOCKED(依赖R2全绿)` 删除 `legacy-python/`，仓库达成零 Python
 
+### R2 准备记录（2026-08-24）
+
+- **发现并修复：db/migrations/schema.sql 是链中快照且过期**——独立执行缺 planning_assets/creator_profiles/planning_asset_dependencies/project_creator_bindings/creator_profile_versions 五表（002.. 迁移链需不存在的基底，无法自洽重建）。已从生产库 sqlite_master DDL 只读导出重生成 v18 终态基线，回验与生产 **25 表全列零差异**；git 历史可溯（6544290）。
+- 插件新增 ajv@8.20.0 依赖；JS 门测试夹具来源 = 重生成后的 schema.sql（node:sqlite `:memory:` 直接 exec 即得生产结构空库）。
+- vitest@4.1.11 就位（`pnpm test` = `vitest run`）；R2 首批测试落地：夹具 25 表断言 + 门原语（contentHash/newId/parseCandidateText 容错解析/形状检查器/MISMATCH_MARKERS）**11/11 通过**。原语移植自 create_project.py L91-193，语义逐点对齐——注意 py 裸合法 JSON 不在解析层查形状（形状归上层 validate），修复路径才查。
+- 门规格提取子代理运行中 → 产出 `docs/r2-js-gate-spec.md`（create_project.py 全语义规格 + 其余写库脚本清单 + JS 漂移风险点），落地后开始门实现。
+
 ## R3 · 编排层适配
 
 - [ ] `TODO` AGENTS.md 路由随 R1/R2 落地同步收敛（当前为过渡期表述）
