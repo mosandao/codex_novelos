@@ -1118,7 +1118,7 @@ def write_composition_log(log_dir: Path, skill_dir: Path, asset: str, scope: str
         "decision_scope": manifest.get("decision_scope"),
         "proposal": proposal_modules,
         "review_round": review_round,
-        "file": str(rel),
+        "file": rel.as_posix(),
     }
     index = log_dir / "index.jsonl"
     with index.open("a", encoding="utf-8") as fh:
