@@ -14,8 +14,11 @@
 
 - [x] `DONE` ajv(Ajv2020/Draft 2020-12) 消费 `config/schemas/*.json` 复刻 jsonschema 校验门（含词表级联、内核库内反查）。**验证（2026-08-24）：`plugin/dsh-novelos-viewer/src/gate/create-project.ts` 全量移植 validate_request / validate_kernel_candidate / validate_candidate（E0 结构短路、其余累加）；快照比对用键序无关 deepEqual；真实词表 project-wizard-data.js + 真实 schema 冒烟全过**
 - [x] `DONE` node:sqlite BEGIN IMMEDIATE 单事务落库 + crypto content_hash。**验证：persistKernel/persistProject 两事务逐条 INSERT 与 py 同序；UNIQUE(content_hash,media_type) 撞车译成业务 GateFail 且整体回滚（测试断言资源计数不变）；金样哈希等价 4/4——py json.dumps(indent=2,ensure_ascii=False) vs JS pyJson 对 CJK/转义/emoji/浮点向量 sha256 字节级一致**
-- [x] `DONE` 写旁路封死：唯一写入口 = 插件 defineTool；agent 无裸 SQL 写通道。**验证（2026-08-24）：`src/gate/write-tools.ts` 注册三工具——`novelos_gate_entry`（只读校验）/ `novelos_kernel_commit`（内核事务，dryRun 支持，mode=create 自动缝合返回 boundPayload）/ `novelos_project_commit`（六表事务 + 裁决门 userAdjudicated 参数）；任何 FAIL 返回 ok:false 且不产生写入。dev_inject_plugin host ✓（注册零异常）；scripts/smoke-gate.mjs 用编译产物对真实词表+真实 schemas+生产库只读冒烟 SMOKE PASS（正例 0 FAIL / 负例结构短路）。注意：宿主 Node ESM 下子路径必须 `ajv/dist/2020.js`（平铺 dist 布局），裸 `ajv/dist/2020` 会 ENOENT**
-- [x] `DONE` 门测试 vitest 迁移并全绿。**验证：test/create-project.test.ts 12 用例（入口门/内核门/分身门三查/缝合回填/六表落库+metadata_json 快照/UNIQUE 回滚/裁决门/schema 编译冒烟）+ 原语 9 + 夹具 2 = 23/23 通过；tsc --noEmit 干净；dev_build_plugin 构建链通过，dev_reload_package 后 fiber active、novelos_viewer_status 实测 ok**
+- [x] `DONE` 写旁路封死：唯一写入口 = 插件 defineTool；agent 无裸 SQL 写通道。**验证（2026-08-24）：`src/gate/write-tools.ts` 注册五工具——`novelos_gate_entry`（只读校验）/ `novelos_kernel_commit`（内核事务，dryRun 支持，mode=create 自动缝合返回 boundPayload）/ `novelos_project_commit`（六表事务 + 裁决门 userAdjudicated 参数）/ `novelos_propagate_stale` / `novelos_delete_project`；任何 FAIL 返回 ok:false 且不产生写入。dev_inject_plugin host ✓（注册零异常）；scripts/smoke-gate.mjs + smoke-r6.mjs 用编译产物对真实词表+真实 schemas+生产库只读冒烟 SMOKE PASS。注意：宿主 Node ESM 下子路径必须 `ajv/dist/2020.js`（平铺 dist 布局），裸 `ajv/dist/2020` 会 ENOENT**
+- [x] `DONE` 门测试 vitest 迁移并全绿。**验证：test/create-project.test.ts 12 用例 + test/propagate-delete.test.ts 10 用例 + 原语 9 + 夹具 2 = 33/33 通过；tsc --noEmit 干净**
+- [x] `DONE` R2 补齐 · stale 传播 JS 化（commit 本轮）。**验证：`src/gate/propagate-stale.ts` 移植 novelos_propagate_stale.py——coarse BFS 直接+间接全量标 / fine 模式依赖边 upstream_version+content_hash 双重比对（neutral 不误伤，间接下游列 indirectPending 不自动标）；事务失败回滚抛 GateFail。test/propagate-delete.test.ts 覆盖 dryRun/全量标/candidate 不动/fine 判定/GateFail。生产库 smoke-r6.mjs 只读冒烟 PASS**
+- [x] `DONE` R2 补齐 · 项目删除 JS 化（commit 本轮）。**验证：`src/gate/delete-project.ts` 移植 novelos_delete_project.py——foreign_keys=OFF 显式事务依赖逆序逐表删（planning_asset_dependencies 双向边→reviews→连续性六账本→chapters/volumes/planning_assets/characters/worlds/bindings/books/projects/resources），不动 creator_profile_versions 共享系统原型资源；cleanOrphans/verify/backupDatabase（.bak-YYYYMMDD-HHMMSS 同格式）；投影目录删除随视图链退役省略（单渲染器红线）。测试覆盖删净断言、共享资源完好、孤儿清理、触发器注入失败后回滚+FK 复原 ON**
+- [ ] `IN PROGRESS` R2 补齐 · 人物登记 JS 化（novelos_register_characters.py 25KB）——子代理移植中
 - [ ] `BLOCKED(依赖R2全绿)` 删除 `legacy-python/`，仓库达成零 Python
 
 ### ⚠️ 有意行为变更（F2 整改，与 py 版差异显式声明）
@@ -31,8 +34,8 @@ py `main()` 在 parent_rationale 含错配标记时仅 print 提示仍继续落�
 
 ## R3 · 编排层适配
 
-- [ ] `TODO` AGENTS.md 路由随 R1/R2 落地同步收敛（当前为过渡期表述）
-- [ ] `TODO` 多模型分工设置卡：角色→provider/model 映射（写作强创意／审查异构防共谋／记忆廉价快速）
+- [ ] `IN PROGRESS` AGENTS.md 路由随 R1/R2/R3 落地同步收敛（当前为过渡期表述；多模型分工节已补）
+- [ ] `IN PROGRESS` 多模型分工设置卡：**host 侧已落地（本轮）**——Config 新增 roleWriter/roleReviewer/roleMemory（`provider:model` 或裸 model 名，留空=沿用主会话），`/model-roles` 只读路由 + `novelos_model_roles` 工具供 workflow/subagent per-agent 覆盖消费；AGENTS.md 已加「多模型分工」节。待注入验证 + client 面板展示（可选）
 
 ## R1 实施记录（2026-08-24）
 

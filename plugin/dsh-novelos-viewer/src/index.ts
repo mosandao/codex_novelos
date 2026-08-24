@@ -4,8 +4,11 @@
  * 设计红线（docs/novelos-viewer-design.md + R2 写口收口）：
  * - 读路径：仅暴露零参数 GET 路由，物理只读；/db-bytes 返回 data/novelos-v2.db
  *   字节流，client 端 sql.js(WASM) 内存加载，零子进程、零 argv、零编码转换（F3/F4 整改）。
- * - 写路径：唯一写入口 = 本插件 defineTool 三工具（gate_entry / kernel_commit /
- *   project_commit），全部经 JS 校验门 + 单事务；agent 无裸 SQL 写通道。
+ * - 写路径：唯一写入口 = 本插件 defineTool 五写门工具（gate_entry / kernel_commit /
+ *   project_commit / propagate_stale / delete_project），全部经 JS 校验门 + 单事务；
+ *   agent 无裸 SQL 写通道。
+ * - 多模型分工（R3）：设置卡 roleWriter/roleReviewer/roleMemory → /model-roles 路由
+ *   + novelos_model_roles 工具，编排侧按 provider/model 覆盖，改配置不改代码。
  */
 import { createHash } from 'node:crypto'
 import { existsSync, readFileSync, realpathSync, statSync } from 'node:fs'
@@ -26,12 +29,50 @@ export interface Config {
   title: string
   /** 显式指定 data/novelos-v2.db 绝对路径；留空则自动探测 */
   dbPath: string
+  /**
+   * 多模型分工映射（R3）：角色 → 'provider:model' 或裸 model 名。
+   * 写作=强创意模型；审查=异构厂商模型（防共谋）；记忆=廉价快速模型。
+   * 留空 = 不覆盖，沿用主会话模型。编排侧（workflow/subagent）经
+   * /model-roles 路由或 novelos_model_roles 工具读取后按 provider/model 覆盖。
+   */
+  roleWriter: string
+  roleReviewer: string
+  roleMemory: string
 }
 
 export const Config = z.object({
   title: z.string().default('NovelOS 查看器'),
   dbPath: z.string().default(''),
+  roleWriter: z.string().default(''),
+  roleReviewer: z.string().default(''),
+  roleMemory: z.string().default(''),
 })
+
+export interface ModelRoles {
+  writer?: { provider?: string; model: string }
+  reviewer?: { provider?: string; model: string }
+  memory?: { provider?: string; model: string }
+}
+
+/** 解析 'provider:model' / 'model' / '' 为 workflow 可用的 provider/model 覆盖 */
+export function parseModelRole(raw: string): { provider?: string; model: string } | null {
+  const text = String(raw ?? '').trim()
+  if (!text) return null
+  const idx = text.indexOf(':')
+  if (idx > 0) return { provider: text.slice(0, idx), model: text.slice(idx + 1) }
+  return { model: text }
+}
+
+export function buildModelRoles(config: Config): ModelRoles {
+  const out: ModelRoles = {}
+  const writer = parseModelRole(config.roleWriter)
+  if (writer) out.writer = writer
+  const reviewer = parseModelRole(config.roleReviewer)
+  if (reviewer) out.reviewer = reviewer
+  const memory = parseModelRole(config.roleMemory)
+  if (memory) out.memory = memory
+  return out
+}
 
 const MODULE_DIR = dirname(fileURLToPath(import.meta.url))
 
@@ -206,6 +247,11 @@ export function apply(ctx: Context, config: Config): void {
         return res.end(html)
       }
 
+      // R3：多模型分工映射（设置卡配置，编排侧消费）
+      if (url.includes('model-roles')) {
+        return json(res, 200, { ok: true, roles: buildModelRoles(config) })
+      }
+
       // 默认 = manifest：库文件元信息（大小/mtime/sha256），供面板校验新鲜度
       const db = resolveDbPath(config.dbPath)
       if (!db) {
@@ -223,6 +269,7 @@ export function apply(ctx: Context, config: Config): void {
         api: [
           `${API_PREFIX}/manifest`, `${API_PREFIX}/db-bytes`, `${API_PREFIX}/sql-wasm.wasm`,
           `${API_PREFIX}/wizard`, `${API_PREFIX}/project-wizard-data.js`, `${API_PREFIX}/kernel-roster.js`,
+          `${API_PREFIX}/model-roles`,
         ],
       })
     },
@@ -249,6 +296,22 @@ export function apply(ctx: Context, config: Config): void {
       })
     },
   })), '@dsh-external/dsh-novelos-viewer: status tool')
+
+  // R3：多模型分工映射工具（编排侧 workflow/subagent 按 provider/model 覆盖）
+  ctx.effect(() => ctx.tools.register(defineTool({
+    name: 'novelos_model_roles',
+    description: '读取 NovelOS 多模型分工映射（设置卡配置，只读）：writer（写作·强创意）/ '
+      + 'reviewer（审查·异构厂商防共谋）/ memory（记忆提取·廉价快速）。返回 { provider?, model } 覆盖值，'
+      + '供 workflow 编排 per-agent 指定；留空的角色表示沿用主会话模型。',
+    parameters: {},
+    output: {
+      schema: { type: 'string' },
+      render: (_args: unknown, value: unknown) => [{ type: 'text', text: String(value) }],
+    },
+    async execute() {
+      return JSON.stringify({ ok: true, roles: buildModelRoles(config) })
+    },
+  })), '@dsh-external/dsh-novelos-viewer: model roles tool')
 
   // R2 写口收口：唯一写入口 = 校验门 defineTool（任何 FAIL 不产生写入）
   for (const { tool, label } of createWriteTools({

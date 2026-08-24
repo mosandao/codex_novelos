@@ -56,6 +56,10 @@ python legacy-python\scripts\novelos_compose_prompt.py --asset <asset> --project
 
 配方矩阵权威在 `config/agent-recipes.json`；组装产物即主控↔sub agent 的 ABI（三家 harness 零变体）。
 
+## 多模型分工
+
+角色→模型映射存 `dsh-novelos-viewer` 设置卡（roleWriter/roleReviewer/roleMemory，格式 `provider:model` 或裸 model 名，留空=沿用主会话模型）。编排前调 `novelos_model_roles` 工具（或面板 `/model-roles` 路由）读取，再在 workflow/subagent 按 per-agent provider/model 覆盖：写作=强创意模型；审查=异构厂商模型（防共谋）；记忆提取=廉价快速模型。方法论与校验门均模型无关——映射只影响编排，不改代码。
+
 ## 小说工作流
 
 1. `$novel-memory` 组织上下文（canon 最小集经组装器注入）。
