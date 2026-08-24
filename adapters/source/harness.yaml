@@ -1,5 +1,5 @@
-# 三 harness 适配事实源（codex / zcode / deepseek）。改这里后运行
-# python legacy-python/scripts/novelos_build_adapters.py 重新生成 adapters/README.md。
+# 三 harness 适配事实源（codex / zcode / deepseek）。
+# 手写维护（原生成器 novelos_build_adapters.py 已随零 Python 退役）；改这里后须同步手工更新 adapters/README.md。
 harnesses:
   codex:
     entry_files:
@@ -16,13 +16,11 @@ harnesses:
       - "入口服务：uvicorn src.presentation.main:app --port 6100（FastAPI）"
     notes: 自托管 NovelOS backend harness（~/github/novelos，只读仓）。三要素——① 入口 = FastAPI 服务（非 CLI 读 AGENTS.md），配置 backend/config.yaml；② 命令/技能注册 = PluginKernel + backend/plugins/ 插件目录（craft/derivative/game/... 题材包，经 /skills 页面写入），SubAgent 自持 prompt contract（SubContext.kernel 注入 PluginKernel 自行 load+assemble）；③ sub agent = SubAgent Protocol（src/application/runtime/sub_agent.py：run(task, SubContext, llm) -> SubResult，无状态纯函数不碰库，Runtime 经 CommitBatch 持久化），LLM 经多 provider gateway 路由（可路由 DeepSeek API；指令技术源自 deepseek 指令库回填）。对接方式 = 组装产物作为 skill_prompt/snippets 注入 SubContext（ABI 对应物）。
 core_contract:
-  sub_agent_abi: 组装产物文件（novelos_compose_prompt.py 的 stdout / data/compositions/ 落盘件）——三家用同一份，零变体
+  sub_agent_abi: 组装产物文件（scripts/novelos-compose-prompt.mjs 的 stdout / data/compositions/ 落盘件）——三家用同一份，零变体
   main_agent_duties:
-    - 跑脚本（python legacy-python/scripts/*.py）
+    - 调插件门工具（dsh-novelos-viewer 六个 defineTool 写门）+ node scripts/novelos-compose-prompt.mjs
     - 读文件（组装产物 / catalog 方法论）
     - 把组装产物交给 sub agent
   verify_commands:
-    - python -m unittest discover -s legacy-python/tests
-    - python -m compileall -q legacy-python/scripts legacy-python/tests catalog config
-    - python legacy-python/scripts/check_repository_hygiene.py --check
-    - python legacy-python/scripts/build_catalog_manifest.py --check
+    - node scripts/test-compose-prompt.mjs（仓库根运行，19 用例）
+    - pnpm test（plugin/dsh-novelos-viewer 下运行，vitest 55 用例）

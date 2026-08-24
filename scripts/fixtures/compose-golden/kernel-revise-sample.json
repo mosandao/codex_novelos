@@ -1,0 +1,8 @@
+{
+  "request_type": "novelos.kernel.revise.v1",
+  "base_version": "creator-profile-version:cd4889a7-2017-4e4b-a5c2-24f145c1c7ef",
+  "kernel_hints": {
+    "obsessions": ["被遗忘的信号"],
+    "core_questions": ["谁在回应"]
+  }
+}

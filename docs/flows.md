@@ -1,36 +1,34 @@
 # 关键流程
 
-> ⚠️ 零 Python 过渡期版本（重组于本轮）：写路径门暂存 legacy-python/，R2 交付后本文档随 JS 门收敛。路线图见 ../tasks/README.md。
-
 ## 项目创建向导
 
 参与者：用户、主控智能体、本地项目向导、内核融合智能体、分身融合智能体（onboarding 双段）。
 
 1. 用户要求创建项目时，主控提供 `plugin/client/project-wizard.html` 的绝对本地路径。页面和同目录的 `project-wizard-data.js` 可通过 `file://` 打开（面板化前允许），不依赖 MCP Apps proxy。
 2. 用户填写项目名、频道（男频/女频/全向）、平台、规模和一级题材；平台列表、一级题材库、二级方向候选、基调池均随频道级联切换（女频=晋江/番茄/七猫 + 女频题材库与基调池），平台选定后显示平台画像。二级方向可多选，表里基调分表层（外显，最多 2 项）与内核（底色，恰 1 项，可留空），美学风格最多两项（按题材标「荐」，可混搭），创作资料可留空且最多 10,000 字。
-3. 页面第 07 步为「作者内核」双模式：`select` 从内核名册（`plugin/client/kernel-roster.js` 镜像，由 `legacy-python/scripts/novelos_export_kernel_roster.py` 从库生成——建核/修订后重跑刷新）单选既有内核；`create` 填写内核素材六字段（口味锚点/最想写的人与圈子/绝不触碰/执念话题/核心问题/知识背景，新建至少一条）。系统原型已退出创建链（Task 30 决策：内核完全取代原型，config 降为参考资料库）。
+3. 页面第 07 步为「作者内核」双模式：`select` 从内核名册单选——面板模式由 host 经 node:sqlite 实时直查（建核/修订即时生效，无需刷新镜像），`file://` 离线模式使用 `plugin/client/kernel-roster.js` 静态镜像（原生成器已随零 Python 退役）；`create` 填写内核素材六字段（口味锚点/最想写的人与圈子/绝不触碰/执念话题/核心问题/知识背景，新建至少一条）。系统原型已退出创建链（Task 30 决策：内核完全取代原型，config 降为参考资料库）。
 4. 页面生成 `novelos.project.create.v3` JSON，显示在页面底部并尝试自动复制；复制失败时提供手动复制按钮。用户把原始 JSON 发送给主控。
-5. 主控收到 JSON 后**第一动作**是入口校验：`python legacy-python/scripts/novelos_create_project.py --payload <json>`——jsonschema 结构（`config/schemas/project-create-request.schema.json`，v3）+ 词表级联 + 表里互斥 + platform_traits/genre_profile 随行快照核对 + select 模式内核库内反查（版本存在 + ownership='author_kernel' + status='active' + subject_hash 相符）。FAIL 拒绝继续。
-6a. **mode=create 先建核**：主控运行 `python legacy-python/scripts/novelos_compose_prompt.py --asset kernel-fusion --payload <json>` 产出内核融合注入文本（identity 八字段 + 心理运作八维五段式 + 有限知识生态 + growth_log 四归因方法论；模式模块 mode-create/mode-revise；输入数据区 kernel_hints + project_setup 语境 + persona_fingerprints 撞车基准 + 原型一行式参考资料），注入内核融合智能体 → 产出 `novelos.kernel.candidate.v1` → 主控运行 `python legacy-python/scripts/novelos_create_project.py --payload <json> --kernel-candidate <json> --emit-payload <bound.json>`（信封 + author-kernel 两步校验 + 落库 + 机械缝合 select 形态 payload），随后重跑 `python legacy-python/scripts/novelos_export_kernel_roster.py` 刷新名册。内核修订（独立于项目）走 `--kernel-revise <revise载荷> --kernel-candidate`，growth_log 只追加。
-6b. **分身派生**：主控运行 `novelos_compose_prompt.py --asset fusion --payload <bound.json|json>` 产出分身融合注入文本（kernel_full 内核全文第一因 + 频道/库规模/题材/kernel-derive 条件模块 + 指纹去重基准），注入分身融合智能体——内核层继承不变（核心问题/价值公理/八维/知识边界语义继承，逐字复制由校验门拦截），表达层按本书频道/题材/平台适配（voice_samples/trait_profile/七字段）→ 产出 `creator_derivation_candidate`（signature 带 `kernel_origin` 溯源）。
-7. 主控运行固化脚本完成校验门与落库：`python legacy-python/scripts/novelos_create_project.py --payload <bound.json> --candidate <json>`。脚本依次执行——候选容错解析 → jsonschema 信封（creator-derivation-candidate）+ 签名 v2 深层（creator-signature，persona 必填且 `cannot_write` 非空）→ parent=内核版本库内反查 + kernel_origin 一致性 + 七字段无逐字复制内核 identity 条目（语义继承须从 persona 重新长出）→ 融合签名 hash 计算 → `BEGIN IMMEDIATE` 单事务六表落库：签名资源 + 派生资源（完整用户输入快照：author_kernel + setup 全文）+ creator_profiles（ownership='user'）+ creator_profile_versions（双资源链，parent 指向内核版本）+ projects（metadata_json 写入 setup v3 快照）+ project_creator_bindings（`binding_mode='kernel_derive'` + `kernel_version_id`）。禁止手工逐条 INSERT 绕过脚本。
-8. **上报裁决**：`parent_rationale` 含错配警告（内核与基调相斥/频道错配）时，主控把冲突与调和建议呈报用户裁决，未获裁决不得落库（脚本检测到警告字样会提示）；候选解析失败或校验门 FAIL 时要求 agent 重新输出，禁止主控手工改写候选内容。
+5. 主控收到 JSON 后**第一动作**是入口校验：调用 `novelos_gate_entry` 门工具（只读）——payload 结构（`config/schemas/project-create-request.schema.json`，v3，ajv 校验）+ 词表级联 + 表里互斥 + platform_traits/genre_profile 随行快照核对 + select 模式内核库内反查（版本存在 + ownership='author_kernel' + status='active' + subject_hash 相符）。FAIL 返回 ok:false，拒绝继续。
+6a. **mode=create 先建核**：主控运行 `node scripts/novelos-compose-prompt.mjs --asset kernel-fusion --payload <json>` 产出内核融合注入文本（identity 八字段 + 心理运作八维五段式 + 有限知识生态 + growth_log 四归因方法论；模式模块 mode-create/mode-revise；输入数据区 kernel_hints + project_setup 语境 + persona_fingerprints 撞车基准 + 原型一行式参考资料），注入内核融合智能体 → 产出 `novelos.kernel.candidate.v1` → 主控调用 `novelos_kernel_commit` 门工具（payload + candidate：信封 + author-kernel 两步 ajv 校验 + 落库；mode=create 自动缝合 select 形态 payload 并返回 `boundPayload`）。内核修订（独立于项目）走同一门工具的 revise 基底反查路径，growth_log 只追加。
+6b. **分身派生**：主控运行 `node scripts/novelos-compose-prompt.mjs --asset fusion --payload <boundPayload|json>` 产出分身融合注入文本（kernel_full 内核全文第一因 + 频道/库规模/题材/kernel-derive 条件模块 + 指纹去重基准），注入分身融合智能体——内核层继承不变（核心问题/价值公理/八维/知识边界语义继承，逐字复制由校验门拦截），表达层按本书频道/题材/平台适配（voice_samples/trait_profile/七字段）→ 产出 `creator_derivation_candidate`（signature 带 `kernel_origin` 溯源）。
+7. 主控调用 `novelos_project_commit` 门工具完成校验门与落库（payload=boundPayload + candidate）。门内依次执行——候选容错解析 → 信封校验（creator-derivation-candidate）+ 签名 v2 深层（creator-signature，persona 必填且 `cannot_write` 非空，ajv）→ parent=内核版本库内反查 + kernel_origin 一致性 + 七字段无逐字复制内核 identity 条目（语义继承须从 persona 重新长出）→ 融合签名 content_hash 门内 crypto 自动计算（`sha256:`+hex）→ `BEGIN IMMEDIATE` 单事务六表落库：签名资源 + 派生资源（完整用户输入快照：author_kernel + setup 全文）+ creator_profiles（ownership='user'）+ creator_profile_versions（双资源链，parent 指向内核版本）+ projects（metadata_json 写入 setup v3 快照）+ project_creator_bindings（`binding_mode='kernel_derive'` + `kernel_version_id`）。FAIL 返回 ok:false 零写入；禁止手工逐条 INSERT 绕过门。
+8. **上报裁决**：`parent_rationale` 含错配警告（内核与基调相斥/频道错配）时，主控把冲突与调和建议呈报用户裁决；裁决通过后携带 `userAdjudicated:true` 方可落库（`novelos_project_commit` 裁决门红线：检测到错配警告而未裁决即拒绝，零写入）；候选解析失败或校验门 FAIL 时要求 agent 重新输出，禁止主控手工改写候选内容。
 9. 主控从 `projects.metadata_json` 读取 setup 快照，连同绑定签名中的 persona，启动方向智能体生成该项目的 `book_soul`（book_soul 从创作者人格与项目约束长出来；表里基调/题材信息包/平台耐心的消费规则见 story-direction prompt「上游消费」节）。向导本身不会生成、锁定或提交 Direction。
 
-拒绝路径：本地页面只生成 JSON，不声称项目已创建；入口校验 FAIL（结构/词表级联/镜像漂移）时拒绝继续；前端选择不替代规划或审查；jsonschema 校验门 FAIL 时拒绝写入；候选 JSON 解析失败或字段错位时要求 agent 重出，不接受手工改写的候选；错配警告未经用户裁决不得落库。
+拒绝路径：本地页面只生成 JSON，不声称项目已创建；入口校验 FAIL（结构/词表级联/内核反查不符）时拒绝继续；前端选择不替代规划或审查；校验门 FAIL 时拒绝写入；候选 JSON 解析失败或字段错位时要求 agent 重出，不接受手工改写的候选；错配警告未经用户裁决不得落库。
 
 作者 Profile 新建版本不会改变既有项目绑定。显式 rebind 必须提供用户原因；成功后 Direction 及全部规划后代变为 `stale`，不自动重生成。内核出新 revision 后绑定旧版的项目照常运行（分身自带完整人格），是否重派生由用户裁决（novel-memory 构建上下文时标注内核陈旧，不静默换绑）。
 
 ## 人物生命周期（注册表状态机）
 
-参与者：主控智能体、规划智能体、写作链、`$novel-continuity`、`legacy-python/scripts/novelos_register_characters.py`。
+参与者：主控智能体、规划智能体、写作链、`$novel-continuity`、`novelos_register_characters` 门工具。
 
-1. **立档**：character_contract 锁定时，主控用 `python legacy-python/scripts/novelos_register_characters.py --project <id> --roster <json>` 把 metadata.character_roster 落人物注册表（main/secondary，arc_role 与预期退场写 state_json）。**重锁对账**：曾在旧 roster 但不在新 roster 的人物输出 WARN——契约修订删除的用 `--status-update` 退役，误删的补回。
-2. **动态创建**：次要角色有两个人口——卷级配角由卷纲「卷级配角班底」生成（volume_outline 候选 metadata.`volume_characters`：secondary/minor + arc_role + 预期退场 + 微档案；不得生成 main、不得承载跨卷职责），卷纲锁定后主控用 `--entry` 落注册表（条目可带 arc_role/预期退场/来源卷/source:"volume_outline"）；章级新面孔由章纲执行卡「本章新登场人物微档案」预登记（规划端造人，正文只消费不发明——Writer 写到未预登记新名字 = 违卡，entity-authority-review 判 blocking），章节接受后主控用 `--entry` 落注册表（minor/secondary）。执行卡可直接消费本卷班底人物（标注「卷纲已登记」，不重复微档案）。
-3. **状态迁移**：`$novel-continuity` 提取 character_status 候选（正文确认的退场/转化/休眠/死亡；新登场与下落不明不算），晋升后主控用 `--status-update` 更新注册表（单对象或数组；dead 必带 死亡型 exit_type；非退场状态不带 exit_type 并整体清空退场痕迹——复活场景；每次迁移在 state_json.状态史 留审计记录；未登记人物按 minor 补登）。
-4. **升级**：动态配角需要卷级职责/回归时走 change proposal → character_contract 新 revision（回归面孔名单为判定清单）→ 新 roster 重跑 `--roster`（升级 role_class，不覆盖 status）。
-5. **对账**：连续性收尾必跑 `python legacy-python/scripts/novelos_register_characters.py --project <id> --pending-status`——比对 promoted 候选集中每人物最新 character_status 候选与注册表现状，漂移（漏跑迁移/迁移被回滚）非零退出，处理完才能开下一章。
-6. **消费**：canon 最小集注入「人物状态」节（死/退/眠优先近 20 人）；人类查看注册表走 viewer 面板（R1 待建），Markdown 投影已退役。
+1. **立档**：character_contract 锁定时，主控调用 `novelos_register_characters`（project + roster）把 metadata.character_roster 落人物注册表（main/secondary，arc_role 与预期退场写 state_json）。**重锁对账**：曾在旧 roster 但不在新 roster 的人物输出 WARN——契约修订删除的用 statusUpdate 退役，误删的补回。
+2. **动态创建**：次要角色有两个人口——卷级配角由卷纲「卷级配角班底」生成（volume_outline 候选 metadata.`volume_characters`：secondary/minor + arc_role + 预期退场 + 微档案；不得生成 main、不得承载跨卷职责），卷纲锁定后主控用 entries 登记落注册表（条目可带 arc_role/预期退场/来源卷/source:"volume_outline"）；章级新面孔由章纲执行卡「本章新登场人物微档案」预登记（规划端造人，正文只消费不发明——Writer 写到未预登记新名字 = 违卡，entity-authority-review 判 blocking），章节接受后主控用 entries 登记落注册表（minor/secondary）。执行卡可直接消费本卷班底人物（标注「卷纲已登记」，不重复微档案）。
+3. **状态迁移**：`$novel-continuity` 提取 character_status 候选（正文确认的退场/转化/休眠/死亡；新登场与下落不明不算），晋升后主控用 statusUpdate 更新注册表（单对象或数组；dead 必带 死亡型 exit_type；非退场状态不带 exit_type 并整体清空退场痕迹——复活场景；每次迁移在 state_json.状态史 留审计记录；未登记人物按 minor 补登）。
+4. **升级**：动态配角需要卷级职责/回归时走 change proposal → character_contract 新 revision（回归面孔名单为判定清单）→ 新 roster 重跑登记（升级 role_class，不覆盖 status）。
+5. **对账**：连续性收尾必跑 `novelos_register_characters` 只读对账（pendingStatus:true）——比对 promoted 候选集中每人物最新 character_status 候选与注册表现状，漂移（漏跑迁移/迁移被回滚）非零退出，处理完才能开下一章。
+6. **消费**：canon 最小集注入「人物状态」节（死/退/眠优先近 20 人）；人类查看注册表走 viewer 面板，Markdown 投影已退役。
 
 ## 用户实时打断
 
@@ -44,10 +42,10 @@
 
 1. 主控从 `catalog/skills/planning/<对应 skill>/prompt.md` 读取方法论，确定目标 `asset_type` 与 `scope_ref`。
 2. 主控用 Agent 工具创建临时 sub agent，注入方法论 prompt、最小输入与必要的 locked 上游内容；sub agent 在隔离上下文返回候选正文（或绑定上游精确版本/Hash 的 change proposal）。
-3. 主控落库候选：`legacy-python/scripts/novelos_hash.py` 算 content_hash → `INSERT INTO resources (... CAST(? AS BLOB) ...)` → `INSERT INTO planning_assets (..., 'candidate', ...)` → `INSERT INTO planning_asset_dependencies` 记录上游依赖。
-4. 主控创建**独立**审查 sub agent（不同上下文）审查候选 → `INSERT INTO reviews`，绑定 subject（候选 ID/Hash）与审查意见。
-5. 审查通过后主控执行 `UPDATE planning_assets SET status='locked', locked_review_id=? WHERE id=?`；旧版本变为 `superseded`。
-6. 上游资产修订（新 revision locked）后，主控运行 `legacy-python/scripts/novelos_propagate_stale.py --asset <上游id>` 递归标记所有下游 `stale`。
+3. 主控经门工具落库候选：content_hash 门内 crypto 自动计算（`sha256:`+hex）→ BLOB 写入 resources → planning_assets 登记 `candidate` → `planning_asset_dependencies` 记录上游依赖，全部在门内单事务完成。
+4. 主控创建**独立**审查 sub agent（不同上下文）审查候选 → 审查意见登记 reviews，绑定 subject（候选 ID/Hash）与审查意见。
+5. 审查通过后主控将资产状态置 `locked` 并绑定 locked_review_id；旧版本变为 `superseded`。
+6. 上游资产修订（新 revision locked）后，主控调用 `novelos_propagate_stale` 门工具（asset=<上游id>）递归标记所有下游 `stale`。
 
 拒绝路径：未锁定上游、错误 producer、候选被主控改写、自审、blocking 审查意见或越权 change proposal 均不得产生 locked 版本。
 
@@ -61,7 +59,7 @@ Character 与 World 可以并行生成（上游相同、互不依赖），全部
 2. 没有有效 Chapter Plan 时，按规划流程生成并锁定；执行卡包含可追溯到 locked Direction 的 `soul_pressure` 和 `moral_residue`，纯过渡场景允许明确降低思想前景强度。
 3. 主控创建写作智能体 sub agent，注入 `style_refs`（至少含当前 Creator Profile 精确 ref 和 locked Direction 精确 ref）；sub agent 返回正文候选，主控 `INSERT INTO chapters (...,'draft',...)`。
 4. 主控创建独立审查 sub agent 审查不可变正文 Hash → `INSERT INTO reviews`；审查通过后 `UPDATE chapters SET status='accepted'`。
-5. `$novel-continuity` 从已接受正文提取候选（事实/承诺/期待/关系/故事弧状态/人物状态迁移），绑定正文 Hash，主控 SQL INSERT 到对应连续性账本；character_status 晋升后经 `legacy-python/scripts/novelos_register_characters.py --status-update` 更新人物注册表，收尾跑 `--pending-status` 对账。
+5. `$novel-continuity` 从已接受正文提取候选（事实/承诺/期待/关系/故事弧状态/人物状态迁移），绑定正文 Hash，主控 SQL INSERT 到对应连续性账本；character_status 晋升后经 `novelos_register_characters` 门工具（statusUpdate）更新人物注册表，收尾跑 pendingStatus 只读对账。
 
 拒绝路径：正文修改使旧审查失效则不得接受；任一失败不得部分更新连续性账本。
 
@@ -92,29 +90,28 @@ characters/worlds/factions/rules/timelines 等实体的状态（`state_json`）�
 2. 使用 SQLite backup API 创建目标备份，验证 `quick_check` 和逻辑快照 Hash。
 3. 只通过 `db/migrations/` 顺序前向 Migration 升级目标数据库。
 4. 回滚演练从备份恢复到临时数据库，比较全部表逻辑 Hash、Schema 版本和计数，不覆盖正式数据库。
-5. 若切换后需要降级旧入口，先用 `python legacy-python/scripts/export_novelos_data.py --output-dir <目录>` 导出表定义、后置 Schema、逐表 JSONL 和 Hash Manifest；导出目录已存在时拒绝覆盖。
-6. 导出恢复演练必须在临时数据库重建全部行、索引、触发器和视图，并与正式库逻辑 Hash 一致。
+5. 降级导出工具 `export_novelos_data.py` 已随零 Python 整体退役，不再有导出/重建通道；灾备口径 = 直接复制 `data/novelos-v2.db` 文件（任何 schema 变更前先复制备份）。
+6. 恢复演练在临时数据库上以备份副本验证 `quick_check` 与逻辑 Hash 一致，不覆盖正式数据库。
 7. 只有授权和完整性同时成立的数据才可接入生产配置。
 
 ## 人类视图（dsh-novelos-viewer 面板）
 
-参与者：用户、dsh-novelos-viewer 插件面板（**R1 待建，尚未实体化**）。
+参与者：用户、dsh-novelos-viewer 插件面板。
 
 1. 人类视图 = `dsh-novelos-viewer` 面板：host 暴露双只读路由 `GET /db-bytes` + `GET /manifest`，client 以 sql.js(WASM) 在内存直读 db 字节渲染六视图；规格见 `docs/novelos-viewer-design.md`，视觉基准 `docs/novelos-viewer-prototype.html`。面板只读、不落盘、不构成第二存储。
 2. Markdown 投影已永久退役：`novelos_render_projection.py` 与其生成的 `novels/<项目目录>/` 树（含 `manifest.json`）均已删除，原「渲染—校验—原子替换」流程不复存在。HTML 单渲染器原则下不要重建任何 md 投影生成器。
-3. 过渡期 agent 查库用一次性 node:sqlite 查询；写路径不经任何视图——唯一经校验门（见上文「项目创建向导」节与 AGENTS.md「数据库访问（过渡期规则）」）。
+3. agent 查库用一次性 node:sqlite 只读查询；写路径不经任何视图——唯一经插件门工具（见上文「项目创建向导」节与 AGENTS.md「数据库访问」节）。
 
 ## 删除项目
 
-参与者：用户、主控智能体、`legacy-python/scripts/novelos_delete_project.py`。
+参与者：用户、主控智能体、`novelos_delete_project` 门工具。
 
-一个项目分布在 projects、books、volumes、chapters、planning_assets、characters、worlds、连续性账本、reviews、resources 等多张表，且存在大量 `ON DELETE RESTRICT` 约束（`planning_asset_dependencies.upstream_asset_id`、`reviews`、`resources` 等不级联），不能简单 `DELETE FROM projects`。删除由确定性脚本 `legacy-python/scripts/novelos_delete_project.py` 完成，不调用 LLM。
+一个项目分布在 projects、books、volumes、chapters、planning_assets、characters、worlds、连续性账本、reviews、resources 等多张表，且存在大量 `ON DELETE RESTRICT` 约束（`planning_asset_dependencies.upstream_asset_id`、`reviews`、`resources` 等不级联），不能简单 `DELETE FROM projects`。删除由确定性门工具 `novelos_delete_project` 完成（插件 host 内，不调 LLM）。
 
-1. 主控先以 `--dry-run` 调查项目范围，确认将删除的 books/volumes/chapters、各 `asset_type`/`status` 的 planning_assets、待删 resources 与 reviews 数量。
-2. 需要安全网时加 `--backup`，在 `data/` 下写出 `.db.bak-<时间戳>`（已被 gitignore 覆盖）。
-3. 执行删除：脚本在 `foreign_keys=OFF` 下按依赖逆序逐表删除——先解除 `planning_asset_dependencies` 与 `reviews`（避免 RESTRICT 与留孤儿），再删连续性账本、chapters、volumes、planning_assets、characters、worlds、project_creator_bindings、books、projects，最后删项目专属 resources。全过程用 `isolation_level=None` + 显式 `BEGIN/COMMIT`，避免连接关闭未提交而回滚。
-4. 脚本只删项目专属内容资源（planning_assets/chapters/实体/连续性的 `resource_id`），**不动** `creator_profile_versions` 引用的共享系统原型资源（跨项目共享）。
-5. 删除后脚本用 `foreign_keys=ON` 复验：项目残留为 0、全库孤儿 reviews/dependencies 计数。`--clean-orphans` 可顺手清理全库历史遗留孤儿（非本次删除造成）。
-6. Markdown 投影已退役、不再生成 `novels/<目录>/`；脚本保留的投影清理开关（默认删除按 `manifest.json` 的 `project_id` 匹配的历史残留目录，`--no-projection` 跳过）只对重组前遗留的旧投影有意义。
+1. 主控先以 `dryRun:true` 调查项目范围，确认将删除的 books/volumes/chapters、各 `asset_type`/`status` 的 planning_assets、待删 resources 与 reviews 数量。
+2. 需要安全网时加 `backup:true`，在 `data/` 下写出 `.db.bak-<时间戳>`（已被 gitignore 覆盖）。
+3. 执行删除：门内在 `foreign_keys=OFF` 下按依赖逆序逐表删除——先解除 `planning_asset_dependencies` 与 `reviews`（避免 RESTRICT 与留孤儿），再删连续性账本、chapters、volumes、planning_assets、characters、worlds、project_creator_bindings、books、projects，最后删项目专属 resources。全程单事务显式 `BEGIN IMMEDIATE`/`COMMIT`，避免连接关闭未提交而回滚。
+4. 门只删项目专属内容资源（planning_assets/chapters/实体/连续性的 `resource_id`），**不动** `creator_profile_versions` 引用的共享系统原型资源（跨项目共享）。
+5. 删除后门用 `foreign_keys=ON` 复验：项目残留为 0、全库孤儿 reviews/dependencies 计数。`cleanOrphans:true` 可顺手清理全库历史遗留孤儿（非本次删除造成）。
 
-拒绝路径：项目不存在时脚本报错退出；共享 creator_profile 资源一律保留；`--dry-run` 不写任何数据；删除按单事务提交，不产生部分删除。
+拒绝路径：项目不存在时门返回 FAIL；共享 creator_profile 资源一律保留；`dryRun` 不写任何数据；删除按单事务提交，不产生部分删除。

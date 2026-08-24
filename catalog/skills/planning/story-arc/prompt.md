@@ -47,7 +47,7 @@ genre（genre_pack 槽注入）：支线弧的弧型与题材阶段形态对偶�
 
 ## metadata 要求
 
-候选 metadata 须符合 `config/schemas/story-arc-metadata.schema.json`（v1）：`arcs[]`（arc_id slug/name/kind/carriers{ref,ref_type}/start_state/end_state/turning_points）+ `volume_plan[]`（index/word_range——**全书卷数权威在此声明**）+ `arc_volume_map[]`（arc_id/volume/duty/note）+ `plant_payoff_ledger[]`（line_id/claim/source_type+source_ref/plant_volume/partial_payoffs/close_volume+close_form/exempt——close 与 exempt 二选一）+ `variation_alloc[]`（test_ref 引用 book_soul 编号/volume/changed/mech_ref/note）+ `open_window`（terminal_mode=open 必填）+ `decision_points[]`（0-4 条，无关可空数组，不凑数）。交付前过 `legacy-python/scripts/novelos_validate_story_arc.py metadata.json --project <project_id>`（scale 与 character/world/architecture/strategy 四上游 locked metadata 自动解析，也可显式 `--scale/--character/--world/--architecture/--strategy`——弧数档位、映射表活跃窗、台账兑现门、载体/机制对账、open 窗口全覆盖）。
+候选 metadata 须符合 `config/schemas/story-arc-metadata.schema.json`（v1）：`arcs[]`（arc_id slug/name/kind/carriers{ref,ref_type}/start_state/end_state/turning_points）+ `volume_plan[]`（index/word_range——**全书卷数权威在此声明**）+ `arc_volume_map[]`（arc_id/volume/duty/note）+ `plant_payoff_ledger[]`（line_id/claim/source_type+source_ref/plant_volume/partial_payoffs/close_volume+close_form/exempt——close 与 exempt 二选一）+ `variation_alloc[]`（test_ref 引用 book_soul 编号/volume/changed/mech_ref/note）+ `open_window`（terminal_mode=open 必填）+ `decision_points[]`（0-4 条，无关可空数组，不凑数）。交付前对照本节各机器门规则自查（弧数档位、映射表活跃窗、台账兑现门、载体/机制对账、open 窗口）；自动机器校验待 R4 JS 化。
 
 ## 交付前自检
 

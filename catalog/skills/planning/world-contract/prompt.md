@@ -110,7 +110,7 @@ strategy 的 metadata（随 upstream 槽注入）在世界层逐项落地，缺�
 
 ## world-metadata 出口
 
-metadata 附结构化产物（schema 见 `config/schemas/world-metadata.schema.json`，交付前过 `legacy-python/scripts/novelos_validate_world.py metadata.json`）：
+metadata 附结构化产物（schema 见 `config/schemas/world-metadata.schema.json`，交付前对照本节各机器门规则自查——席位/岗位表/规则一致性；自动机器校验待 R4 JS 化）：
 
 - `seats[]`：岗位表（如上）。
 - `lexicon`：四件套机器可读形态——`positive_terms` / `banned_categories`（四类各含本书示例禁词，每类 ≥1 条）/ `measure_system` / `exceptions`。
@@ -140,4 +140,4 @@ metadata 附结构化产物（schema 见 `config/schemas/world-metadata.schema.j
 5. **反百科**：无消费者设定清零；消费时序表至少一张；规模接线与 setup.scale 对表。
 6. **规则六角色 + 三层**：重要规则答全六角色且人侧岗位化；无层级错装。
 7. **跨维度隔离**：非账本坍缩自检已过。
-8. **机器门**：`legacy-python/scripts/novelos_validate_world.py metadata.json` 通过。
+8. **机器门自查**：metadata 对照 world-metadata.schema.json 与本节规则（席位指认/岗位表/规则一致性）逐条核对通过；自动机器校验待 R4 JS 化。

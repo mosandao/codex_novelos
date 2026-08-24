@@ -1,14 +1,13 @@
-# NovelOS Agent 规则（零 Python 演进期）
+# NovelOS Agent 规则（零 Python）
 
-本仓库正在执行**零 Python 演进路线**（路线图见 `tasks/README.md`）：视图链已 JS 化，R2 六个业务写门已全部 JS 化并收口为插件 defineTool（见「数据库访问」节）；`legacy-python/` 仅剩只读/非库写工具（组装器等）待处置。本文件按 R2 后现状书写。
+本仓库已完成**零 Python 演进路线**（路线与验证记录见 `tasks/README.md`）：全部业务写门已 JS 化并收口为插件 defineTool（见「数据库访问」节），方法论组装器已 JS 化（见「方法论获取」节），`legacy-python/` 与 `.venv` 已删除，全仓无任何 .py。
 
 ## 分层架构
 
 ```
 L0 权威存储   data/novelos-v2.db + config/（schemas ×18 · genre-packs · system_archetypes）
               —— schemas 与 SQL migrations 与语言无关，是 JS 门直接复用的资产
-L1 运行时     目标态：插件 host JS 工具（唯一读写口）
-              过渡态：legacy-python/scripts/*.py 仅剩只读/非库写工具，待整体删除
+L1 运行时     插件 host JS 工具（唯一读写口，目标态达成）
 L2 方法论     catalog/skills/**（prompt.md 主干 + modules/ + manifest v2）——语言无关，原样有效
 L3 组装产物   data/compositions/
 L4 harness 适配 adapters/（单源 adapters/source/harness.yaml）
@@ -16,7 +15,7 @@ L5 会话编排   .agents/skills/novel-*（六个操作层技能）+ 本文件�
 UI            plugin/client/（viewer 原型 docs/novelos-viewer-prototype.html + wizard 三件套）
 ```
 
-## 数据库访问（R2 后规则）
+## 数据库访问
 
 **写路径**：唯一写入口 = `dsh-novelos-viewer` 插件六个 defineTool 门工具（ajv 校验 + node:sqlite BEGIN IMMEDIATE 单事务，FAIL 返回 ok:false 零写入）：
 
@@ -31,9 +30,7 @@ UI            plugin/client/（viewer 原型 docs/novelos-viewer-prototype.html 
 
 禁止手工 INSERT/UPDATE 绕过门直接写库——agent 没有裸 SQL 写通道。写库三件事已在门内固化：① ID 格式 `类型:uuid`；② resources.content 经 BLOB 写入并同步 content_hash。
 
-**读路径**：人类看 `dsh-novelos-viewer` 面板（sql.js 只读）；agent 查库用一次性 node:sqlite 只读查询。Python MCP 通道已删除，不要再寻找它。
-
-**过渡态残留**：`legacy-python/scripts/` 仅剩只读或非库写工具（backup/export/compose_prompt/build_adapters/check_hygiene 等），其中 `novelos_compose_prompt.py` 组装器仍被 `.agents/skills/novel-*` 六技能依赖；业务写面 py 门已全部退役，待组装器 JS 化或用户拍板后整目录删除。
+**读路径**：人类看 `dsh-novelos-viewer` 面板（sql.js 只读）；agent 查库用一次性 node:sqlite 只读查询。Python MCP 通道与 legacy-python 校验门均已删除，不要再寻找它们。
 
 ## 路由顺序
 
@@ -59,12 +56,11 @@ direction → architecture → strategy → world → character → story_arc �
 
 ## 方法论获取
 
-已注册资产一律用组装器产出注入文本（主干 + 条件模块 + 输入数据区 + 自检汇总），资产分流以 `legacy-python\scripts\novelos_compose_prompt.py` 的 ASSET_DIRS 注册表为准，不 Read prompt.md、不手工拼注入：
+已注册资产一律用组装器产出注入文本（主干 + 条件模块 + 输入数据区 + 自检汇总），资产分流以 `scripts/novelos-compose-prompt.mjs` 的 ASSET_DIRS 注册表为准，不 Read prompt.md、不手工拼注入：
 
 ```
-python legacy-python\scripts\novelos_compose_prompt.py --asset <asset> --project <id>
+node scripts\novelos-compose-prompt.mjs --asset <asset> --project <id>
 审查另加 --subject；修复重试加 --review-feedback + --round
-（注意：过渡期运行 py 门用仓库根 `.venv\Scripts\python.exe`——由 `py -3.10 -m venv .venv` 重建，装 jsonschema+pyyaml；全局 Python 是 3.15.0a7 alpha，rpds DLL 不兼容不可用）
 ```
 
 配方矩阵权威在 `config/agent-recipes.json`；组装产物即主控↔sub agent 的 ABI（三家 harness 零变体）。

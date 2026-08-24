@@ -5,7 +5,7 @@
 ## 输入边界
 - 目标资产：`volume_outline`
 - 精确上游：已锁定的 `story_arc`（全文 + metadata：弧清单/映射表/台账/卷计划/变奏分配）、`world_contract`（含人物名册镜像）；`book_soul`/`mechanisms` 机器可读槽（变奏原文/力量货币/机制运转规则/主线密度合同——引用核实的对照物）；上游审查回执随 upstream-reviews 槽注入；前置卷链与连续性实际账本（prev_volume_outline / promise_ledger 含事实与末章摘要）注入时对实际状态核账
-- 机器门前置：候选应已过 `novelos_validate_volume_outline.py`（卷号/字数/高潮门/线弧双向/单元/终卷）——rubric 查语义与引用属实，机器门漏网的结构缺陷标注 severity=blocking 并点名
+- 机器门前置：候选应已对照卷纲规则自查（卷号/字数/高潮门/线弧双向/单元/终卷；机器门待 R4 JS 化）——rubric 查语义与引用属实，漏网的结构缺陷标注 severity=blocking 并点名
 
 ## 检查清单
 0. **卷型**：volume_form 与 strategy genre_stage_form 对偶（副本难度弧/案件升级弧/赛季弧配单元编排——错配 = blocking）；单元编排的 units 每单元有主题内核与主线渗透（渗透 <1 且非间歇 = blocking）；换图卷（舞台切换）的 exit_settlement 三清单齐——carry 跨卷班底未标升级 / cut 无声消失 / pre_close 拖过图 = warning 起。

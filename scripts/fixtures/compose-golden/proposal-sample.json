@@ -1,0 +1,7 @@
+{
+  "modules": [
+    { "id": "genre-null", "reason": "金样：提议规则未命中模块（genre_profile 实际存在）" },
+    { "id": "channel-male", "reason": "金样：提议与规则命中重复（应被去重，merged=true）" },
+    { "id": "aesthetic-present", "reason": "金样：重复项二" }
+  ]
+}

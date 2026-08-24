@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "novelos://schemas/volume-outline-metadata",
   "title": "Volume Outline Metadata (v1, T39)",
-  "description": "卷纲机器可读形态——卷号/字数对表/卷型/冲突线（双粒度）/单元编排/换图清算/新种与漂移/变奏承接。语义档位（副高湂数、线弧双向、终卷纪律）由 novelos_validate_volume_outline.py 核验，schema 只管结构。",
+  "description": "卷纲机器可读形态——卷号/字数对表/卷型/冲突线（双粒度）/单元编排/换图清算/新种与漂移/变奏承接。语义档位（副高湂数、线弧双向、终卷纪律）由主控对照档位规则自查（机器门待 R4 JS 化），schema 只管结构。",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema_version", "volume_number", "word_range", "volume_form", "lines", "climax_positions"],

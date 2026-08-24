@@ -1,0 +1,32 @@
+{
+  "request_type": "novelos.project.create.v3",
+  "setup": {
+    "title": "金样测试·深空回响",
+    "author_kernel": {
+      "mode": "create",
+      "kernel_hints": {
+        "taste_anchors": ["克苏鲁式宇宙冷漠", "仪式感场景"],
+        "hard_nos": ["等价交换式爽点"]
+      }
+    },
+    "channel": "男频",
+    "platform": "番茄",
+    "platform_traits": {
+      "model": "免费算法",
+      "patience": "低耐心高兑现",
+      "reader_profile": "下沉市场海量读者"
+    },
+    "scale": "长篇（100-300万字）",
+    "primary_genre": "科幻悬疑",
+    "secondary_directions": ["星际探索"],
+    "emotional_surface": ["紧张", "好奇"],
+    "emotional_core": "求真",
+    "tonal_contrast": null,
+    "aesthetic_styles": ["宇宙恐怖"],
+    "genre_profile": {
+      "trope_pack": ["第一卷三小高潮"],
+      "forbidden": ["圣母心"]
+    },
+    "reference_material": null
+  }
+}

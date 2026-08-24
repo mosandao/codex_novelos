@@ -15,7 +15,7 @@
 2. **主角驱动力**：主角是否有不可替代的内驱欲望或外部危机逼迫。
 3. **组织原则**：`organizing_principle` 是否为本书独有的组织过程——换一本书即不成立，且可追溯到 persona 的目光/库存，而非题材默认桥段组合。**辨识度对照**：结合该题材常见组合判断是否撞车（泛化 = blocking；具体但与同类书高度同质 = warning）。
 4. **承诺与节奏**：读者承诺是否清晰、用目标渠道读者的语言表述；`promise_cadence` 是否声明了可被 strategy 展开的兑现节拍。正向兑现与负向承诺（见证代价/追讨真相/守护将失之物）都是合法承诺类型，负向承诺的兑现单位须同样可感（真相揭示/代价落地/失去逼近）。
-5. **规模数字门**：`project_setup.scale` 档位的兑现次数与间隔必须匹配——短篇完整兑现 1-2 次、中篇 3 次量级间隔 ≤30 万字、长篇 3-4 幂兑现间隔 ≤80 万字、超长篇 ≥5 次间隔 ≤100 万字。优先核 `book_soul.cadence_plan`（机器门：`novelos_validate_book_soul.py --scale <档位>` 已校验次数下限），并查 promise_cadence 文本与 cadence_plan 一致；新候选缺 cadence_plan 或文本与计划矛盾 = warning；既无 cadence_plan 且文本含糊到无法核定兑现次数 = blocking，并注明移交 volume_outline 审查回查实际间隔。
+5. **规模数字门**：`project_setup.scale` 档位的兑现次数与间隔必须匹配——短篇完整兑现 1-2 次、中篇 3 次量级间隔 ≤30 万字、长篇 3-4 幂兑现间隔 ≤80 万字、超长篇 ≥5 次间隔 ≤100 万字。优先核 `book_soul.cadence_plan`（次数下限对照档位规则自查，机器门待 R4 JS 化），并查 promise_cadence 文本与 cadence_plan 一致；新候选缺 cadence_plan 或文本与计划矛盾 = warning；既无 cadence_plan 且文本含糊到无法核定兑现次数 = blocking，并注明移交 volume_outline 审查回查实际间隔。
 6. **作者签名与 persona 继承**：是否精确继承 `creator_signature_ref`；persona 是否被消费（矛盾→两难种子、目光→组织原则、盲区→负面清单）。**血缘逐字段核验**：以 `book_soul.lineage` 为结构化抓手（无 lineage 的旧形态候选退回叙述核对）——抽查至少两条 derivation 的真实性（字段内容确实从 source_ref 所指签名条目/persona 部件可推导，而非贴标签）；标 `variation: true` 的变奏条目（发散纪律允许至多一个变奏候选）不判血缘断裂，但**未标 variation 的越界**照判 warning。没有绕开 persona 的人口属性刻板推导，没有具体作者模仿目标。注入 `kernel_full` 时另查**内核消费**：organizing_principle 可追溯到内核核心问题、central_contradiction 的价值侧与内核价值公理一致、内核盲区已并入负面清单——血缘断裂 = `warning`；内核与 persona 冲突未走 change proposal = `blocking`。无内核注入（旧项目占位节）时跳过内核子项。
 7. **书级创作灵魂**：`book_soul` schema v2 字段完整；承诺确实牺牲便利；recurring_tests 声明「改变处境/答案/代价」；仁慈与残酷同时存在且**残酷有具体落点**——落在谁身上、什么形态、在结局的哪一侧兑现；存在性一句话敷衍（「叙事会比较残酷」）= warning。
 8. **项目独立性**：是否针对本项目形成独有追问，而非机械复制作者签名或另一项目的 `book_soul`。

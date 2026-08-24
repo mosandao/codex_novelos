@@ -1,12 +1,12 @@
 # 系统架构
 
-> ⚠️ 零 Python 过渡期版本（重组于本轮）：写路径门暂存 legacy-python/，R2 交付后本文档随 JS 门收敛。路线图见 ../tasks/README.md。
+> ✅ 零 Python 终态：写路径 = 插件六个 defineTool 门工具；组装器已 JS 化；`legacy-python/` 与 `.venv` 已删除。路线与验证记录见 ../tasks/README.md。
 
 ## 产品范围
 
-NovelOS 是面向本地单用户长篇小说创作的**主控智能体编排系统**（原「纯 Codex 系统」表述已中性化；DSH 插件化为演进方向，见 `../tasks/README.md`）。主控智能体是唯一长期存在的常驻角色：项目 Skill 提供方法，临时 sub agent 负责隔离推理。数据库写路径唯一入口是过渡期校验门 `legacy-python/scripts/novelos_create_project.py`（R2 交付后收敛为插件 host 的 JS defineTool）；读路径为 dsh-novelos-viewer 面板（sql.js 只读）或一次性 node:sqlite 查询。确定性校验算法由 `legacy-python/scripts/*.py` 承担（只维护不新增）。
+NovelOS 是面向本地单用户长篇小说创作的**主控智能体编排系统**（原「纯 Codex 系统」表述已中性化）。主控智能体是唯一长期存在的常驻角色：项目 Skill 提供方法，临时 sub agent 负责隔离推理。数据库写路径唯一入口是 `dsh-novelos-viewer` 插件六个 defineTool 门工具（ajv + node:sqlite）；读路径为 dsh-novelos-viewer 面板（sql.js 只读）或一次性 node:sqlite 查询。确定性校验算法由插件门工具与 `scripts/novelos-compose-prompt.mjs` 组装器承担。
 
-当前没有独立 HTTP/Web 前端、账号体系、网络服务、邮件、定时任务或公开 SEO 页面。人类视图遵循**单渲染器原则**：HTML(JS) 是唯一渲染器——阅读入口为 `dsh-novelos-viewer` 面板（R1 待建，视觉基准 `docs/novelos-viewer-prototype.html`），Markdown 投影（`novels/` 项目文件夹）已永久退役，不要重建。项目创建提供 `plugin/client/project-wizard.html` 本地向导（面板化前允许浏览器 file:// 打开）。独立 HTML 只生成结构化 JSON，不建立第二套权威业务状态，因此不建立 `emails.md`、`cron.md` 或 `seo.md`。
+当前没有独立 HTTP/Web 前端、账号体系、网络服务、邮件、定时任务或公开 SEO 页面。人类视图遵循**单渲染器原则**：HTML(JS) 是唯一渲染器——阅读入口为 `dsh-novelos-viewer` 面板（视觉基准 `docs/novelos-viewer-prototype.html`），Markdown 投影（`novels/` 项目文件夹）已永久退役，不要重建。项目创建提供 `plugin/client/project-wizard.html` 本地向导（面板不可用时允许浏览器 file:// 打开）。独立 HTML 只生成结构化 JSON，不建立第二套权威业务状态，因此不建立 `emails.md`、`cron.md` 或 `seo.md`。
 
 ## 运行结构
 
@@ -15,10 +15,10 @@ NovelOS 是面向本地单用户长篇小说创作的**主控智能体编排系�
   -> 主控智能体
       -> 项目 Skill（.agents/skills）/ 创作方法论（catalog/skills）
       -> 临时 sub agent（规划/写作/审查/onboarding 等，只返回候选）
-      -> 写路径唯一入口：legacy-python/scripts/novelos_create_project.py 校验门
+      -> 写路径唯一入口：dsh-novelos-viewer 六个 defineTool 门工具（ajv 校验）
           -> data/novelos-v2.db（BEGIN IMMEDIATE 单事务）
-      -> 读路径：dsh-novelos-viewer 面板（sql.js 只读，R1 待建）/ 一次性 node:sqlite 查询
-      -> 确定性脚本 legacy-python/scripts/*.py（不调 LLM：compose/hash/validate/stale/delete/register）
+      -> 读路径：dsh-novelos-viewer 面板（sql.js 只读）/ 一次性 node:sqlite 查询
+      -> 确定性工具：门工具（hash/stale/delete/register）+ scripts/novelos-compose-prompt.mjs 组装器
       -> plugin/client/project-wizard.html（本地向导，生成 JSON）
 ```
 
@@ -26,18 +26,16 @@ NovelOS 是面向本地单用户长篇小说创作的**主控智能体编排系�
 
 | 层 | 实现 | 责任 |
 |---|---|---|
-| 主控智能体 | 当前 harness 会话 | 理解请求、路由、创建临时 sub agent、执行受控 SQL 落库、调用确定性脚本 |
+| 主控智能体 | 当前 harness 会话 | 理解请求、路由、创建临时 sub agent、经门工具落库、调用组装器与只读查询 |
 | Skill | `.agents/skills/*` | 6 个可复用业务流程（novel-project/planning/memory/writing/review/continuity），不持久化 |
 | 创作方法论 | `catalog/skills/*` | 细粒度创作 Prompt（planning/writing/review/continuity/craft/expansions） |
-| 数据库写入口 | 过渡态：`legacy-python/scripts/novelos_create_project.py`（py 校验门）→ 目标态：插件 host JS 工具（node:sqlite + ajv + crypto，R2） | jsonschema 校验 + `BEGIN IMMEDIATE` 单事务落库；Python MCP 通道已删除 |
-| 确定性算法 | `legacy-python/scripts/*.py` | 方法论组装、hash、各资产校验（book_soul/direction 等）、stale 传播、人物注册表、项目删除；不调 LLM；只维护不新增 |
+| 数据库写入口 | `dsh-novelos-viewer` 插件六个 defineTool 门工具（node:sqlite + ajv + crypto） | ajv 校验 + `BEGIN IMMEDIATE` 单事务落库；Python MCP 通道已删除 |
+| 确定性算法 | 门工具 + `scripts/novelos-compose-prompt.mjs` | 方法论组装、hash（门内固化）、各资产校验、stale 传播、人物注册表、项目删除；不调 LLM |
 | Storage | SQLite | 权威业务数据（26 表，migration 016 后） |
 | 项目创建向导 | `plugin/client/project-wizard.html` | 收集项目约束（频道级联/表里基调/作者内核双模式）并生成 `novelos.project.create.v3` JSON，不写数据库 |
-| 人类视图 | `dsh-novelos-viewer` 面板（R1 待建，原型 `docs/novelos-viewer-prototype.html`） | sql.js 内存直读 db 字节做六视图只读渲染（规格 `docs/novelos-viewer-design.md`）；Markdown 投影已退役 |
+| 人类视图 | `dsh-novelos-viewer` 面板（原型 `docs/novelos-viewer-prototype.html`） | sql.js 内存直读 db 字节做六视图只读渲染（规格 `docs/novelos-viewer-design.md`）；Markdown 投影已退役 |
 
-Python MCP 通道已整体删除（`mcp/sqlite-mcp/server.py`、`.codex/config.toml` 注册与 `run_sqlite_mcp.*` 启动脚本均不存在）。校验门与组装器不依赖模型 Provider，不保存 Prompt，不作语义选择；长文本存为 `resources`（BLOB），工具控制信封只携带 ID、版本、Hash 和状态。
-
-过渡期校验门与组装器不依赖已退役的 `config/agents.yaml`（现为历史留档），均为裸 sqlite3、零 MCP 依赖；`novelos_render_projection.py` 与 Markdown 投影已随视图链永久退役删除。
+校验门与组装器不依赖模型 Provider，不保存 Prompt，不作语义选择；长文本存为 `resources`（BLOB），工具控制信封只携带 ID、版本、Hash 和状态。门工具与组装器不依赖已退役的 `config/agents.yaml`（现为历史留档），均为 node:sqlite/node 标准库实现、零 MCP 依赖；Markdown 投影已随视图链永久退役删除。
 
 仓库不再存在 Markdown 投影层：人类视图只有 dsh-novelos-viewer 面板一条通道（单渲染器原则），面板只读、不落盘、不构成第二存储；任何「从权威库再生成 md 视图」的做法都违反当前裁决（见 `../tasks/README.md` 重组裁决记录）。
 
@@ -45,7 +43,7 @@ Python MCP 通道已整体删除（`mcp/sqlite-mcp/server.py`、`.codex/config.t
 
 - 用户到 Codex：用户决定创作意图和最终接受范围。
 - 主控智能体 到临时 sub agent：主控只提供最小输入与必要只读上下文；临时 sub agent 没有数据库写入权限，只返回候选，由主控落库。
-- 主控智能体 到 SQLite：所有持久化由主控完成——项目创建唯一经 `legacy-python/scripts/novelos_create_project.py` 校验门，其余落库为主控执行的受控 SQL；落库前用 jsonschema 校验、用确定性脚本算 Hash，SQL 状态机约束状态流转。
+- 主控智能体 到 SQLite：所有持久化由主控完成——唯一经 `dsh-novelos-viewer` 六个 defineTool 门工具落库（校验、Hash 计算与状态机约束均在门内固化）；agent 没有裸 SQL 写通道。
 - 本地向导到主控：独立 HTML 只输出 `novelos.project.create.v3` JSON；主控解析后创建 onboarding_agent 做原型融合，再经校验门原子落库（projects.metadata_json 写入 setup 快照供后续阶段读取）。
 - 主控 到 人类视图：viewer 面板只读直连数据库字节（sql.js），不产生派生文件；除面板外没有任何层构造人类视图（单渲染器原则）。
 - 来源仓库到当前仓库：`/Users/yiyi/github/novelos` 只读；迁移必须绑定固定 commit、Hash 和授权状态。
@@ -59,17 +57,17 @@ Python MCP 通道已整体删除（`mcp/sqlite-mcp/server.py`、`.codex/config.t
 - 签名校验 schema：`config/schemas/`（含 `creator-signature.schema.json`、`book-soul.schema.json`）。
 - `config/agents.yaml`：NovelOS MCP 时代的 Agent 角色定义，**历史留档**，无脚本依赖。
 - 顶层业务 Skill：`.agents/skills` 下固定 6 个。
-- 人类视图：dsh-novelos-viewer 面板直读本库字节，只读、不产生派生文件；灾备仍走 JSONL 导出（`legacy-python/scripts/export_novelos_data.py`，过渡期暂存）。
+- 人类视图：dsh-novelos-viewer 面板直读本库字节，只读、不产生派生文件；灾备 = 直接复制 db 文件（schema 变更前必做，见 AGENTS.md）。
 
 ## 已知风险与假设
 
-- Python MCP 通道已全部删除（`mcp/sqlite-mcp/`、`.codex/config.toml` 注册、`run_sqlite_mcp.*` 启动脚本）：读路径 = viewer 面板（sql.js 只读）或一次性 node:sqlite 查询；写路径 = 唯一经 `legacy-python/scripts/novelos_create_project.py` 校验门。不要再寻找或重建 MCP 注册。
+- Python MCP 通道与 legacy-python 校验门均已删除（`mcp/sqlite-mcp/`、`.codex/config.toml` 注册、`run_sqlite_mcp.*` 启动脚本、`legacy-python/`、`.venv`）：读路径 = viewer 面板（sql.js 只读）或一次性 node:sqlite 查询；写路径 = 唯一经 `dsh-novelos-viewer` 插件六个 defineTool 门工具（ajv + BEGIN IMMEDIATE 单事务）。不要再寻找或重建 MCP 注册或 Python 门。
 - sub agent 的运行上下文隔离由主控正确创建新的 Codex 临时 Agent 保证；`context_id` 类字段不存在于当前架构，隔离不靠进程内密码学自证。
 - Writer 与上下文构建智能体的质量实验已延期；Writer 暂限完整章节或长场景，上下文构建智能体暂限跨卷、多线、事实冲突或上下文溢出，部分实验结果不构成质量结论。
-- 项目创建向导：V3 要求 `derive` 作者签名模式，页面按项目约束确定性推荐 Top 3 系统原型。单原型由 onboarding_agent 确定性判定 parent；多原型（≥2）由 onboarding_agent 做 LLM 深度融合，产出 `creator_derivation_candidate`，主控用 jsonschema 校验签名合规后 SQL 落库。落库事务不执行运行时 LLM 生成，LLM 只在 onboarding_agent 的 Codex run 内运行；也不创建规划资产；本地 `plugin/client/project-wizard.html`（面板化前允许 file:// 打开）只生成 JSON，不直接写入数据库。
+- 项目创建向导：V3 要求 `derive` 作者签名模式，页面按项目约束确定性推荐 Top 3 系统原型。单原型由 onboarding_agent 确定性判定 parent；多原型（≥2）由 onboarding_agent 做 LLM 深度融合，产出 `creator_derivation_candidate`，主控经 `novelos_project_commit` 门工具校验（ajv）后单事务落库。落库事务不执行运行时 LLM 生成，LLM 只在 onboarding_agent 的 run 内运行；也不创建规划资产；本地 `plugin/client/project-wizard.html`（面板化前允许 file:// 打开）只生成 JSON，不直接写入数据库。
 - `creator_signature` 是用户拥有的跨项目、不可变版本配置，不是 Agent 或规划资产。`book_soul` 是 Story Direction 的组成部分，由方向智能体生成并走既有审查/锁定流程。显式 rebind 会递归标记 Direction 及后代为 `stale`，但不自动重生成。
-- Markdown 投影（`novelos_render_projection.py` 与 `novels/<目录>` 树）已永久退役，HTML 单渲染器原则生效，不要重建任何投影渲染器。项目删除由 `legacy-python/scripts/novelos_delete_project.py` 完成，详见 [关键流程·删除项目](./flows.md)。
-- 仓库当前没有 CI；测试是本地交付门禁，不应被描述为受保护分支检查。零 Python 过渡期四命令口径：`python -m unittest discover -s legacy-python/tests -v`、`python -m compileall -q legacy-python/scripts legacy-python/tests`、`python legacy-python/scripts/check_repository_hygiene.py --check`、`python legacy-python/scripts/build_catalog_manifest.py --check`。
+- Markdown 投影已永久退役，HTML 单渲染器原则生效，不要重建任何投影渲染器。项目删除由插件门工具 `novelos_delete_project` 完成（dryRun 调查/backup 备份），详见 [关键流程·删除项目](./flows.md)。
+- 仓库当前没有 CI；测试是本地交付门禁，不应被描述为受保护分支检查。零 Python 终态验证口径：`node scripts/test-compose-prompt.mjs`（组装器 19 用例）；`plugin/dsh-novelos-viewer` 下 `pnpm test`（vitest 55 用例，六门工具）。
 
 ## 相关文档
 

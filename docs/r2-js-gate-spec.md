@@ -4,6 +4,7 @@
 > 目标：读者不接触任何 Python 代码，即可用 **ajv + node:sqlite + node:crypto** 在插件 host 中写出行为等价的 JS 门。
 > 行为等价判定标准：**每个输入产生相同的 FAIL/WARN 判定与相同的阻断决策**；错误消息文本按本文模板复刻（措辞可微调，但必须包含模板中标注的关键数据片段）；退出码语义必须一致。
 > 红线（AGENTS.md）：mismatch 仅警告即放行 = 纸面化；**任何 FAIL 必须阻断**。本文所有标注 FAIL 的步骤在 JS 门中必须使本次请求整体失败且零写入。
+> **状态（2026-08-24）**：本规格已实现于 plugin/dsh-novelos-viewer/src/gate/（vitest 55 用例全绿）；文中提到的 legacy-python 源文件已整体删除，保留为历史推导依据。
 
 ---
 

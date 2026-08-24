@@ -75,7 +75,7 @@
 ## 引擎验证（测试记录落正文，不是声称）
 
 - **压力测试**：为每台引擎枚举 ≥5 种不同的母题输入，确认产出的情节互不重样（变奏器在工作）——**输入与产出摘要写进正文「引擎验证记录」节**，审查核验记录本身而非声明。
-- **油耗测试**：升级/加压空间分级数随 `scale` 档位——短篇 ≥2 级 / 中篇长篇 ≥3 级 / 超长篇 ≥5 级；分级数落 metadata `engines.*.escalation_levels`，`novelos_validate_architecture.py --scale <档位>` 机器校验，两级烧完的引擎撑不起规模。
+- **油耗测试**：升级/加压空间分级数随 `scale` 档位——短篇 ≥2 级 / 中篇长篇 ≥3 级 / 超长篇 ≥5 级；分级数落 metadata `engines.*.escalation_levels`，落库前对照本档位规则自查（机器门待 R4 JS 化），两级烧完的引擎撑不起规模。
 
 ## 发散纪律（expansive 档位的操作化，防合规收敛）
 
@@ -106,7 +106,7 @@
 8. `## 引擎验证记录`（压力测试输入×产出摘要 + 油耗分级表）
 9. `## 移交清单`（character / world / strategy 各拿什么）
 
-metadata 附**结构化产物**（过 `config/schemas/architecture-metadata.schema.json`）：`mechanisms[]`（name/sources/rhythm/downstream/coupling）、`mainline_density`（tier/beats_per_volume/gap_limit_volumes/burst_positions）、`unit_arc`、`engines`——`novelos_validate_architecture.py metadata.json --scale "<档位>"` 机器校验。
+metadata 附**结构化产物**（过 `config/schemas/architecture-metadata.schema.json`）：`mechanisms[]`（name/sources/rhythm/downstream/coupling）、`mainline_density`（tier/beats_per_volume/gap_limit_volumes/burst_positions）、`unit_arc`、`engines`——落库前对照 schema 与档位规则自查（机器门待 R4 JS 化）。
 
 ## 交付前自检（逐项通过才返回）
 

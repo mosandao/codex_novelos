@@ -111,13 +111,13 @@ decision_points 附在 metadata 由主控呈现给用户裁决；用户选择经
 
 ## character_roster 结构化出口
 
-metadata 另附 `character_roster` 数组（schema 见 `config/schemas/planning-candidate.schema.json`，交付前过 `legacy-python/scripts/novelos_validate_character.py metadata.json --project <project_id>`——scale 与 locked world 自动解析，也可显式 `--scale/--world`）——每个立档人物一行：`name` / `role_class`（main|secondary）/ `arc_role`（主角|核心对手|主锚点|卷级载体等一句话职责）/ `登场卷` / `预期退场`（七型之一或「持续活跃」）/ `seat_ref`（可选，认领的 world 席位名）/ `essence`（**人物卡一句话要点，main 必填**——执念/失稳点/语域口癖/最要命的关系，≤160 字，正文执行端经 character_essence 槽消费，写作与审校都看得到）。
+metadata 另附 `character_roster` 数组（schema 见 `config/schemas/planning-candidate.schema.json`，交付前自查：roster 结构符合 planning-candidate.schema.json、规模档位与席位指认自检；机器校验门待 R4 JS 化）——每个立档人物一行：`name` / `role_class`（main|secondary）/ `arc_role`（主角|核心对手|主锚点|卷级载体等一句话职责）/ `登场卷` / `预期退场`（七型之一或「持续活跃」）/ `seat_ref`（可选，认领的 world 席位名）/ `essence`（**人物卡一句话要点，main 必填**——执念/失稳点/语域口癖/最要命的关系，≤160 字，正文执行端经 character_essence 槽消费，写作与审校都看得到）。
 
 **essence 写法**：它不是 arc_role 的重复——arc_role 说「他在故事里干什么」，essence 说「写他时必须抓住什么」。好——「对被除名母亲的牌位执念（谈宗族即失措，三秒失误第二卷显形）｜仙门雅言，避市井俚语」；坏——「聪明冷静的主角」（无失效点、无语域，等于没写）。没有 essence 的人物卡是空的：契约设计得再好，Writer 看不见就等于没设计。
 
 **roster 规模 × scale 档位区间**（validate 机器门）：短篇 2-5 / 中篇 3-8 / 长篇 5-12 / 超长篇 8-16——立档人物数（不含班底/微档案）超出区间即缺陷；区间不足由卷级班底补员，超出说明人物契约越权吸食了班底职责。
 
-契约锁定时由 `legacy-python/scripts/novelos_register_characters.py` 落人物注册表（characters 表）；卷级配角经卷纲班底、章级新配角经执行卡微档案登记为 secondary/minor，与本 roster 合流。
+契约锁定时由主控经插件 novelos_register_characters 门工具落人物注册表（characters 表）；卷级配角经卷纲班底、章级新配角经执行卡微档案登记为 secondary/minor，与本 roster 合流。
 
 ## 文档结构约定
 
@@ -145,6 +145,6 @@ metadata 另附 `character_roster` 数组（schema 见 `config/schemas/planning-
 10. **死亡设计**：每张死亡卡过了必要性四问 + 最后选择 + 影响追踪；无工具人化死亡（含性别风险检查）。
 11. **退场设计**：每人七型之一 + 退场三问；休眠/迁移型带回归条件；功能转移型带席位重坐。
 12. **边界**：无无战略职责人物；未重写战略；未隐式发明世界设定（缺口走 change proposal）；次要角色未混入本契约。
-13. **规模档位**：roster 数在 scale 区间内；`legacy-python/scripts/novelos_validate_character.py` 通过。
+13. **规模档位**：roster 数在 scale 区间内、无重名、main 在场——机器门待 R4 JS 化。
 14. **人物卡**：main 人物 essence 齐全且非 arc_role 复述（含执念/失稳/语域至少其二）；「待契约认领」席位全部有人认领。
 15. **形式**：文档结构符合「人物档案」标题约定；metadata 含 decision_points（或省略声明）与 character_roster。

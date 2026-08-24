@@ -27,8 +27,7 @@ flowchart TB
 
     subgraph NOVELOS["NovelOS 仓库（既有资产，零改动）"]
         DB[("data/novelos-v2.db\n权威库 25 表")]
-        PY["legacy-python/scripts/novelos_*.py\n写路径校验门(过渡期,R2后JS化)"]
-        MCP["SQLite MCP\nmcp-novelos-sqlite"]
+        GATE["dsh-novelos-viewer 六门工具\najv+node:sqlite 单事务(唯一写入口)"]
         AGENTSK[".agents/skills/novel-*\n六个操作层技能"]
     end
 
@@ -39,8 +38,8 @@ flowchart TB
     R2 -- "stat()" --> DB
     SQLJS -- "new Database(bytes)" --> VIEWS
 
-    CONV -- "读库查询" --> MCP --> DB
-    CONV -- "落库(唯一写路径)" --> PY --> DB
+    CONV -- "读库查询(node:sqlite 只读)" --> DB
+    CONV -- "落库(唯一写路径)" --> GATE --> DB
     AGENTSK --> CONV
 
     style CLIENT fill:#1a1814,color:#e8e0d0,stroke:#b03a2e
@@ -55,7 +54,7 @@ flowchart TB
 | **物理只读** | sql.js 将 db 全量载入内存，WASM 实例无任何回写 API——面板结构上不可能污染权威库 |
 | **零子进程** | 视图链无 Python spawn → cp936 编码雷 / 退出码歧义 / 僵尸进程三类 P0 整体消失 |
 | **零参数注入面** | host 路由无任何入参，repoRoot 编译期常量——F3 路径穿越无从谈起 |
-| **单渲染器** | HTML(JS) 是唯一人类视图；md 投影退役；模型侧走 SQLite MCP——无双实现漂移 |
+| **单渲染器** | HTML(JS) 是唯一人类视图；md 投影退役；模型侧经 node:sqlite 只读查询——无双实现漂移 |
 | **快照新鲜度** | 页面常驻显示 db 文件 mtime+体积；「刷新」= 重拉字节流重建 WASM 实例 |
 | **已知遗留（中危）** | db 字节经 50876 无鉴权可下载——本地单人使用可接受，后续可加 Host 校验 |
 
@@ -67,14 +66,14 @@ flowchart LR
     ORCH --> W["写作代理\n强创意模型\n如 deepseek-chat"]
     ORCH --> RV["审查代理\n异构厂商模型\n对抗性互查"]
     ORCH --> CTX["记忆/连续性代理\n快速廉价模型"]
-    W & RV & CTX -- "结构化产出" --> GATE["Python 校验门\njsonschema + 事务\n(模型无关的兜底)"]
+    W & RV & CTX -- "结构化产出" --> GATE["dsh-novelos-viewer 六门工具\najv + node:sqlite 单事务\n(插件 host 内，不调 LLM)"]
     GATE --> DB[("novelos-v2.db")]
 
     CONF["模型分工配置卡\n(设置卡 JSON)"] -.分配.-> ORCH
 ```
 
 - 分配规则存于设置卡（角色→provider/model），改配置不改代码；
-- 校验门在脚本层不依赖模型自觉——换弱模型只会 FAIL 阻断，不会脏库；
+- 校验门在插件 host 层（ajv + node:sqlite）不依赖模型自觉——换弱模型只会 FAIL 阻断，不会脏库；
 - 审查端刻意用异构厂商模型，利用「不同模型盲区不同」提升审查多样性。
 
 ## 三、信息架构（面板六视图）

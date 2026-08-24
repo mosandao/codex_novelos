@@ -30,7 +30,7 @@
 
 ## 卷级配角班底（本卷新配角的规划端入口）
 
-各冲突线的人物载体逐一指认来源——契约 roster / 在库配角（人物名册镜像随输入注入）/ 本卷新生成，不得留无源载体。本卷新人（`volume_characters`）每人：name（不与在库重名）/ role_class（secondary 卷内复用｜minor 一次性）/ arc_role 一句话职责 / 预期退场（八型或持续活跃，卷级配角默认卷内退场）/ 微档案（一句话职责+可写细节）/ seat_ref。**硬边界**：禁 main（主角/核心对手/主锚点仍归人物契约，缺人点名缺口返回 change proposal）；禁跨卷职责（需回归的显式标「待 change proposal 升级进人物契约」）；persona 盲区门——班底不得整档落在分身「写不了」的场景（绕开方式：侧写/借他人之口/转喻/留白）。卷纲锁定后由主控经 `legacy-python/scripts/novelos_register_characters.py --entry <volume_characters.json> --world <world-metadata.json>` 落注册表（seat_ref 引用不存在 = FAIL，未认领承诺席位 WARN）；执行卡可直接消费班底（标注「卷纲已登记」）。
+各冲突线的人物载体逐一指认来源——契约 roster / 在库配角（人物名册镜像随输入注入）/ 本卷新生成，不得留无源载体。本卷新人（`volume_characters`）每人：name（不与在库重名）/ role_class（secondary 卷内复用｜minor 一次性）/ arc_role 一句话职责 / 预期退场（八型或持续活跃，卷级配角默认卷内退场）/ 微档案（一句话职责+可写细节）/ seat_ref。**硬边界**：禁 main（主角/核心对手/主锚点仍归人物契约，缺人点名缺口返回 change proposal）；禁跨卷职责（需回归的显式标「待 change proposal 升级进人物契约」）；persona 盲区门——班底不得整档落在分身「写不了」的场景（绕开方式：侧写/借他人之口/转喻/留白）。卷纲锁定后由主控经插件 novelos_register_characters 门工具落注册表（seat_ref 引用不存在 = FAIL，未认领承诺席位 WARN）；执行卡可直接消费班底（标注「卷纲已登记」）。
 
 ## 卷内节奏量化（硬约束——按本卷字数条件化）
 
@@ -55,7 +55,7 @@
 
 ## metadata 要求
 
-候选 metadata 符合 `config/schemas/volume-outline-metadata.schema.json`（v1）：`volume_number`（卷号锚定）/ `word_range{min,target,max}`（对 volume_plan 本卷行）/ `volume_form` + `units`/`exit_settlement`（卷型件）/ `lines[]`（name/scope/arc_id/share_pct/pov/note，mainline 0-1 条）/ `mainline_beats` / `climax_positions` / `new_plants[]` / `drift[]` / `test_alloc[]` / `volume_settings[]` / `volume_characters`（planning-candidate $defs 同构）。交付前过 `legacy-python/scripts/novelos_validate_volume_outline.py metadata.json --project <project_id>`（卷号连续/字数对表/高潮门/线弧双向/单元编排/换图清算/终卷纪律/班底预检；也可显式 `--scale/--story-arc/--architecture/--strategy`）。
+候选 metadata 符合 `config/schemas/volume-outline-metadata.schema.json`（v1）：`volume_number`（卷号锚定）/ `word_range{min,target,max}`（对 volume_plan 本卷行）/ `volume_form` + `units`/`exit_settlement`（卷型件）/ `lines[]`（name/scope/arc_id/share_pct/pov/note，mainline 0-1 条）/ `mainline_beats` / `climax_positions` / `new_plants[]` / `drift[]` / `test_alloc[]` / `volume_settings[]` / `volume_characters`（planning-candidate $defs 同构）。交付前对照本节各机器门规则自查（卷号连续/字数对表/高潮门/线弧双向/单元编排/换图清算/终卷纪律/班底预检）；自动机器校验待 R4 JS 化。
 
 ## 交付前自检
 

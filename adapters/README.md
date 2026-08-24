@@ -1,12 +1,12 @@
 # Harness 适配层（codex / zcode / deepseek）
 
-> 事实源 `adapters/source/harness.yaml`（content_hash: `sha256:a23ea7aa70740693`）。
-> 本文件由 `legacy-python/scripts/novelos_build_adapters.py` 生成——改事实源后必须重新生成。
+> 事实源 `adapters/source/harness.yaml`。
+> 本文件手写维护，与事实源人工保持同步——原生成器 `novelos_build_adapters.py` 已随零 Python 退役，不会再生成。
 
 ## 核心契约（三家共用，零变体）
 
-- **sub agent ABI**：组装产物文件（novelos_compose_prompt.py 的 stdout / data/compositions/ 落盘件）——三家用同一份，零变体
-- **主控只做三件事**：跑脚本（python legacy-python/scripts/*.py）；读文件（组装产物 / catalog 方法论）；把组装产物交给 sub agent
+- **sub agent ABI**：组装产物文件（scripts/novelos-compose-prompt.mjs 的 stdout / data/compositions/ 落盘件）——三家用同一份，零变体
+- **主控只做三件事**：调插件门工具（dsh-novelos-viewer 六个 defineTool 写门）+ node scripts/novelos-compose-prompt.mjs；读文件（组装产物 / catalog 方法论）；把组装产物交给 sub agent
 
 ## 接入指引
 
@@ -28,10 +28,8 @@
 ## 验证命令（任何 harness 改动后必跑）
 
 ```bash
-python -m unittest discover -s legacy-python/tests
+node scripts/test-compose-prompt.mjs        # 仓库根运行（19 用例）
+cd plugin/dsh-novelos-viewer && pnpm test   # vitest 55 用例
 ```
-python -m compileall -q legacy-python/scripts legacy-python/tests catalog config
-python legacy-python/scripts/check_repository_hygiene.py --check
-python legacy-python/scripts/build_catalog_manifest.py --check
 
-（生成于 build 时；事实源 content_hash `sha256:a23ea7aa70740693` 锚定同步）
+（手写维护；与 source/harness.yaml 内容保持一致）

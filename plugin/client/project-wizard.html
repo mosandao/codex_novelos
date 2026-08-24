@@ -417,7 +417,7 @@
       kernelSelectBlock.hidden = mode !== "select";
       kernelCreateBlock.hidden = mode !== "create";
       if (mode === "select" && !kernelRoster.length) {
-        kernelSelectSummary.textContent = "尚无可用内核——请选择「新建内核」；新建后跑跑 legacy-python/scripts/novelos_export_kernel_roster.py 刷新名册。";
+        kernelSelectSummary.textContent = "尚无可用内核——请选择「新建内核」；面板打开时名册由 host 实时直查数据库，无需手动刷新。";
       }
     };
 

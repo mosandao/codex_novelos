@@ -13,7 +13,7 @@
 4. **耦合双形态核验**：I/O 耦合查实质（写明的产出确实喂入写明的输入，非「A 喂 B」空话）；配额注入耦合查 k 值与载荷类型可指认；metadata 每机制有 coupling 条目，无孤岛。
 5. **四段式与血缘双源**：每个机制具备 引用 → 机制 → 节奏 → 下游影响；**血缘逐字段抽查**——至少两个机制，核其 sources 映射真实性（内容确实可从所指 direction 字段/persona 部件推导，非贴标签）；metadata sources 同时含 direction_field 与 persona_part（validate 双源覆盖的语义侧复核）。
 6. **防火墙**：是否逐条反验 `forbidden_resolutions` 与题材禁忌（genre_profile 非空时）；新机制（尤其预知/探测/复活类）是否构成绕禁令通道。
-7. **因果与升级（测试证据核验）**：压力测试 ≥5 种母题输入与产出摘要**是否落在正文「引擎验证记录」节**——只声称测过而无记录 = warning；油耗分级随 scale 档位（短篇 ≥2 / 中长篇 ≥3 / 超长篇 ≥5），metadata `engines.*.escalation_levels` 可用 `novelos_validate_architecture.py --scale <档位>` 机器核验。
+7. **因果与升级（测试证据核验）**：压力测试 ≥5 种母题输入与产出摘要**是否落在正文「引擎验证记录」节**——只声称测过而无记录 = warning；油耗分级随 scale 档位（短篇 ≥2 / 中长篇 ≥3 / 超长篇 ≥5），metadata `engines.*.escalation_levels` 对照档位规则复核。
 8. **POV 契约与盲区结构化**：persona 有限视角机制化（知识边界/感知时序/全知侵入判定）；`deliberate_silences` 只经可见征兆呈现；**机制不支撑清单逐条覆盖 cannot_write**——整节缺失或只有一句敷衍 = warning。
 9. **终局闭合**：矛盾与追问有收束设计、终局不动用哪些禁令已声明——无收束设计的架构不完整 = warning 及以上。
 10. **边界**：是否越界产出静态设定（判定测试：换人物事件后能否继续生产情节）、人物传记或卷章事件（应显式移交 world/character/strategy）；移交清单完整（越界内容都在清单里）。
