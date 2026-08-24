@@ -111,17 +111,17 @@ decision_points 附在 metadata 由主控呈现给用户裁决；用户选择经
 
 ## character_roster 结构化出口
 
-metadata 另附 `character_roster` 数组（schema 见 `config/schemas/planning-candidate.schema.json`，交付前过 `scripts/novelos_validate_character.py metadata.json --project <project_id>`——scale 与 locked world 自动解析，也可显式 `--scale/--world`）——每个立档人物一行：`name` / `role_class`（main|secondary）/ `arc_role`（主角|核心对手|主锚点|卷级载体等一句话职责）/ `登场卷` / `预期退场`（七型之一或「持续活跃」）/ `seat_ref`（可选，认领的 world 席位名）/ `essence`（**人物卡一句话要点，main 必填**——执念/失稳点/语域口癖/最要命的关系，≤160 字，正文执行端经 character_essence 槽消费，写作与审校都看得到）。
+metadata 另附 `character_roster` 数组（schema 见 `config/schemas/planning-candidate.schema.json`，交付前过 `legacy-python/scripts/novelos_validate_character.py metadata.json --project <project_id>`——scale 与 locked world 自动解析，也可显式 `--scale/--world`）——每个立档人物一行：`name` / `role_class`（main|secondary）/ `arc_role`（主角|核心对手|主锚点|卷级载体等一句话职责）/ `登场卷` / `预期退场`（七型之一或「持续活跃」）/ `seat_ref`（可选，认领的 world 席位名）/ `essence`（**人物卡一句话要点，main 必填**——执念/失稳点/语域口癖/最要命的关系，≤160 字，正文执行端经 character_essence 槽消费，写作与审校都看得到）。
 
 **essence 写法**：它不是 arc_role 的重复——arc_role 说「他在故事里干什么」，essence 说「写他时必须抓住什么」。好——「对被除名母亲的牌位执念（谈宗族即失措，三秒失误第二卷显形）｜仙门雅言，避市井俚语」；坏——「聪明冷静的主角」（无失效点、无语域，等于没写）。没有 essence 的人物卡是空的：契约设计得再好，Writer 看不见就等于没设计。
 
 **roster 规模 × scale 档位区间**（validate 机器门）：短篇 2-5 / 中篇 3-8 / 长篇 5-12 / 超长篇 8-16——立档人物数（不含班底/微档案）超出区间即缺陷；区间不足由卷级班底补员，超出说明人物契约越权吸食了班底职责。
 
-契约锁定时由 `scripts/novelos_register_characters.py` 落人物注册表（characters 表）；卷级配角经卷纲班底、章级新配角经执行卡微档案登记为 secondary/minor，与本 roster 合流。
+契约锁定时由 `legacy-python/scripts/novelos_register_characters.py` 落人物注册表（characters 表）；卷级配角经卷纲班底、章级新配角经执行卡微档案登记为 secondary/minor，与本 roster 合流。
 
 ## 文档结构约定
 
-人物契约的正文必须按下列二级标题结构组织，便于投影按人物拆分检索：
+人物契约的正文必须按下列二级标题结构组织：
 
 - **每个人物**（含同类多人，如多名棋手）各占一个二级标题，格式固定为 `## 人物档案：{角色类型}｜{名字}`，主角放在第一个。
   - 角色类型用简短标签：`主角` / `主锚点` / `旧神` / `棋手` / `对手` / `同行` 等。多人同类型时每人独立一节，**不要**合并到一个 `##` 下再用 `###` 分。
@@ -129,7 +129,7 @@ metadata 另附 `character_roster` 数组（schema 见 `config/schemas/planning-
 - 该人物的全部字段（初始状态、欲望与恐惧、核心执念、误判、能力与知识边界、心理简表、必须付出的代价、人物弧、关系张力、失稳设计、退场设计、死亡设计卡[如有]、席位认领[如有]）写在其 `## 人物档案` 节内，可用 `###` 子标题组织。
 - **跨人物内容**——人物设计总则、kernel/persona 消费声明、central_contradiction 立场矩阵、strategy 移交认领总表（弧职责/承诺认领/代价认领）、席位认领总表、童年线碎片呼应、人物清单与职责校验、检查点决策点、上游一致性自检——放在人物档案节**之外**的独立 `##` 章节。
 
-投影渲染（`scripts/novelos_render_projection.py`）按「人物档案」标题把契约拆成 `规划/人物契约/00-总览.md`（跨人物内容）加每人物一份文件；主角序号 `01`，其余按出现顺序。识别不到该结构的契约会退化为单文件并告警，因此务必遵守上述标题格式。
+契约以 planning_assets 表为权威存储，人类查看走小说查看面板。
 
 ## 交付前自检
 
@@ -145,6 +145,6 @@ metadata 另附 `character_roster` 数组（schema 见 `config/schemas/planning-
 10. **死亡设计**：每张死亡卡过了必要性四问 + 最后选择 + 影响追踪；无工具人化死亡（含性别风险检查）。
 11. **退场设计**：每人七型之一 + 退场三问；休眠/迁移型带回归条件；功能转移型带席位重坐。
 12. **边界**：无无战略职责人物；未重写战略；未隐式发明世界设定（缺口走 change proposal）；次要角色未混入本契约。
-13. **规模档位**：roster 数在 scale 区间内；`scripts/novelos_validate_character.py` 通过。
+13. **规模档位**：roster 数在 scale 区间内；`legacy-python/scripts/novelos_validate_character.py` 通过。
 14. **人物卡**：main 人物 essence 齐全且非 arc_role 复述（含执念/失稳/语域至少其二）；「待契约认领」席位全部有人认领。
 15. **形式**：文档结构符合「人物档案」标题约定；metadata 含 decision_points（或省略声明）与 character_roster。

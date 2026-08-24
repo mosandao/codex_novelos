@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://novelos.local/schemas/project-create-request.schema.json",
   "title": "NovelOS 项目创建请求（novelos.project.create.v3）",
-  "description": "向导产出的提交 JSON 的结构契约。v3：creator 段（原型直连派生）已被 author_kernel 完全取代（Task 30 决策 2）。mode=create 首次建核（kernel_hints 六字段）；mode=select 绑定既有内核版本（库内反查）。词表级联与内核反查由 scripts/novelos_create_project.py 在 schema 之上追加校验。",
+  "description": "向导产出的提交 JSON 的结构契约。v3：creator 段（原型直连派生）已被 author_kernel 完全取代（Task 30 决策 2）。mode=create 首次建核（kernel_hints 六字段）；mode=select 绑定既有内核版本（库内反查）。词表级联与内核反查由 legacy-python/scripts/novelos_create_project.py 在 schema 之上追加校验。",
   "type": "object",
   "additionalProperties": false,
   "required": [

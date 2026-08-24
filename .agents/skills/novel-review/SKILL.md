@@ -10,7 +10,7 @@ description: 独立审查不可变小说资产并生成 Review Receipt。规划�
 ## 工作流
 
 1. 接收审查目标（资产或章节的 ID）和审查维度（Review Profile 对应的方法论）。
-2. 审查标准获取（按资产分流，以 `scripts/novelos_compose_prompt.py` 的 **ASSET_DIRS 注册表**为准）：**已注册审查**（direction-review / architecture-review 及后续）用组装器 `--asset <asset>-review --project <project_id> --subject <被审资产ID>`——检查清单 + 随项目路由的条件审查模块 + 被审对象全文 + 上游原文一步产出，与生成端对称；**未注册审查**暂仍 Read `catalog/skills/review/<对应 review skill>/prompt.md` + 手工注入 subject 与上游原文，Task 29 P2 完成后逐一切换。
+2. 审查标准获取（按资产分流，以 `legacy-python/scripts/novelos_compose_prompt.py` 的 **ASSET_DIRS 注册表**为准）：**已注册审查**（direction-review / architecture-review 及后续）用组装器 `--asset <asset>-review --project <project_id> --subject <被审资产ID>`——检查清单 + 随项目路由的条件审查模块 + 被审对象全文 + 上游原文一步产出，与生成端对称；**未注册审查**暂仍 Read `catalog/skills/review/<对应 review skill>/prompt.md` + 手工注入 subject 与上游原文，Task 29 P2 完成后逐一切换。
 3. 审查 sub agent 需要**完整的审查依据**：候选正文全文 + 全部已锁定上游原文。直接从数据库 SELECT resources 读取，注入 sub agent prompt。禁止让 sub agent 自行读文件。
 4. 按 review prompt 的检查维度逐项审查。finding severity 四档：`blocking` / `warning` / `note`（问题分级）与 `strength`（记录候选独有赌注与亮点，供选型与修复参考，不阻断不修复）；问题类 finding 给出最小直接证据和原文片段，strength 可引用候选对比与推理但须写明依据。
 5. 只要有 `blocking`，verdict 必须是 `rejected`。
@@ -39,7 +39,7 @@ description: 独立审查不可变小说资产并生成 Review Receipt。规划�
 锁定或接受前必须通过完整循环，**warning 也必须修复**（不再"记录即放过"）：
 
 1. 审查 candidate → 得到 findings（`blocking` / `warning` / `note`）。
-2. **`blocking` 与 `warning` 都必须修复**：修复产生新 revision（candidate），回到步骤 1 重新审查该 revision。**修复经组装器受控重试**：`.venv/bin/python scripts/novelos_compose_prompt.py --asset <asset> --project <id> --review-feedback <上轮回执.json> --round <N>`——回执的 blocking+warning 注入 review_feedback 槽（note 不注入），组装日志记录轮次。
+2. **`blocking` 与 `warning` 都必须修复**：修复产生新 revision（candidate），回到步骤 1 重新审查该 revision。**修复经组装器受控重试**：`python legacy-python/scripts/novelos_compose_prompt.py --asset <asset> --project <id> --review-feedback <上轮回执.json> --round <N>`——回执的 blocking+warning 注入 review_feedback 槽（note 不注入），组装日志记录轮次。
 3. **退出条件**：审查结果只剩 `note`（或无 finding）→ 锁定；旧 revision 标 `superseded`。部分唯一索引 `idx_planning_assets_current` 要求同 scope 同时只有一个 `locked`，故**先 supersede 旧版，再 lock 新版**。
 4. `note` 记录备查，不阻断、不必修复。
 

@@ -1,12 +1,12 @@
 # Harness 适配层（codex / zcode / deepseek）
 
-> 事实源 `adapters/source/harness.yaml`（content_hash: `sha256:18ab862159569668`）。
-> 本文件由 `scripts/novelos_build_adapters.py` 生成——改事实源后必须重新生成。
+> 事实源 `adapters/source/harness.yaml`（content_hash: `sha256:a23ea7aa70740693`）。
+> 本文件由 `legacy-python/scripts/novelos_build_adapters.py` 生成——改事实源后必须重新生成。
 
 ## 核心契约（三家共用，零变体）
 
 - **sub agent ABI**：组装产物文件（novelos_compose_prompt.py 的 stdout / data/compositions/ 落盘件）——三家用同一份，零变体
-- **主控只做三件事**：跑脚本（.venv/bin/python scripts/*.py）；读文件（组装产物 / catalog 方法论）；把组装产物交给 sub agent
+- **主控只做三件事**：跑脚本（python legacy-python/scripts/*.py）；读文件（组装产物 / catalog 方法论）；把组装产物交给 sub agent
 
 ## 接入指引
 
@@ -28,10 +28,10 @@
 ## 验证命令（任何 harness 改动后必跑）
 
 ```bash
-.venv/bin/python -m unittest discover -s tests
+python -m unittest discover -s legacy-python/tests
 ```
-.venv/bin/python -m compileall -q scripts tests catalog config
-.venv/bin/python scripts/check_repository_hygiene.py --check
-.venv/bin/python scripts/build_catalog_manifest.py --check
+python -m compileall -q legacy-python/scripts legacy-python/tests catalog config
+python legacy-python/scripts/check_repository_hygiene.py --check
+python legacy-python/scripts/build_catalog_manifest.py --check
 
-（生成于 build 时；事实源 content_hash `sha256:18ab862159569668` 锚定同步）
+（生成于 build 时；事实源 content_hash `sha256:a23ea7aa70740693` 锚定同步）

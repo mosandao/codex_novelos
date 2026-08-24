@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://novelos.local/schemas/story-arc-metadata.schema.json",
   "title": "NovelOS 跨卷故事弧 metadata（v1，T38）",
-  "description": "story_arc 候选的结构化出口：弧清单（载体指认）+ 卷计划（全书卷数权威）+ 弧↔卷映射表 + 种收台账（豁免体系）+ 变奏分配（引用架构机制）+ 开放滚动窗口 + 决策点。机器门见 scripts/novelos_validate_story_arc.py。",
+  "description": "story_arc 候选的结构化出口：弧清单（载体指认）+ 卷计划（全书卷数权威）+ 弧↔卷映射表 + 种收台账（豁免体系）+ 变奏分配（引用架构机制）+ 开放滚动窗口 + 决策点。机器门见 legacy-python/scripts/novelos_validate_story_arc.py。",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema_version", "arcs", "volume_plan", "arc_volume_map", "plant_payoff_ledger"],

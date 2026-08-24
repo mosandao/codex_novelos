@@ -1,79 +1,122 @@
 # NovelOS
 
-NovelOS 是面向长篇小说创作的纯 Codex 系统。Codex 作为唯一长期存在的 **主控智能体**；项目 Skill 提供业务方法，临时 sub agent 负责隔离推理，SQLite MCP（`execute_sql`）是数据库唯一入口，确定性算法由 `scripts/novelos_*.py` 承担，项目创建的原型融合由引导融合智能体（onboarding_agent）承接。
+> **当前处于「零 Python 演进路线」过渡期**：视图链已 JS 化，Python 校验门暂存 `legacy-python/` 待 JS 门替代。
+> 路线图与裁决记录见 [tasks/README.md](./tasks/README.md)，agent 行为规则见 [AGENTS.md](./AGENTS.md)。
 
-## 当前状态
+## 项目定位
 
-NovelOS MCP（89 工具 + 门禁基础设施）已彻底删除。数据库操作通过 SQLite MCP 的 `execute_sql` 工具完成，确定性算法由 `scripts/novelos_*.py` 承担，项目创建的原型融合由引导融合智能体（onboarding_agent）承接。续写流程：`$novel-memory` 取上下文 → `$novel-writing` 起草 → `$novel-review` 审查 → SQL 接受 → `$novel-continuity` 提取连续性。
+NovelOS 是一套**面向长篇小说创作的多智能体创作操作系统**：
 
-权威进度见 [tasks/README.md](./tasks/README.md)，不得以本 README 代替任务状态。
+- **L0 权威存储**：`data/novelos-v2.db`（SQLite）承载全部规划资产与正文，`config/` 提供与语言无关的 JSON Schema 校验门、题材包与系统叙事原型——这是整个系统的唯一事实源。
+- **L1 运行时**：目标态为插件 host JS 工具（唯一读写口）；过渡态为 `legacy-python/scripts/*.py` 校验门（只维护不新增）。
+- **L2 方法论**：`catalog/skills/**` 创作方法论 Catalog（prompt.md 主干 + 条件模块 + manifest），与语言无关，原样有效。
+- **L3–L5**：组装产物（`data/compositions/`）、harness 适配（`adapters/`）、会话编排（`.agents/skills/novel-*` 六个操作技能 + `AGENTS.md` 路由协议）。
 
-## 目录
+主控 agent 经组装器把方法论注入各角色 agent（内核融合、分身融合、方向／架构／策略／世界／人物／故事弧／卷纲／章纲、写作、审查、连续性），产物经确定性校验门落库。
 
-```text
-.agents/skills/       6 个顶层 Codex 业务 Skill（novel-project/planning/memory/writing/review/continuity）
-catalog/skills/       细粒度创作方法论 Catalog（planning/writing/review/continuity/craft/expansions）
-config/schemas/      jsonschema 校验门（项目创建/签名/候选/book_soul 等）
-config/system_archetypes.json   18 个系统叙事原型
-mcp/sqlite-mcp/       极薄 SQLite MCP Server（仅暴露 execute_sql）
-scripts/              确定性脚本（novelos_*.py）+ MCP 启动脚本
-data/novelos-v2.db    正式目标数据库（本地忽略）
-db/migrations/        数据库 schema 迁移留档
-novels/               用户可读项目文件夹投影（可重建，本地忽略）
-ui/                   项目创建向导（project-wizard.html）
-documentation/        稳定架构、流程、权限、变量和测试文档
-tasks/                实施计划、迁移证据和未决工作
-```
+## 当前状态：现状 vs 目标态
 
-## 安装
+| 能力 | 现状（过渡期） | 目标态 |
+|---|---|---|
+| 写路径 | 唯一守门人 = `legacy-python\scripts\novelos_create_project.py`（jsonschema 门 + BEGIN IMMEDIATE 单事务）；只维护不新增 | 插件 host `defineTool` JS 写门（node:sqlite + ajv + crypto），交付并全绿后整体删除 `legacy-python/` |
+| 读路径（人类） | 浏览器打开 `plugin/client/project-wizard.html`（面板化前允许 file://）；viewer 仅有原型 | `dsh-novelos-viewer` 面板：sql.js(WASM) 内存只读，host 双只读路由 `GET /db-bytes` + `GET /manifest`（R1） |
+| 读路径（agent） | 一次性 node:sqlite 只读查询 | 插件查询工具就绪后统一走插件 |
+| 人类视图 | HTML(JS) 是唯一渲染器 | 不变 |
 
-要求 Python 3.11 或更高版本。
+**路线图**：R1 插件实体化（读路径先行）→ R2 JS 写门（ajv 复用 `config/schemas/*.json` + node:sqlite 单事务 + crypto content_hash + vitest 等价迁移，三件套捆绑交付）→ R3 编排层适配。条目与退出条件见 [tasks/README.md](./tasks/README.md)。
 
-```bash
-python3 -m venv .venv
-.venv/bin/pip install mcp   # MCP SDK，供 mcp/sqlite-mcp/server.py（FastMCP）
-```
+**已退役清单**（不要寻找、不要重建）：`.venv`、`mcp/sqlite-mcp/`（Python MCP 通道）、`run_sqlite_mcp.cmd/.sh`、`.codex/config.toml`、`requirements-mcp.txt`、md 投影渲染器、`ui/`（三件套已迁 `plugin/client/`）、`documentation/`（已并入 `docs/`）。仓库无任何 MCP 配置需求。
 
-SQLite MCP 由 `.codex/config.toml` 注册，启动入口：
+## 目录结构
 
 ```text
-scripts/run_sqlite_mcp.sh   # 执行 .venv/bin/python mcp/sqlite-mcp/server.py --db-path data/novelos-v2.db
+.agents/skills/novel-*    会话编排层六个操作技能（project/planning/memory/writing/review/continuity）
+adapters/                 harness 适配层，单源 adapters/source/harness.yaml
+catalog/skills/           创作方法论 Catalog（onboarding/planning/writing/review/continuity/craft/expansions）
+config/
+  schemas/                JSON Schema 校验门（语言无关，JS 门直接复用的核心资产）
+  agent-recipes.json      角色 × 方法论配方矩阵权威
+  genre-packs.json        题材包
+  system_archetypes.json  系统叙事原型
+data/novelos-v2.db        权威 SQLite 库（变更前先备份；data/compositions/ 组装产物运行时生成）
+db/migrations/            SQL 迁移留档 + schema.sql 基线（语言无关资产）
+docs/                     文档（历史任务账本在 docs/archive/tasks/）
+legacy-python/            过渡期暂存区：py 校验门脚本 + unittest 用例，只维护不新增，R2 后整体删除
+plugin/client/            UI 资产三件套：project-wizard.html / project-wizard-data.js / kernel-roster.js
+scripts/                  JS 工具脚本（现有 fix-dsh-projcache.mjs）；新增脚本一律 JS，禁止新建 .py
+tasks/README.md           零 Python 路线图 + 重组裁决记录
 ```
 
-该脚本供 Codex stdio MCP 配置调用，不是交互式命令。它只暴露一个 `execute_sql` 工具，直接对 `data/novelos-v2.db` 执行 SQL——主控与 sub agent 用 SQL 直接读写核心业务表，不再有领域工具层或门禁层。
+## 快速上手
 
-## 验证
+### 环境要求
+
+- Node.js ≥ 22（内置 `node:sqlite`，agent 查库与未来 JS 门的基础）。
+- 过渡期运行 legacy-python 校验门需系统 Python ≥ 3.11（**不建 venv**，直接用系统解释器；门依赖第三方库 `jsonschema`）。
+
+### 创建小说项目（现状流程）
+
+1. 浏览器打开 `plugin/client/project-wizard.html`。
+2. 向导产出 `novelos.project.create.v3` JSON → 入口校验门校验（FAIL 拒绝）。
+3. mode=create 先建核：内核融合 agent 产出 author_kernel → 分身派生 creator_signature → 经守门人单事务六表落库。
+
+细节与角色分工见 [AGENTS.md](./AGENTS.md)「项目创建向导」；viewer 面板的实现规格见 [docs/novelos-viewer-design.md](./docs/novelos-viewer-design.md)。
+
+### 查询数据库（agent 一次性只读查询）
 
 ```bash
-.venv/bin/python -m unittest discover -s tests -v
-.venv/bin/python -m compileall -q scripts tests catalog config
-.venv/bin/python scripts/check_repository_hygiene.py --check
-.venv/bin/python scripts/build_catalog_manifest.py --check
+node -e "const {DatabaseSync}=require('node:sqlite');const db=new DatabaseSync('data/novelos-v2.db');console.log(db.prepare('SELECT id FROM projects').all())"
 ```
 
-## 用户展示
+读可随意，写必须走守门人（见下节）。人类浏览库内容的专用面板见路线图 R1。
 
-用户展示采用按小说项目生成的 Markdown 文件夹，SQLite 仍是唯一权威数据源。`规划/` 展示当前 locked 规划资产（人物契约按「## 人物档案」结构拆成 `人物契约/` 目录：总览 + 每人物一份），`正文/` 展示 accepted 章节，`创作约束/` 展示作者签名与本书创作灵魂，`大纲/` 展示卷纲与章纲，`连续性/` 展示事实、承诺、关系等账本。投影由 `scripts/novelos_render_projection.py`（裸 sqlite3、零 MCP 依赖）渲染，可删除和重建，直接修改其中的文件不会回写数据库。不提供独立 HTTP Web 应用。
+### 组装方法论注入文本
 
-## 项目创建向导
+已注册资产的注入文本一律由组装器产出（主干 + 条件模块 + 输入数据区 + 自检汇总），不 Read prompt.md、不手工拼装：
 
-默认入口是可直接打开的本地页面 `ui/project-wizard.html`。本地页面不直接写数据库，只生成 `novelos.project.create.v2` JSON（频道级联定位 + 表里基调 + platform_traits/genre_profile 快照）；用户将 JSON 发回后，主控创建临时 **引导融合智能体（onboarding_agent）** sub agent，注入 `selected_archetypes` + `user_persona_hints` + `project_setup`（v2）+ `config/system_archetypes.json`，由 agent 按先立人再落规做融合，产出 `creator_derivation_candidate`。主控用 jsonschema（`config/schemas/creator-signature.schema.json`）校验签名合规 + `scripts/novelos_hash.py` 算 hash 后，用 SQL INSERT 创建 projects（metadata_json 写入 setup v2 快照）+ creator_profiles + creator_profile_versions + project_creator_bindings。
+```bash
+python legacy-python/scripts/novelos_compose_prompt.py --asset <asset> --project <id>
+# 审查另加 --subject；修复重试加 --review-feedback + --round
+```
 
-V3 新向导只允许 `derive`，不得提交 `reuse` 或 `create`；历史绑定仍可读取。页面使用固定频道（男频、女频、全向、出版、剧本）、目标平台（起点、番茄、晋江、七猫）、四档作品规模和一级题材。二级方向随一级题材切换，每个题材提供静态预生成候选；落库事务本身不调用 LLM，LLM 只在多原型融合时由 `onboarding_agent` 在 Codex run 内运行；也不提供自定义选项、知乎盐选或自定义字数。主情绪基调可以多选，美学风格最多两项，用户创作资料为最多 10,000 字的可选多行文本。页面按约束确定性推荐三个系统叙事原型，用户确认继承项并编辑本书最小差异。
+配方矩阵权威在 `config/agent-recipes.json`；组装产物即主控 ↔ sub agent 的 ABI。
 
-表单结果保存为项目 `metadata.project_setup`。主控智能体读取这些约束和 `creator_binding.constraint_ref`，启动方向智能体生成该项目独有的 `book_soul`；向导本身不生成、锁定或提交任何规划资产。直接用 `file://.../project-wizard.html` 打开可以完整填写并生成 JSON，但不会声称项目已经创建。
+### 过渡期验证
 
-Creator Profile 是用户拥有的跨项目不可变版本配置，不是常驻 Agent。Profile 后续修订不会让旧项目漂移；显式 rebind 会把当前 Direction 及全部后代标记为 `stale`，不自动重生成。Writer 只读取当前精确作者签名、locked Direction、POV 和局部风格引用，不自行决定作者思想。
+```bash
+python -m unittest discover -s legacy-python/tests -v
+```
 
-## 删除项目
+`legacy-python/tests` 是 JS 门重写时的**验收基准**（行为等价以这些用例的断言语义为准）。注意：仓库重组后部分证据类用例引用的归档路径尚待修复，套件暂非全绿，以 [legacy-python/README.md](./legacy-python/README.md) 与 [tasks/README.md](./tasks/README.md) 为准。
 
-由确定性脚本 `scripts/novelos_delete_project.py` 完成（不调用 LLM）。建议先 `--dry-run` 调查范围，可选 `--backup` 备份数据库；脚本在 `foreign_keys=OFF` 下按依赖逆序删除项目全部业务数据（projects/books/volumes/chapters/planning_assets/实体/连续性/reviews/项目专属 resources），保护共享的 creator_profile 系统原型资源，用 `foreign_keys=ON` 复验完整性，并按 `manifest.json` 的 `project_id` 删除对应投影目录。详见 [关键流程·删除项目](./documentation/flows.md)。
+## 写库纪律（红线）
 
-## 文档
+- **唯一守门人**：写库只能经 `legacy-python\scripts\novelos_create_project.py`（jsonschema 门 + BEGIN IMMEDIATE 单事务）。禁止手工 INSERT 绕过校验门直接写库。
+- **写库三件事不变**：① ID 格式 `类型:uuid`；② 写 `resources.content` 必须 `CAST(? AS BLOB)`；③ 写 resource 必须同时计算 content_hash。
+- **备份先行**：任何 schema 变更前先复制 `data/novelos-v2.db`。
+- **FAIL 必须阻断**：任何校验门 FAIL 必须阻断退出；mismatch 仅警告放行 = 纸面化。
+- **生产镜像只读**：`/Users/yiyi/github/novelos` 是生产环境，只读。
+- **R2 之后**：唯一写入口收敛为插件 `defineTool`，agent 不再有任何裸 SQL 写通道；届时整体删除 `legacy-python/`，仓库达成零 Python。
 
-- [系统架构](./documentation/architecture.md)
-- [关键流程](./documentation/flows.md)
-- [权限矩阵](./documentation/permissions.md)
-- [变量与配置](./documentation/variables.md)
-- [测试覆盖](./documentation/tests.md)
-- [Agent 与自动化](./documentation/automation.md)
+## 文档索引
+
+Agent 协作入口：
+
+- [AGENTS.md](./AGENTS.md) — agent 行为规则、路由顺序、小说工作流（过渡期权威）
+- [tasks/README.md](./tasks/README.md) — 零 Python 路线图（R1/R2/R3）与重组裁决记录
+
+设计与参考文档（均在 `docs/` 下）：
+
+- [docs/architecture.md](./docs/architecture.md) — 系统架构
+- [docs/flows.md](./docs/flows.md) — 关键流程
+- [docs/permissions.md](./docs/permissions.md) — 权限矩阵
+- [docs/variables.md](./docs/variables.md) — 变量与配置
+- [docs/tests.md](./docs/tests.md) — 测试覆盖
+- [docs/automation.md](./docs/automation.md) — Agent 与自动化
+- [docs/agent-recipes.md](./docs/agent-recipes.md) — 配方矩阵说明
+- [docs/worldbuilding-redesign.md](./docs/worldbuilding-redesign.md) — 世界观契约重设计
+- [docs/plugin-feasibility-adversarial-review.md](./docs/plugin-feasibility-adversarial-review.md) — 插件化可行性红队评审
+- [docs/novelos-viewer-design.md](./docs/novelos-viewer-design.md) — viewer 面板设计规格（R1 实现依据）
+- [docs/novelos-viewer-prototype.html](./docs/novelos-viewer-prototype.html) — viewer 视觉原型
+- [legacy-python/README.md](./legacy-python/README.md) — 过渡期暂存区内容、已退役清单与退出条件
+- [docs/archive/tasks/](./docs/archive/tasks) — 历史任务账本（Task 06–39，py 时代考古参考，不再更新）

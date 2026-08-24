@@ -26,3 +26,5 @@ tasks/experiments/agent_quality/results/work/
 *.pfx
 data/*.db.bak
 data/compositions/
+
+node_modules/

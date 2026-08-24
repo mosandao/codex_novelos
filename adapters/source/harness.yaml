@@ -1,5 +1,5 @@
 # 三 harness 适配事实源（codex / zcode / deepseek）。改这里后运行
-# .venv/bin/python scripts/novelos_build_adapters.py 重新生成 adapters/README.md。
+# python legacy-python/scripts/novelos_build_adapters.py 重新生成 adapters/README.md。
 harnesses:
   codex:
     entry_files:
@@ -18,11 +18,11 @@ harnesses:
 core_contract:
   sub_agent_abi: 组装产物文件（novelos_compose_prompt.py 的 stdout / data/compositions/ 落盘件）——三家用同一份，零变体
   main_agent_duties:
-    - 跑脚本（.venv/bin/python scripts/*.py）
+    - 跑脚本（python legacy-python/scripts/*.py）
     - 读文件（组装产物 / catalog 方法论）
     - 把组装产物交给 sub agent
   verify_commands:
-    - .venv/bin/python -m unittest discover -s tests
-    - .venv/bin/python -m compileall -q scripts tests catalog config
-    - .venv/bin/python scripts/check_repository_hygiene.py --check
-    - .venv/bin/python scripts/build_catalog_manifest.py --check
+    - python -m unittest discover -s legacy-python/tests
+    - python -m compileall -q legacy-python/scripts legacy-python/tests catalog config
+    - python legacy-python/scripts/check_repository_hygiene.py --check
+    - python legacy-python/scripts/build_catalog_manifest.py --check
