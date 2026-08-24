@@ -1,0 +1,4 @@
+# NovelOS SQLite MCP server 依赖说明。
+# 当前 mcp/sqlite-mcp/server.py 为纯标准库实现（JSON-RPC 2.0 over stdio），
+# 无第三方运行时依赖，无需 pip install。
+# 历史 FastMCP 实现需要 mcp>=2.0.0，但已不再使用。

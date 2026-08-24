@@ -15,7 +15,7 @@ L5 会话编排  .agents/skills/novel-*（手写操作层）+ 本文件路由协
 
 ## 数据库访问
 
-**SQLite MCP** 是数据库唯一入口（`execute_sql` 读写 `data/novelos-v2.db`）。MCP 不可用时用 `.venv/bin/python -c "import sqlite3; ..."`。SQL 模板见 `.agents/skills/novel-project/sql-reference.md`。
+**SQLite MCP** 是数据库唯一入口（`execute_sql` 读写 `data/novelos-v2.db`）。MCP 不可用时用 Python 直接操作（DSH/Windows: `python -c "import sqlite3; ..."`；Codex/WSL: `.venv/bin/python -c "import sqlite3; ..."`）。SQL 模板见 `.agents/skills/novel-project/sql-reference.md`。
 
 写库三件事：① ID 格式 `类型:uuid`（Python `uuid.uuid4()`）；② 写 `resources.content` 必须 `CAST(? AS BLOB)`；③ 写 resource 同时算 content_hash（`scripts/novelos_hash.py`）。
 
@@ -82,7 +82,7 @@ direction → architecture → strategy → world → character → story_arc �
 
 ## 重要约束
 
-- **NovelOS MCP 已彻底删除**（migration 016 已删门禁表，源码不在仓库），不要尝试恢复。SQLite MCP wrapper 在 `mcp/sqlite-mcp/`，由 `.codex/config.toml` 注册。
+- **NovelOS MCP 已彻底删除**（migration 016 已删门禁表，源码不在仓库），不要尝试恢复。SQLite MCP wrapper 在 `mcp/sqlite-mcp/`，由 `.codex/config.toml` 注册（Codex 专用）；DSH 的注册在 `~/.dsh/profiles/web/cordis.patch.yml` 的 `mcp-novelos-sqlite` 条目（详见 `docs/dsh-compatibility.md`）。
 - **数据库备份**：任何 schema 变更前 `cp data/novelos-v2.db data/novelos-v2.db.bak`。
 - **换 harness 指引**：核心（SQLite + Python 脚本 + Markdown 方法论）harness 中立；适配差异只在入口件（见 `adapters/README.md`），catalog 与 scripts 零改动。
 
