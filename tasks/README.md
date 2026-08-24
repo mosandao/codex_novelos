@@ -18,8 +18,8 @@
 - [x] `DONE` 门测试 vitest 迁移并全绿。**验证：test/create-project.test.ts 12 用例 + test/propagate-delete.test.ts 10 用例 + 原语 9 + 夹具 2 = 33/33 通过；tsc --noEmit 干净**
 - [x] `DONE` R2 补齐 · stale 传播 JS 化（commit 本轮）。**验证：`src/gate/propagate-stale.ts` 移植 novelos_propagate_stale.py——coarse BFS 直接+间接全量标 / fine 模式依赖边 upstream_version+content_hash 双重比对（neutral 不误伤，间接下游列 indirectPending 不自动标）；事务失败回滚抛 GateFail。test/propagate-delete.test.ts 覆盖 dryRun/全量标/candidate 不动/fine 判定/GateFail。生产库 smoke-r6.mjs 只读冒烟 PASS**
 - [x] `DONE` R2 补齐 · 项目删除 JS 化（commit 本轮）。**验证：`src/gate/delete-project.ts` 移植 novelos_delete_project.py——foreign_keys=OFF 显式事务依赖逆序逐表删（planning_asset_dependencies 双向边→reviews→连续性六账本→chapters/volumes/planning_assets/characters/worlds/bindings/books/projects/resources），不动 creator_profile_versions 共享系统原型资源；cleanOrphans/verify/backupDatabase（.bak-YYYYMMDD-HHMMSS 同格式）；投影目录删除随视图链退役省略（单渲染器红线）。测试覆盖删净断言、共享资源完好、孤儿清理、触发器注入失败后回滚+FK 复原 ON**
-- [ ] `IN PROGRESS` R2 补齐 · 人物登记 JS 化（novelos_register_characters.py 25KB）——子代理移植中
-- [ ] `BLOCKED(依赖R2全绿)` 删除 `legacy-python/`，仓库达成零 Python
+- [x] `DONE` R2 补齐 · 人物登记 JS 化（novelos_register_characters.py 25KB）。**验证（2026-08-24，子代理移植+主线程接线）：`src/gate/register-characters.ts` 全量移植三入口——`registerCharactersRun`（预检→BEGIN IMMEDIATE 单事务 roster→entries→statusUpdate 落库）/ `checkPendingStatus` / `checkAuditEntries`（只读对账）；FAIL 一律 throw GateFail（py print+exit 语义收口为阻断），席位对账 seat_ref 不存在=FAIL、未认领承诺席位=WARN。`write-tools.ts` 第六工具 `novelos_register_characters`（project + roster/entries/statusUpdate/world JSON 文本参数 + pendingStatus/auditEntries 只读开关；**无 dryRun**——校验与落库同一事务，假干跑会误导 agent）。test/register-characters.test.ts 22 用例；全仓 vitest 5 文件 55/55、tsc 干净；dev_build_plugin→uninject/inject host ✓ client ✓；scripts/smoke-r7.mjs 编译产物对生产库只读冒烟 SMOKE PASS**
+- [ ] `BLOCKED(依赖R2全绿)` 删除 `legacy-python/`，仓库达成零 Python。**业务写面已全部 JS 化（六门齐）**：剩余 py 为 backup/export/compose_prompt/validate_*/build_adapters/check_hygiene/build_catalog_manifest/export_roster/hash——只读或非库写工具；其中 compose_prompt 仍被 `.agents/skills/novel-*` 六技能与 adapters 链依赖，删除前需先 JS 化组装器或用户拍板豁免
 
 ### ⚠️ 有意行为变更（F2 整改，与 py 版差异显式声明）
 

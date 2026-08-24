@@ -1,16 +1,18 @@
 /**
  * JS 写门 · defineTool 注册层（R2 写口收口）。
  *
- * 这是 NovelOS 权威库的**唯一写入口**：五个工具对应 py CLI 五段管线，
+ * 这是 NovelOS 权威库的**唯一写入口**：六个工具对应 py CLI 六段管线，
  * 每次调用独立开连接、过门、事务落库；任何 FAIL 返回 ok:false 且不产生写入。
  * agent 无裸 SQL 写通道——绕过此层的写请求没有工具面。
  *
  * 与 py CLI 的对应：
- * - novelos_gate_entry      ← --payload（入口校验，只读）
- * - novelos_kernel_commit   ← --kernel-candidate [--payload] [--dry-run]
- * - novelos_project_commit  ← --candidate --payload [--dry-run]
- * - novelos_propagate_stale ← --asset [--check] [--fine]
- * - novelos_delete_project  ← --project [--dry-run] [--backup] [--clean-orphans]
+ * - novelos_gate_entry           ← --payload（入口校验，只读）
+ * - novelos_kernel_commit        ← --kernel-candidate [--payload] [--dry-run]
+ * - novelos_project_commit       ← --candidate --payload [--dry-run]
+ * - novelos_propagate_stale      ← --asset [--check] [--fine]
+ * - novelos_delete_project       ← --project [--dry-run] [--backup] [--clean-orphans]
+ * - novelos_register_characters  ← --project --roster/--entry/--status-update/--world
+ *                                  [--pending-status] [--audit-entries]（后两者只读）
  */
 import { DatabaseSync } from 'node:sqlite'
 import { defineTool } from '@deepseek-ai/dsh-tools'
@@ -34,6 +36,11 @@ import {
   surveyProject,
   verify,
 } from './delete-project.js'
+import {
+  checkAuditEntries,
+  checkPendingStatus,
+  registerCharactersRun,
+} from './register-characters.js'
 
 export interface WriteToolDeps {
   /** 解析当前权威库路径（null = 未找到） */
@@ -253,11 +260,58 @@ export function createWriteTools(deps: WriteToolDeps) {
     },
   })
 
+  const registerCharactersTool = defineTool({
+    name: 'novelos_register_characters',
+    description: 'NovelOS 人物注册写门：character_roster 重锁登记 / 动态配角 entry / 连续性状态迁移 '
+      + 'status_update，可选 world 席位对账（seat_ref 引用不存在席位=FAIL；未认领承诺席位=WARN）。'
+      + '预检通过后 BEGIN IMMEDIATE 单事务落库，异常回滚。pendingStatus=true 或 auditEntries=true 时为只读对账报告。',
+    parameters: {
+      project: { type: 'string', description: '项目 ID（project:xxx）', required: true },
+      roster: { type: 'string', description: 'character_roster JSON 数组文本（契约锁定时重锁登记）' },
+      entries: { type: 'string', description: '动态配角登记 JSON（单对象或数组文本）' },
+      statusUpdate: { type: 'string', description: '连续性状态迁移 JSON（单对象或数组文本）' },
+      world: { type: 'string', description: 'world_contract metadata JSON 文本——启用席位对账' },
+      pendingStatus: { type: 'boolean', description: '只读：列出待状态晋升的已故/退场人物' },
+      auditEntries: { type: 'boolean', description: '只读：审计 entries 与卷纲设定漂移' },
+    },
+    output: STRING_OUTPUT,
+    async execute(args: any) {
+      const { db, schemas } = requireCtx()
+      const pid = String(args.project)
+      const parseOpt = (text: unknown, what: string): unknown => {
+        if (text == null || !String(text).trim()) return null
+        return parseJsonText(String(text), what)
+      }
+      const conn = openDb(db)
+      try {
+        if (args.pendingStatus === true) return JSON.stringify({ ok: true, ...checkPendingStatus(conn, pid) })
+        if (args.auditEntries === true) return JSON.stringify({ ok: true, ...checkAuditEntries(conn, pid) })
+        const run = {
+          projectId: pid,
+          roster: parseOpt(args.roster, 'roster') as any,
+          entries: parseOpt(args.entries, 'entries') as any,
+          statusUpdate: parseOpt(args.statusUpdate, 'statusUpdate') as any,
+          world: parseOpt(args.world, 'world') as any,
+          schemasDir: schemas,
+        }
+        // 注意：本门无 dryRun——registerCharactersRun 校验+落库在同一事务内，
+        // 假干跑会误导 agent；预检语义由 pendingStatus/auditEntries 只读入口承担。
+        const result = registerCharactersRun(conn, run)
+        return JSON.stringify({ ok: true, ...result })
+      } catch (e) {
+        return JSON.stringify({ ok: false, stage: 'register_characters', error: errText(e) })
+      } finally {
+        conn.close()
+      }
+    },
+  })
+
   return [
     { tool: gateEntry, label: '@dsh-external/dsh-novelos-viewer: gate entry tool' },
     { tool: kernelCommit, label: '@dsh-external/dsh-novelos-viewer: kernel commit tool' },
     { tool: projectCommit, label: '@dsh-external/dsh-novelos-viewer: project commit tool' },
     { tool: propagateStaleTool, label: '@dsh-external/dsh-novelos-viewer: propagate stale tool' },
     { tool: deleteProjectTool, label: '@dsh-external/dsh-novelos-viewer: delete project tool' },
+    { tool: registerCharactersTool, label: '@dsh-external/dsh-novelos-viewer: register characters tool' },
   ]
 }
