@@ -1,10 +1,11 @@
 /**
  * @dsh-external/dsh-novelos-viewer — host 侧（ui-panel 形态）。
  *
- * 设计红线（docs/novelos-viewer-design.md）：
- * - 只读：仅暴露零参数 GET 路由，物理上无任何写通道。
- * - /db-bytes 返回 data/novelos-v2.db 字节流，client 端 sql.js(WASM) 内存加载，
- *   零子进程、零 argv、零编码转换（红队 F3/F4 整改）。
+ * 设计红线（docs/novelos-viewer-design.md + R2 写口收口）：
+ * - 读路径：仅暴露零参数 GET 路由，物理只读；/db-bytes 返回 data/novelos-v2.db
+ *   字节流，client 端 sql.js(WASM) 内存加载，零子进程、零 argv、零编码转换（F3/F4 整改）。
+ * - 写路径：唯一写入口 = 本插件 defineTool 三工具（gate_entry / kernel_commit /
+ *   project_commit），全部经 JS 校验门 + 单事务；agent 无裸 SQL 写通道。
  */
 import { createHash } from 'node:crypto'
 import { existsSync, readFileSync, realpathSync, statSync } from 'node:fs'
@@ -14,6 +15,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import z from '@deepseek-ai/schemastery'
 import { DatabaseSync } from 'node:sqlite'
+import { createWriteTools } from './gate/write-tools.js'
 
 export const name = '@dsh-external/dsh-novelos-viewer'
 export const inject = ['tools', 'webServer']
@@ -247,4 +249,18 @@ export function apply(ctx: Context, config: Config): void {
       })
     },
   })), '@dsh-external/dsh-novelos-viewer: status tool')
+
+  // R2 写口收口：唯一写入口 = 校验门 defineTool（任何 FAIL 不产生写入）
+  for (const { tool, label } of createWriteTools({
+    dbPath: () => resolveDbPath(config.dbPath),
+    schemasDir: () => {
+      const root = resolveRepoRoot()
+      if (!root) return null
+      const dir = join(root, 'config', 'schemas')
+      return existsSync(dir) ? dir : null
+    },
+    wizardFile: () => resolveClientFile('project-wizard-data.js'),
+  })) {
+    ctx.effect(() => ctx.tools.register(tool), label)
+  }
 }

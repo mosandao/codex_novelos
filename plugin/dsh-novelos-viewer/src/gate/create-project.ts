@@ -12,8 +12,10 @@
  * 红线：任何 FAIL 必须阻断；禁止手工 SQL 绕过本门写库。
  */
 import { readFileSync } from 'node:fs'
-// config/schemas 全部 $schema: draft 2020-12 —— 必须用 Ajv2020，普通 Ajv 不识别该 meta-schema
-import Ajv2020 from 'ajv/dist/2020'
+// config/schemas 全部 $schema: draft 2020-12 —— 必须用 Ajv2020，普通 Ajv 不识别该 meta-schema。
+// 注意子路径必须带 .js：本仓库 pnpm 布局的 ajv 是平铺 dist（dist/2020.js），
+// Node ESM 对无 exports map 的包按文件路径解析，'ajv/dist/2020' 会 ENOENT。
+import Ajv2020 from 'ajv/dist/2020.js'
 import type { DatabaseSync } from 'node:sqlite'
 import {
   GateFail,
