@@ -1,0 +1,192 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "novelos://schemas/volume-outline-metadata",
+  "title": "Volume Outline Metadata (v1, T39)",
+  "description": "卷纲机器可读形态——卷号/字数对表/卷型/冲突线（双粒度）/单元编排/换图清算/新种与漂移/变奏承接。语义档位（副高湂数、线弧双向、终卷纪律）由 novelos_validate_volume_outline.py 核验，schema 只管结构。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "volume_number", "word_range", "volume_form", "lines", "climax_positions"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "volume_number": {
+      "type": "integer", "minimum": 1, "maximum": 99,
+      "description": "本卷卷号——前置卷须为 1..N-1 连续锁定，本卷 = N（validate --project 核验，prev 卷链按卷号排序）"
+    },
+    "word_range": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["min", "target", "max"],
+      "description": "本卷字数申报（字）——须与 story_arc volume_plan 本卷行的 word_range 有交集（validate 核验）；target 是副高湂数条件化的基准",
+      "properties": {
+        "min": {"type": "integer", "minimum": 10000},
+        "target": {"type": "integer", "minimum": 10000},
+        "max": {"type": "integer", "minimum": 10000}
+      }
+    },
+    "volume_form": {
+      "enum": ["连续四段", "单元编排"],
+      "description": "卷骨架形态：连续四段=单连续冲突卷弧（默认）；单元编排=副本/案件/赛季型（与 strategy genre_stage_form 对偶——副本难度弧/案件升级弧/赛季弧时通常取单元编排）。换图清算不是独立骨架，经 exit_settlement 声明叠加在任一形态上"
+    },
+    "stage_span": {
+      "type": "array", "minItems": 2, "maxItems": 2,
+      "items": {"type": "integer", "minimum": 1},
+      "description": "本卷覆盖的 strategy 阶段区间 [起, 止]（阶段序号，含端点；validate 对 stages 总数核验）"
+    },
+    "lines": {
+      "type": "array", "minItems": 3, "maxItems": 12,
+      "description": "并行冲突线（≥3）——双粒度：跨卷弧切片（arc_id 回指映射表）与卷内自含线（本卷开本卷收，悬念入 new_plants）",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "scope", "share_pct", "pov"],
+        "properties": {
+          "name": {"type": "string", "minLength": 1, "maxLength": 40},
+          "scope": {"enum": ["跨卷弧", "卷内自含"]},
+          "arc_id": {
+            "type": "string", "pattern": "^[a-z][a-z0-9_]{1,39}$",
+            "description": "scope=跨卷弧 时必填——回指 story_arc arcs[].arc_id，且该弧本卷 duty 须为活跃（推进/兑现/收束）"
+          },
+          "share_pct": {
+            "type": "integer", "minimum": 5, "maximum": 90,
+            "description": "本线篇幅占比（%，各线合计 90-110 为合法窗）——主线占比与架构 mainline_density.tier 对表（validate 核验）"
+          },
+          "mainline": {"type": "boolean", "description": "本线是否主线（0-1 条为 true）"},
+          "pov": {"type": "string", "minLength": 1, "maxLength": 120, "description": "POV 载体与目光声明（谁看、连续超 1/3 卷长须给理由）"},
+          "note": {"type": "string", "maxLength": 200, "description": "加压与结算点一句话（自含线必写——独立的开压与收束是它的弧替身）"}
+        }
+      }
+    },
+    "mainline_beats": {
+      "type": "integer", "minimum": 0, "maximum": 8,
+      "description": "本卷主线节拍落位数——对架构 beats_per_volume ±2 内对表（validate 核验；tier=低 允许 0 拍卷）"
+    },
+    "climax_positions": {
+      "type": "array", "minItems": 1, "maxItems": 6,
+      "items": {"type": "number", "exclusiveMinimum": 0, "maximum": 1},
+      "description": "高潮点位置（卷长比例，升序，末位=1 即卷末主高潮）——相邻间距 × word_range.target ≤ 30 万字；target≥20 万时高潮总数 ≥ ceil(target/25万)（validate 核验；短篇退化：target<20 万允许仅卷末主高潮）"
+    },
+    "units": {
+      "type": "array", "minItems": 1, "maxItems": 10,
+      "description": "单元编排表——volume_form=单元编排 时必填（validate 核验）：每单元一个副本/案件/赛季切片，主题内核保持一致，篇幅有窗，每单元至少推进一步主线（间歇单元除外）",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["unit_id", "theme", "chapter_window"],
+        "properties": {
+          "unit_id": {"type": "string", "pattern": "^[a-z][a-z0-9_]{1,39}$"},
+          "theme": {"type": "string", "minLength": 1, "maxLength": 60, "description": "主题内核（题材一致性锚）"},
+          "chapter_window": {
+            "type": "object", "additionalProperties": false, "required": ["min", "max"],
+            "properties": {"min": {"type": "integer", "minimum": 1, "maximum": 99},
+                           "max": {"type": "integer", "minimum": 1, "maximum": 99}}
+          },
+          "mainline_advance": {
+            "type": "integer", "minimum": 0, "maximum": 8,
+            "description": "本单元推进主线的最小拍数（≥1；interlude=true 的间歇单元可为 0——主世界/兑换/队伍戏）"
+          },
+          "interlude": {"type": "boolean", "description": "间歇单元（主世界休整，不承担主线渗透）"},
+          "new_setting_ref": {"type": "string", "maxLength": 60, "description": "单元舞台回指 volume_settings.name（副本世界等）"}
+        }
+      }
+    },
+    "exit_settlement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["carry", "cut", "pre_close"],
+      "description": "换图清算（换地图/换舞台卷必填）——带走/斩前缘/离图前收账三清单：避免前期人际与势力在新图作废、散线拖累新图",
+      "properties": {
+        "carry": {"type": "array", "maxItems": 20, "items": {"type": "string", "maxLength": 60},
+                   "description": "随行资产（人物/关系/势力/物品——带核心人脉入新图，跨卷班底须已标待升级）"},
+        "cut": {"type": "array", "maxItems": 20, "items": {"type": "string", "maxLength": 60},
+                 "description": "斩断线（line_id 或线名——散落小线明确砍断，斩断即显式处置，不得无声消失）"},
+        "pre_close": {"type": "array", "maxItems": 20, "items": {"type": "string", "maxLength": 60},
+                       "description": "离图前必须收掉的台账 line_id（斩前缘收账——拖进新图即烂尾）"}
+      }
+    },
+    "new_plants": {
+      "type": "array",
+      "description": "本卷新种悬念（结构化回写候选——主控据此经 change proposal 增补 story_arc 台账；自含线的线级种收同样入此表）",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["line_id", "claim"],
+        "properties": {
+          "line_id": {"type": "string", "pattern": "^[a-z][a-z0-9_]{1,39}$"},
+          "claim": {"type": "string", "minLength": 1, "maxLength": 300},
+          "close_volume": {"type": "integer", "minimum": 1,
+                            "description": "预计收束卷（≥本卷卷号——自含线同卷收合法；终卷种收须闭合，validate 核验）"},
+          "exempt": {"type": "string", "maxLength": 200,
+                      "description": "豁免理由（close_volume 与 exempt 二选一，与 story_arc 台账同构）"}
+        }
+      }
+    },
+    "drift": {
+      "type": "array",
+      "description": "计划 vs 实际漂移清单（arc_id 回指）——漂移以实际结算为优先源，建议 story_arc 经 change proposal 重映射",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["arc_id", "planned", "actual"],
+        "properties": {
+          "arc_id": {"type": "string", "pattern": "^[a-z][a-z0-9_]{1,39}$"},
+          "planned": {"type": "string", "minLength": 1, "maxLength": 200},
+          "actual": {"type": "string", "minLength": 1, "maxLength": 200},
+          "proposal": {"type": "string", "maxLength": 200, "description": "重映射建议"}
+        }
+      }
+    },
+    "test_alloc": {
+      "type": "array",
+      "description": "本卷 recurring_test 变奏承接——与 story_arc variation_alloc 本卷行双向对账（分配行必须被承接，承接不得超出分配；validate --project 核验）",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["test_ref", "changed"],
+        "properties": {
+          "test_ref": {"type": "string", "minLength": 1, "maxLength": 200},
+          "changed": {"type": "array", "minItems": 1, "maxItems": 3, "uniqueItems": true,
+                       "items": {"enum": ["处境", "答案", "代价"]}}
+        }
+      }
+    },
+    "volume_settings": {
+      "type": "array",
+      "description": "本卷新设定表（势力/地点/物品/规则/副本世界）——正文提及的新设定实体必须入表，表外发明 = 审查 blocking；disposition=登记入world 的条目锁定后由主控走 world change proposal 增补",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["kind", "name", "spec", "disposition"],
+        "properties": {
+          "kind": {"enum": ["势力", "地点", "物品", "规则", "副本世界"]},
+          "name": {"type": "string", "minLength": 1, "maxLength": 60},
+          "spec": {"type": "string", "minLength": 1, "maxLength": 300,
+                    "description": "一句话规格 + 一两句可写细节（微档案式，不是设定集）"},
+          "disposition": {"enum": ["卷内自闭", "登记入world"],
+                           "description": "卷内自闭=本卷用完即弃（不进世界契约）；登记入world=跨卷复用，锁定后走 world 修订"},
+          "seat_ref": {"type": "string", "minLength": 1, "maxLength": 40}
+        }
+      }
+    },
+    "volume_characters": {"$ref": "#/$defs/volume_characters"}
+  },
+  "$defs": {
+    "volume_characters": {
+      "type": "array",
+      "maxItems": 40,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "role_class", "arc_role", "预期退场"],
+        "properties": {
+          "name": {"type": "string", "minLength": 1, "maxLength": 60},
+          "role_class": {"enum": ["secondary", "minor"]},
+          "arc_role": {"type": "string", "minLength": 1, "maxLength": 200},
+          "预期退场": {
+            "enum": ["完成型", "迁移型", "转化型", "关系型", "功能转移型", "休眠型", "死亡型", "持续活跃"]
+          },
+          "微档案": {"type": "string", "maxLength": 200},
+          "登记备注": {"type": "string", "maxLength": 200},
+          "seat_ref": {"type": "string", "minLength": 1, "maxLength": 40},
+          "essence": {"type": "string", "minLength": 1, "maxLength": 160}
+        }
+      }
+    }
+  }
+}

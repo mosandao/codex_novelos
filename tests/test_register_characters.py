@@ -43,8 +43,21 @@ def _make_db(path: Path) -> None:
             created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
             UNIQUE (project_id, name));
+        CREATE TABLE planning_assets (
+            id TEXT PRIMARY KEY, project_id TEXT NOT NULL, asset_type TEXT NOT NULL,
+            scope_ref TEXT, revision INTEGER NOT NULL DEFAULT 1, status TEXT NOT NULL,
+            content_resource_id TEXT, metadata_json TEXT);
     """)
     conn.execute("INSERT INTO projects VALUES ('project:p1')")
+    conn.commit()
+    conn.close()
+
+
+def _locked_volume(db: Path, scope: str, meta: dict) -> None:
+    conn = sqlite3.connect(db)
+    conn.execute(
+        "INSERT INTO planning_assets VALUES (?, 'project:p1', 'volume_outline', ?, 1, "
+        "'locked', NULL, ?)", (f"pa:{scope}", scope, json.dumps(meta, ensure_ascii=False)))
     conn.commit()
     conn.close()
 
@@ -444,6 +457,27 @@ class RegisterSeatsEssenceT37(unittest.TestCase):
             "SELECT * FROM characters WHERE project_id='project:p1'")}
         conn.close()
         return rows
+
+    def test_audit_entries_flags_missing(self):
+        _locked_volume(self.db, "volume:1", {"volume_number": 1, "volume_characters": [
+            {"name": "悬赏猎人·隼", "role_class": "secondary", "arc_role": "支线压力源",
+             "预期退场": "完成型"}]})
+        self.assertEqual(reg.check_audit_entries(self.db, "project:p1"), 1)  # 漏跑 --entry
+
+    def test_audit_entries_pass_after_registration(self):
+        _locked_volume(self.db, "volume:1", {"volume_number": 1, "volume_characters": [
+            {"name": "悬赏猎人·隼", "role_class": "secondary", "arc_role": "支线压力源",
+             "预期退场": "完成型", "来源卷": 1}]})
+        self.assertEqual(reg.run(self.db, "project:p1", None, [
+            {"name": "悬赏猎人·隼", "role_class": "secondary", "arc_role": "支线压力源",
+             "预期退场": "完成型", "来源卷": 1, "source": "volume_outline"}], None), 0)
+        self.assertEqual(reg.check_audit_entries(self.db, "project:p1"), 0)
+
+    def test_audit_entries_old_assets_and_settings_warn(self):
+        _locked_volume(self.db, "volume:1", {})  # T39 前旧卷纲：无 volume_characters 字段
+        _locked_volume(self.db, "volume:2", {"volume_number": 2, "volume_settings": [
+            {"kind": "势力", "name": "漕帮", "spec": "把持水路", "disposition": "登记入world"}]})
+        self.assertEqual(reg.check_audit_entries(self.db, "project:p1"), 0)  # 仅 WARN 不阻断
 
 
 if __name__ == "__main__":

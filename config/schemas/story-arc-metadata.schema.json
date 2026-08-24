@@ -1,0 +1,180 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://novelos.local/schemas/story-arc-metadata.schema.json",
+  "title": "NovelOS 跨卷故事弧 metadata（v1，T38）",
+  "description": "story_arc 候选的结构化出口：弧清单（载体指认）+ 卷计划（全书卷数权威）+ 弧↔卷映射表 + 种收台账（豁免体系）+ 变奏分配（引用架构机制）+ 开放滚动窗口 + 决策点。机器门见 scripts/novelos_validate_story_arc.py。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "arcs", "volume_plan", "arc_volume_map", "plant_payoff_ledger"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "volume_plan": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 40,
+      "description": "全书卷骨架——卷数与每卷字数区间在此声明（strategy 只给阶段字数，卷切分权威归本层）；开放连载的远卷允许宽区间",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["index", "word_range"],
+        "properties": {
+          "index": {"type": "integer", "minimum": 1},
+          "title": {"type": "string", "minLength": 1, "maxLength": 60},
+          "word_range": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["min", "max"],
+            "properties": {
+              "min": {"type": "integer", "minimum": 10000},
+              "max": {"type": "integer", "minimum": 10000}
+            }
+          }
+        }
+      }
+    },
+    "arcs": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 12,
+      "description": "弧清单：主线恰 1 条；每条以状态迁移描述；载体必须指认（roster 人物 / world 席位 / latent 远卷待造）；数量语义门（短篇 1-2/中篇 2-3/长篇 3-5/超长篇 5-7）归 validate ×scale，此处只做结构上限",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["arc_id", "name", "kind", "carriers", "start_state", "end_state"],
+        "properties": {
+          "arc_id": {"type": "string", "pattern": "^[a-z][a-z0-9_]{1,39}$"},
+          "name": {"type": "string", "minLength": 1, "maxLength": 60},
+          "kind": {"enum": ["主线", "人物", "关系", "世界", "对手", "其他"]},
+          "carriers": {
+            "type": "array",
+            "maxItems": 6,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["ref", "ref_type"],
+              "properties": {
+                "ref": {"type": "string", "minLength": 1, "maxLength": 60},
+                "ref_type": {"enum": ["roster", "seat", "latent"]}
+              }
+            }
+          },
+          "start_state": {"type": "string", "minLength": 1, "maxLength": 200},
+          "end_state": {"type": "string", "minLength": 1, "maxLength": 200},
+          "turning_points": {
+            "type": "array",
+            "maxItems": 8,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["volume", "note"],
+              "properties": {
+                "volume": {"type": "integer", "minimum": 1},
+                "note": {"type": "string", "minLength": 1, "maxLength": 200}
+              }
+            }
+          }
+        }
+      }
+    },
+    "arc_volume_map": {
+      "type": "array",
+      "description": "弧↔卷映射表（行式）：每弧每卷一格职责；机器门——每卷 ≥1 条推进、推进 ≤2、同时活跃（推进/兑现/收束）≤4、禁全推进/全休眠",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["arc_id", "volume", "duty"],
+        "properties": {
+          "arc_id": {"type": "string", "pattern": "^[a-z][a-z0-9_]{1,39}$"},
+          "volume": {"type": "integer", "minimum": 1},
+          "duty": {"enum": ["推进", "蓄势", "兑现", "收束", "休眠"]},
+          "note": {"type": "string", "maxLength": 200}
+        }
+      }
+    },
+    "plant_payoff_ledger": {
+      "type": "array",
+      "description": "种收台账（行式）：每行 close_volume 与 exempt 二选一必填——豁免须引用理由（book_soul.deliberate_silences 条目 / open 喂料线）；违约与转化也是合法收束形态",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["line_id", "claim", "source_type", "plant_volume"],
+        "properties": {
+          "line_id": {"type": "string", "pattern": "^[a-z][a-z0-9_]{1,39}$"},
+          "claim": {"type": "string", "minLength": 1, "maxLength": 300},
+          "source_type": {"enum": ["book_soul", "strategy", "arc"]},
+          "source_ref": {"type": "string", "maxLength": 200},
+          "plant_volume": {"type": "integer", "minimum": 1},
+          "partial_payoffs": {
+            "type": "array",
+            "maxItems": 10,
+            "items": {"type": "integer", "minimum": 2}
+          },
+          "close_volume": {"type": "integer", "minimum": 2},
+          "close_form": {"enum": ["兑现", "违约", "转化"]},
+          "exempt": {"type": "string", "minLength": 1, "maxLength": 200}
+        }
+      }
+    },
+    "variation_alloc": {
+      "type": "array",
+      "description": "recurring_tests 的跨卷变奏分配：changed 至少其一；mech_ref 回指 architecture mechanisms 的机制名（引用原文变奏声明）",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["test_ref", "volume", "changed"],
+        "properties": {
+          "test_ref": {"type": "string", "minLength": 1, "maxLength": 200},
+          "volume": {"type": "integer", "minimum": 1},
+          "changed": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 3,
+            "uniqueItems": true,
+            "items": {"enum": ["处境", "答案", "代价"]}
+          },
+          "mech_ref": {"type": "string", "maxLength": 60},
+          "note": {"type": "string", "maxLength": 200}
+        }
+      }
+    },
+    "open_window": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["hard_volumes"],
+      "description": "开放连载滚动窗口（strategy terminal_mode=open 时必填）：近 hard_volumes 卷硬格（明确职责），远卷软格（方向性 duty + 待重映射）",
+      "properties": {
+        "hard_volumes": {"type": "integer", "minimum": 1, "maximum": 5},
+        "note": {"type": "string", "maxLength": 200}
+      }
+    },
+    "decision_points": {
+      "type": "array",
+      "maxItems": 4,
+      "description": "弧层命门决策点（弧数取舍/终点形态/种收节奏等值得用户裁决的分叉）；无关省略，不凑数",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["question", "options"],
+        "properties": {
+          "question": {"type": "string", "minLength": 1, "maxLength": 300},
+          "options": {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 4,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["label", "detail", "tradeoff"],
+              "properties": {
+                "label": {"type": "string", "minLength": 1, "maxLength": 40},
+                "detail": {"type": "string", "minLength": 1, "maxLength": 300},
+                "tradeoff": {"type": "string", "minLength": 1, "maxLength": 300}
+              }
+            }
+          },
+          "source_excerpt": {"type": "string", "maxLength": 300}
+        }
+      }
+    }
+  }
+}

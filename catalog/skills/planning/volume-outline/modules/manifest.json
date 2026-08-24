@@ -28,8 +28,14 @@
   "data_slots": [
     "upstream:story_arc",
     "upstream:world_contract",
+    "book_soul",
+    "mechanisms",
     "character_roster",
-    "persona_gate"
+    "persona_gate",
+    "project_setup",
+    "genre_pack",
+    "prev_volume_outline",
+    "promise_ledger"
   ],
   "divergence": "balanced",
   "decision_scope": "propose_only"

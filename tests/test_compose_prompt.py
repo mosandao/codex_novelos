@@ -377,17 +377,26 @@ class P2RoutingBatch(unittest.TestCase):
 
     def test_arc_and_volume_enhancements(self):
         arc = compose(ASSET_DIRS["story-arc"], _ctx_direction(), [])
-        self.assertIn("弧↔卷映射方法", arc)
+        # T38 重写：消费表/载体指认/双台账对账接替旧「映射方法」节名
+        self.assertIn("弧↔卷映射", arc)
         self.assertIn("种收台账", arc)
+        self.assertIn("上游消费表", arc)
+        self.assertIn("forbidden_resolutions", arc)
         vol = compose(ASSET_DIRS["volume-outline"], _ctx_direction(), [])
-        self.assertIn("每 20-30 万字一个副高潮", vol)
+        self.assertIn("climax_positions", vol)  # T39：高潮门按本卷字数条件化
+        self.assertIn("卷型", vol)
+        self.assertIn("exit_settlement", vol)
         self.assertIn("四段结构", vol)
+        self.assertIn("双对账", vol)
+        self.assertIn("prev_volume_outline", vol)
         arc_rev = compose(ASSET_DIRS["story-arc-review"], _ctx_direction(channel="女频"), [])
         self.assertIn("弧↔卷映射表", arc_rev)
         self.assertIn("频道轴审查：女频", arc_rev)
+        self.assertIn("载体指认", arc_rev)
         vol_rev = compose(ASSET_DIRS["volume-outline-review"], _ctx_direction(channel="女频"), [])
         self.assertIn("卷内节奏量化", vol_rev)
         self.assertIn("频道轴审查：女频", vol_rev)
+        self.assertIn("弧挂接", vol_rev)
 
 
     def test_chapter_plan_enhancements(self):

@@ -23,6 +23,9 @@
 - `--pending-status`：账本↔注册表对账——比对已 promoted 候选集中每个
   人物的最新 character_status 候选与注册表现状，漂移即逐条列出并以
   非零码退出（novel-continuity 收尾必跑）。
+- `--audit-entries`（T39）：卷纲班底落表终核——locked 卷纲的
+  volume_characters 逐名对注册表，漏跑 `--entry` 即非零退出；附带
+  WARN 列出 volume_settings 待登记入 world 的条目。
 - `--world <json>`（T37）：world_contract metadata——登记时席位对账：
   roster/entry 的 seat_ref 引用不存在的席位 = FAIL；写库后报告 world
   标注「待契约认领/待卷级班底」但仍无任何注册表认领人的席位（WARN
@@ -47,6 +50,9 @@ essence（T37 起人物卡要点，正文执行端 character_essence 槽消费�
 
     # 账本↔注册表对账（连续性收尾）
     python scripts/novelos_register_characters.py --project project:xxx --pending-status
+
+    # 卷纲班底落表终核（卷纲锁定循环收尾 / 开下一卷前）
+    python scripts/novelos_register_characters.py --project project:xxx --audit-entries
 """
 
 from __future__ import annotations
@@ -407,6 +413,64 @@ def run(db_path: Path, project_id: str, roster: list[dict[str, Any]] | None,
         conn.close()
 
 
+def check_audit_entries(db_path: Path, project_id: str) -> int:
+    """卷纲班底落表终核（T39）：locked 卷纲的 volume_characters 逐名对注册表。
+
+    漏跑 --entry = FAIL 非零退出（卷纲锁定后班底必须落注册表——执行卡
+    「卷纲已登记」的引用才不悬空）。附带列出 volume_settings 中
+    disposition=登记入world 的待登记条目（WARN 提示走 world change
+    proposal，不影响退出码）。T39 前旧卷纲无 volume_characters 字段则跳过。
+    """
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    try:
+        proj = conn.execute("SELECT id FROM projects WHERE id = ?", (project_id,)).fetchone()
+        if proj is None:
+            print(f"项目不存在: {project_id}")
+            return 2
+        rows = conn.execute(
+            "SELECT scope_ref, revision, metadata_json FROM planning_assets "
+            "WHERE project_id = ? AND asset_type = 'volume_outline' AND status = 'locked' "
+            "ORDER BY scope_ref, revision", (project_id,)).fetchall()
+        latest: dict[str, tuple[int, dict]] = {}
+        for scope, revision, meta_json in rows:
+            if scope not in latest or revision > latest[scope][0]:
+                try:
+                    latest[scope] = (revision, json.loads(meta_json or "{}") or {})
+                except json.JSONDecodeError:
+                    latest[scope] = (revision, {})
+        missing: list[str] = []
+        pending_settings: list[str] = []
+        n_entries = 0
+        for scope, (_, meta) in sorted(latest.items()):
+            for p in meta.get("volume_characters") or []:
+                n_entries += 1
+                name = p.get("name")
+                hit = conn.execute(
+                    "SELECT 1 FROM characters WHERE project_id = ? AND name = ?",
+                    (project_id, name)).fetchone()
+                if hit is None:
+                    missing.append(f"卷纲[{scope}] 班底 {name} 未入注册表——漏跑 --entry")
+            pending_settings += [
+                f"卷纲[{scope}] 设定 {s.get('name')}（{s.get('kind')}）待登记入 world"
+                for s in meta.get("volume_settings") or []
+                if s.get("disposition") == "登记入world"
+            ]
+        for w in pending_settings:
+            print(f"WARN: {w}（锁定后应走 world change proposal）")
+        if missing:
+            print(f"FAIL（{len(missing)} 处班底未落表）:")
+            for m in missing:
+                print(f"  - {m}")
+            return 1
+        print(f"PASS: 卷纲班底落表终核通过（{len(latest)} 卷，{n_entries} 条班底"
+              + (f"，待登记设定 {len(pending_settings)} 项见 WARN" if pending_settings else "")
+              + "）。")
+        return 0
+    finally:
+        conn.close()
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--project", required=True, help="项目 ID（project:xxx）")
@@ -415,6 +479,8 @@ def main() -> int:
     parser.add_argument("--status-update", help="状态迁移 JSON 路径或内联 JSON（单对象或数组，character_status 晋升后）")
     parser.add_argument("--pending-status", action="store_true",
                         help="账本↔注册表对账：promoted character_status 候选 vs 注册表现状，漂移非零退出")
+    parser.add_argument("--audit-entries", action="store_true",
+                        help="卷纲班底落表终核：locked 卷纲 volume_characters 逐名对注册表，漏跑 --entry 非零退出")
     parser.add_argument("--world", type=Path,
                         help="world_contract metadata JSON——启用席位对账（seat_ref 存在性 FAIL + 未认领承诺席位 WARN）")
     parser.add_argument("--db", default=str(DEFAULT_DB))
@@ -427,8 +493,15 @@ def main() -> int:
             return 2
         return check_pending_status(db_path, args.project)
 
+    if args.audit_entries:
+        db_path = Path(args.db)
+        if not db_path.exists():
+            print(f"数据库不存在: {db_path}")
+            return 2
+        return check_audit_entries(db_path, args.project)
+
     if not args.roster and not args.entry and not args.status_update:
-        parser.error("至少提供 --roster / --entry / --status-update / --pending-status 之一")
+        parser.error("至少提供 --roster / --entry / --status-update / --pending-status / --audit-entries 之一")
 
     roster = _load(args.roster) if args.roster else None
     entries = _load(args.entry) if args.entry else None

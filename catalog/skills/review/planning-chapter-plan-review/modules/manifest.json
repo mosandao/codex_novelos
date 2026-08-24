@@ -28,8 +28,13 @@
   "data_slots": [
     "subject",
     "upstream:volume_outline",
+    "upstream:character_contract",
+    "upstream:world_contract",
     "character_roster",
-    "persona_gate"
+    "persona_gate",
+    "upstream-reviews:volume_outline",
+    "project_setup",
+    "promise_ledger"
   ],
   "decision_scope": "judge"
 }

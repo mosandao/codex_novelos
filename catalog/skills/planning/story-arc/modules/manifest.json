@@ -1,13 +1,40 @@
 {
   "modules": [
-    {"id": "channel-male", "file": "channel-male.md",
-     "when": {"field": "setup.channel", "equals": "男频"}},
-    {"id": "channel-female", "file": "channel-female.md",
-     "when": {"field": "setup.channel", "equals": "女频"}},
-    {"id": "channel-omni", "file": "channel-omni.md",
-     "when": {"field": "setup.channel", "equals": "全向"}}
+    {
+      "id": "channel-male",
+      "file": "channel-male.md",
+      "when": {
+        "field": "setup.channel",
+        "equals": "男频"
+      }
+    },
+    {
+      "id": "channel-female",
+      "file": "channel-female.md",
+      "when": {
+        "field": "setup.channel",
+        "equals": "女频"
+      }
+    },
+    {
+      "id": "channel-omni",
+      "file": "channel-omni.md",
+      "when": {
+        "field": "setup.channel",
+        "equals": "全向"
+      }
+    }
   ],
-  "data_slots": ["upstream:strategy", "upstream:character_contract", "upstream:world_contract"],
+  "data_slots": [
+    "project_setup",
+    "persona_gate",
+    "genre_pack",
+    "book_soul",
+    "mechanisms",
+    "upstream:strategy",
+    "upstream:character_contract",
+    "upstream:world_contract"
+  ],
   "divergence": "balanced",
   "decision_scope": "propose_only"
 }

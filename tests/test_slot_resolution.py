@@ -508,7 +508,7 @@ class CanonLedgerInjection(unittest.TestCase):
         rel = by_title["canon 最小集 · relationship_states（近 8 条）"]
         self.assertIn("林昭", rel)
         self.assertIn("沈青梧", rel)
-        self.assertIn("复仇弧", by_title["canon 最小集 · arc_states（近 4 条）"])
+        self.assertIn("复仇弧", by_title["canon 最小集 · arc_states（近 8 条）"])
         recent = by_title["canon 最小集 · 近期已接受章节（近 5 章）"]
         self.assertIn("第九章", recent)
         self.assertIn("主角查明铸根案一角", recent)
@@ -784,6 +784,192 @@ class EssenceGateSlots(unittest.TestCase):
         essence = next(b for t, b in sections2 if t.startswith("出场人物卡"))
         self.assertIn("执念", essence)
         self.assertIn("已退场:迁移型", essence)
+
+
+def _seed_arc_chain(conn: sqlite3.Connection) -> None:
+    """T38：story_arc 全槽链——direction(book_soul)/architecture(mechanisms)/三上游/两前置卷/账本。"""
+    conn.execute("INSERT INTO projects VALUES ('project:p1', ?)", (
+        json.dumps({"setup": {"channel": "男频", "scale": "长篇",
+                              "genre_profile": {"taboos": ["无代价金手指"]}}},
+                   ensure_ascii=False),))
+    soul = {"book_soul": {
+        "recurring_tests": ["账房审判", "名望反噬"], "forbidden_resolutions": ["以暴制暴清算"],
+        "protected_dignity": ["师弟沈青梧不死"], "cadence_plan": {"fulfillment_count": 4,
+                                                                  "interval_volumes": 2}}}
+    conn.execute("INSERT INTO resources VALUES ('res:d2', CAST(? AS BLOB))", ("# 方向 v2",))
+    conn.execute("INSERT INTO planning_assets VALUES "
+                 "('pa:d2', 'project:p1', 'direction', 'book', 2, 'locked', 'res:d2', ?)",
+                 (json.dumps(soul, ensure_ascii=False),))
+    mechs = {"mechanisms": [
+        {"name": "账目变奏器", "rhythm": "每卷一次", "downstream": [],
+         "coupling": {"form": "io", "spec": "输入考验输出代价"}}],
+        "mainline_density": {"tier": "高", "beats_per_volume": 1, "gap_limit_volumes": 2}}
+    conn.execute("INSERT INTO resources VALUES ('res:a2', CAST(? AS BLOB))", ("# 架构 v2",))
+    conn.execute("INSERT INTO planning_assets VALUES "
+                 "('pa:a2', 'project:p1', 'architecture', 'book', 2, 'locked', 'res:a2', ?)",
+                 (json.dumps(mechs, ensure_ascii=False),))
+    for aid, atype in (("pa:s2", "strategy"), ("pa:c2", "character_contract"),
+                       ("pa:w2", "world_contract")):
+        conn.execute("INSERT INTO resources VALUES (?, CAST(? AS BLOB))", (f"res:{aid}", f"# {atype}"))
+        conn.execute("INSERT INTO planning_assets VALUES "
+                     "(?, 'project:p1', ?, 'book', 1, 'locked', ?, '{}')", (aid, atype, f"res:{aid}"))
+    for n, stat in ((1, "locked"), (2, "locked"), (3, "locked"), (4, "candidate")):
+        conn.execute("INSERT INTO resources VALUES (?, CAST(? AS BLOB))",
+                     (f"res:vo{n}", f"# 第{n}卷纲——结算：留下新压力{n}"))
+        conn.execute("INSERT INTO planning_assets VALUES "
+                     "(?, 'project:p1', 'volume_outline', ?, 1, ?, ?, ?)",
+                     (f"pa:vo{n}", f"volume:{n}", stat, f"res:vo{n}",
+                      json.dumps({"volume_number": n})))
+    conn.execute("INSERT INTO resources VALUES ('res:pm1', CAST(? AS BLOB))", ("师门血案真相未决",))
+    conn.execute("INSERT INTO narrative_promises VALUES "
+                 "('np:1', 'project:p1', 'promise:blood_case', 'res:pm1', 'open')")
+    conn.execute("INSERT INTO resources VALUES ('res:as1', CAST(? AS BLOB))", ("复仇弧推进到对峙",))
+    conn.execute("INSERT INTO arc_states VALUES "
+                 "('as:1', 'project:p1', 'arc:main', 'res:as1')")
+    # T39：连续性事实 + 上卷末章摘要（promise_ledger 扩充的实际源）
+    conn.execute("INSERT INTO resources VALUES ('res:cf1', CAST(? AS BLOB))", ("宗门易主已成事实",))
+    conn.execute("INSERT INTO chapter_facts VALUES "
+                 "('cf:1', 'project:p1', 'chapter:12', 'world_state', '玄阳宗', 'res:cf1', 'active')")
+    conn.execute("INSERT INTO books VALUES ('book:1', 'project:p1')")
+    conn.execute("INSERT INTO volumes VALUES ('vol:1', 'book:1', 1)")
+    for n, summary in ((12, "宗门易主，掌门退位"), (13, "主角携新压力离山")):
+        conn.execute(
+            "INSERT INTO chapters VALUES (?, 'vol:1', ?, ?, 'accepted', NULL, ?, '{}', 1, NULL, NULL)",
+            (f"chapter:{n}", n, f"第{n}章", summary))
+
+
+class StoryArcT38Slots(unittest.TestCase):
+    """T38 四新槽（book_soul/mechanisms/prev_volume_outline/promise_ledger）+ story-arc/volume 全槽装配。"""
+
+    def test_book_soul_slot_renders_numbered_tests(self):
+        conn = _make_db()
+        _seed_arc_chain(conn)
+        title, body = SLOT_REGISTRY["book_soul"](conn, "project:p1", None)
+        self.assertIn("recurring_tests", body)
+        self.assertIn("[0] 账房审判", body)  # 变奏分配 test_ref 的引用锚
+        self.assertIn("cadence_plan", body)
+        self.assertIn("forbidden_resolutions", body)
+
+    def test_book_soul_placeholder_when_absent(self):
+        conn = _make_db()
+        title, body = SLOT_REGISTRY["book_soul"](conn, "project:p1", None)
+        self.assertIn("缺位", body)
+
+    def test_mechanisms_slot_renders_density(self):
+        conn = _make_db()
+        _seed_arc_chain(conn)
+        title, body = SLOT_REGISTRY["mechanisms"](conn, "project:p1", None)
+        self.assertIn("账目变奏器", body)
+        self.assertIn("mainline_density", body)
+
+    def test_mechanisms_placeholder_when_absent(self):
+        conn = _make_db()
+        title, body = SLOT_REGISTRY["mechanisms"](conn, "project:p1", None)
+        self.assertIn("缺位", body)
+        self.assertIn("降级", body)
+
+    def test_prev_volume_outline_caps_at_two_latest(self):
+        conn = _make_db()
+        _seed_arc_chain(conn)
+        title, body = SLOT_REGISTRY["prev_volume_outline"](conn, "project:p1", None)
+        self.assertIn("volume:2", body)
+        self.assertIn("volume:3", body)
+        self.assertNotIn("volume:1", body)  # 只取最近 2 卷（rowid 序即增量生产序）
+        self.assertNotIn("volume:4", body)  # candidate 不算前置
+
+    def test_prev_volume_placeholder_first_volume(self):
+        conn = _make_db()
+        title, body = SLOT_REGISTRY["prev_volume_outline"](conn, "project:p1", None)
+        self.assertIn("首卷", body)
+
+    def test_promise_ledger_seeded_and_empty(self):
+        conn = _make_db()
+        _seed_arc_chain(conn)
+        title, body = SLOT_REGISTRY["promise_ledger"](conn, "project:p1", None)
+        self.assertIn("blood_case", body)
+        self.assertIn("arc:main", body)
+        conn2 = _make_db()
+        title2, body2 = SLOT_REGISTRY["promise_ledger"](conn2, "project:p1", None)
+        self.assertIn("无正文账本", body2)  # 首卷规划显式占位不阻断
+
+    def test_story_arc_compose_full_slots(self):
+        conn = _make_db()
+        _seed_arc_chain(conn)
+        sections = resolve_slots(conn, ASSET_DIRS["story-arc"], project_id="project:p1")
+        titles = [t for t, _ in sections]
+        self.assertTrue(any(t.startswith("book_soul") for t in titles))
+        self.assertTrue(any(t.startswith("架构机制清单") for t in titles))
+        self.assertTrue(any(t.startswith("project_setup") for t in titles))
+        self.assertTrue(any(t.startswith("上游 strategy") for t in titles))
+        self.assertTrue(any(t.startswith("上游 character_contract") for t in titles))
+        self.assertTrue(any(t.startswith("上游 world_contract") for t in titles))
+        self.assertTrue(any(t.startswith("题材信息包") for t in titles))
+
+    def test_volume_compose_gets_prev_and_promises(self):
+        conn = _make_db()
+        _seed_arc_chain(conn)
+        conn.execute("INSERT INTO resources VALUES ('res:sa9', CAST(? AS BLOB))", ("# 故事弧 v9",))
+        conn.execute("INSERT INTO planning_assets VALUES "
+                     "('pa:sa9', 'project:p1', 'story_arc', 'book', 9, 'locked', 'res:sa9', '{}')")
+        sections = resolve_slots(conn, ASSET_DIRS["volume-outline"], project_id="project:p1")
+        titles = [t for t, _ in sections]
+        self.assertTrue(any(t.startswith("前置卷链") for t in titles))
+        self.assertTrue(any(t.startswith("连续性账本") for t in titles))
+        self.assertTrue(any(t.startswith("project_setup") for t in titles))
+        self.assertTrue(any(t.startswith("题材信息包") for t in titles))
+
+
+class VolumeT39Slots(unittest.TestCase):
+    """T39：卷纲双端 book_soul/mechanisms 槽 + prev 按卷号排序 + promise_ledger 实际源扩充。"""
+
+    def test_volume_compose_gets_book_soul_and_mechanisms(self):
+        conn = _make_db()
+        _seed_arc_chain(conn)
+        conn.execute("INSERT INTO resources VALUES ('res:sa9', CAST(? AS BLOB))", ("# 故事弧 v9",))
+        conn.execute("INSERT INTO planning_assets VALUES "
+                     "('pa:sa9', 'project:p1', 'story_arc', 'book', 9, 'locked', 'res:sa9', '{}')")
+        sections = resolve_slots(conn, ASSET_DIRS["volume-outline"], project_id="project:p1")
+        titles = [t for t, _ in sections]
+        self.assertTrue(any(t.startswith("book_soul") for t in titles))
+        self.assertTrue(any(t.startswith("架构机制清单") for t in titles))
+
+    def test_volume_review_manifest_declares_reference_slots(self):
+        manifest = json.loads(
+            (ASSET_DIRS["volume-outline-review"] / "modules" / "manifest.json")
+            .read_text(encoding="utf-8"))
+        for slot in ("book_soul", "mechanisms", "prev_volume_outline", "promise_ledger",
+                     "upstream-reviews:story_arc", "upstream-reviews:world_contract"):
+            self.assertIn(slot, manifest["data_slots"])
+
+    def test_prev_volume_outline_orders_by_number(self):
+        conn = _make_db()
+        _seed_arc_chain(conn)
+        # 卷 5 晚于卷 3 落库但按卷号应排进前置链尾部
+        conn.execute("INSERT INTO resources VALUES ('res:vo5', CAST(? AS BLOB))", ("# 第5卷纲",))
+        conn.execute("INSERT INTO planning_assets VALUES "
+                     "('pa:vo5', 'project:p1', 'volume_outline', 'volume:5', 1, 'locked', "
+                     "'res:vo5', ?)", (json.dumps({"volume_number": 5}),))
+        title, body = SLOT_REGISTRY["prev_volume_outline"](conn, "project:p1", None)
+        self.assertIn("卷 5", body)
+        self.assertIn("卷 3", body)
+        self.assertNotIn("volume:2", body)  # 只取最近 2 卷（卷号序）
+        self.assertIn("卷 3", title + body)
+
+    def test_prev_volume_header_shows_volume_number(self):
+        conn = _make_db()
+        _seed_arc_chain(conn)
+        _, body = SLOT_REGISTRY["prev_volume_outline"](conn, "project:p1", None)
+        self.assertIn("卷 3", body)
+        self.assertIn("卷 2", body)
+
+    def test_promise_ledger_includes_facts_and_summaries(self):
+        conn = _make_db()
+        _seed_arc_chain(conn)
+        title, body = SLOT_REGISTRY["promise_ledger"](conn, "project:p1", None)
+        self.assertIn("连续性事实", body)
+        self.assertIn("宗门易主已成事实", body)
+        self.assertIn("上卷末尾章节摘要", body)
+        self.assertIn("主角携新压力离山", body)
 
 
 if __name__ == "__main__":

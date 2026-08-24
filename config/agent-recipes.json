@@ -19,6 +19,10 @@
     "character_roster",
     "character_essence",
     "persona_gate",
+    "book_soul",
+    "mechanisms",
+    "prev_volume_outline",
+    "promise_ledger",
     "upstream:<asset_type>"
   ],
   "divergence_tiers": {
@@ -240,13 +244,18 @@
       "composer_key": "story-arc",
       "skill": "planning/story-arc",
       "slots": [
+        "project_setup",
+        "persona_gate",
+        "genre_pack",
+        "book_soul",
+        "mechanisms",
         "upstream:strategy",
         "upstream:character_contract",
         "upstream:world_contract"
       ],
       "divergence": "balanced",
       "decision_scope": "propose_only",
-      "output": "跨卷弧线候选（recurring_tests 分配到卷）",
+      "output": "跨卷弧线候选（arcs/映射表/台账/卷计划 metadata——validate 机器门）",
       "failure": "修复循环"
     },
     {
@@ -255,7 +264,17 @@
       "skill": "review/planning-story-arc-review",
       "slots": [
         "subject",
-        "upstream:strategy"
+        "upstream:strategy",
+        "upstream:character_contract",
+        "upstream:world_contract",
+        "upstream-reviews:strategy",
+        "upstream-reviews:character_contract",
+        "upstream-reviews:world_contract",
+        "project_setup",
+        "persona_gate",
+        "genre_pack",
+        "book_soul",
+        "mechanisms"
       ],
       "divergence": null,
       "decision_scope": "judge",
@@ -269,12 +288,18 @@
       "slots": [
         "upstream:story_arc",
         "upstream:world_contract",
+        "book_soul",
+        "mechanisms",
         "character_roster",
-        "persona_gate"
+        "persona_gate",
+        "project_setup",
+        "genre_pack",
+        "prev_volume_outline",
+        "promise_ledger"
       ],
       "divergence": "balanced",
       "decision_scope": "propose_only",
-      "output": "卷纲候选（节奏密度约束 + 世界消费对账）",
+      "output": "卷纲候选（卷型 + 高潮门 + 线弧双向 + 双台账对账 + 班底/设定双通道）",
       "failure": "修复循环"
     },
     {
@@ -285,8 +310,16 @@
         "subject",
         "upstream:story_arc",
         "upstream:world_contract",
+        "book_soul",
+        "mechanisms",
         "character_roster",
-        "persona_gate"
+        "persona_gate",
+        "upstream-reviews:story_arc",
+        "upstream-reviews:world_contract",
+        "project_setup",
+        "genre_pack",
+        "prev_volume_outline",
+        "promise_ledger"
       ],
       "divergence": null,
       "decision_scope": "judge",
@@ -302,11 +335,13 @@
         "upstream:character_contract",
         "upstream:world_contract",
         "character_roster",
-        "persona_gate"
+        "persona_gate",
+        "project_setup",
+        "promise_ledger"
       ],
       "divergence": "balanced",
       "decision_scope": "propose_only",
-      "output": "章纲候选（含 soul_pressure 与 moral_residue）",
+      "output": "章纲候选（含 soul_pressure 与 moral_residue + 弧线挂接）",
       "failure": "修复循环"
     },
     {
@@ -316,8 +351,13 @@
       "slots": [
         "subject",
         "upstream:volume_outline",
+        "upstream:character_contract",
+        "upstream:world_contract",
         "character_roster",
-        "persona_gate"
+        "persona_gate",
+        "upstream-reviews:volume_outline",
+        "project_setup",
+        "promise_ledger"
       ],
       "divergence": null,
       "decision_scope": "judge",

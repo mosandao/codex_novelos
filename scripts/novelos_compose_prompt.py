@@ -659,6 +659,192 @@ def _slot_character_roster(conn: sqlite3.Connection, project_id: str | None,
     return ("人物名册镜像（character_roster——班底指认来源/查重权威）", "\n".join(parts))
 
 
+def _slot_book_soul(conn: sqlite3.Connection, project_id: str | None,
+                    payload: dict[str, Any] | None,
+                    subject_id: str | None = None) -> tuple[str, str]:
+    """book_soul 最小集：locked direction 的 metadata.book_soul（T38）。
+
+    隔代上游 direction 只直注到 architecture/strategy；弧层变奏分配/终点门/
+    台账间隔需要十三字段原文（recurring_tests 逐条编号供 test_ref 引用），
+    经 strategy 处置表的转述不可引用。未锁定或 v1 历史资产降级为警示占位。
+    """
+    if project_id is None:
+        raise SystemExit("book_soul 槽位需要 --project")
+    row = conn.execute(
+        "SELECT metadata_json FROM planning_assets WHERE project_id = ? "
+        "AND asset_type = 'direction' AND status = 'locked' "
+        "ORDER BY revision DESC LIMIT 1",
+        (project_id,),
+    ).fetchone()
+    soul = None
+    if row is not None:
+        try:
+            soul = (json.loads(row[0] or "{}")).get("book_soul")
+        except json.JSONDecodeError:
+            soul = None
+    if not isinstance(soul, dict):
+        return ("book_soul（direction metadata 机器可读）",
+                "⚠ 未锁定 direction 或 metadata.book_soul 缺位（v1 历史资产）——"
+                "变奏分配/弧终点门按 strategy 处置表的转述执行，并建议经 change "
+                "proposal 为 direction 补 metadata.book_soul")
+    lines: list[str] = []
+    for key in ("organizing_principle", "central_contradiction", "promise_cadence",
+                "narrative_mercy", "narrative_cruelty"):
+        if soul.get(key):
+            lines.append(f"{key}: {soul[key]}")
+    for key in ("unresolved_claims", "costly_commitments", "protected_dignity",
+                "forbidden_resolutions", "deliberate_silences"):
+        items = soul.get(key) or []
+        if items:
+            lines.append(f"{key}: " + "；".join(f"[{i}] {t}" for i, t in enumerate(items)))
+    tests = soul.get("recurring_tests") or []
+    if tests:
+        lines.append("recurring_tests（变奏分配逐条引用编号）: "
+                     + "；".join(f"[{i}] {t}" for i, t in enumerate(tests)))
+    cadence = soul.get("cadence_plan")
+    if cadence:
+        lines.append(f"cadence_plan: {json.dumps(cadence, ensure_ascii=False)}"
+                     "——种收台账兑现间隔须与此对表")
+    return ("book_soul（direction metadata 机器可读，跨阶段权威——弧终点门/变奏分配/台账间隔以此为准）",
+            "\n".join(lines) or "（book_soul 字段为空）")
+
+
+def _slot_mechanisms(conn: sqlite3.Connection, project_id: str | None,
+                     payload: dict[str, Any] | None,
+                     subject_id: str | None = None) -> tuple[str, str]:
+    """架构机制清单最小集：locked architecture 的 metadata.mechanisms（T38）。
+
+    弧层变奏分配被要求「引用架构变奏器的变奏声明原文」，而 architecture 原文
+    止步于 strategy/world/character——此槽补机器可读机制清单（name/rhythm/
+    coupling），mech_ref 引用与变奏声明核验以此为准。
+    """
+    if project_id is None:
+        raise SystemExit("mechanisms 槽位需要 --project")
+    row = conn.execute(
+        "SELECT metadata_json FROM planning_assets WHERE project_id = ? "
+        "AND asset_type = 'architecture' AND status = 'locked' "
+        "ORDER BY revision DESC LIMIT 1",
+        (project_id,),
+    ).fetchone()
+    meta: dict[str, Any] = {}
+    if row is not None:
+        try:
+            meta = json.loads(row[0] or "{}")
+        except json.JSONDecodeError:
+            meta = {}
+    mechs = meta.get("mechanisms")
+    if not isinstance(mechs, list) or not mechs:
+        return ("架构机制清单（mechanisms）",
+                "⚠ 未锁定 architecture 或 metadata.mechanisms 缺位——变奏分配的 mech_ref "
+                "无从核验，按 strategy engine_config 翻译行执行并注明降级")
+    lines = []
+    for m in mechs:
+        coupling = m.get("coupling") or {}
+        lines.append(f"- {m.get('name')}｜节奏: {m.get('rhythm', '（未声明）')}"
+                     f"｜耦合: {coupling.get('form', '?')}——{coupling.get('spec', '（未声明）')}")
+    density = meta.get("mainline_density")
+    if density:
+        lines.append(f"mainline_density: {json.dumps(density, ensure_ascii=False)}"
+                     "——弧活跃卷应与爆发点/空窗对齐（低密度主线弧推进贴 burst）")
+    return ("架构机制清单（mechanisms——变奏分配 mech_ref 引用与声明核验以此为准）",
+            "\n".join(lines))
+
+
+def _slot_prev_volume_outline(conn: sqlite3.Connection, project_id: str | None,
+                              payload: dict[str, Any] | None,
+                              subject_id: str | None = None) -> tuple[str, str]:
+    """前置卷链：最近 2 个 locked volume_outline 全文（T38）。
+
+    卷纲逐卷增量生产，但 volume N+1 原本看不到 volume N——上卷结算段的
+    「不可逆/新压力/进出状态」是本卷规划的直接输入。每 scope 取最高 revision，
+    按落库顺序取最近 2 卷（增量生产的卷序即 rowid 序）。首卷显式占位。
+    """
+    if project_id is None:
+        raise SystemExit("prev_volume_outline 槽位需要 --project")
+    rows = conn.execute(
+        "SELECT pa.scope_ref, pa.revision, pa.rowid AS pa_rowid, pa.metadata_json, "
+        "       CAST(r.content AS TEXT) AS body "
+        "FROM planning_assets pa JOIN resources r ON r.id = pa.content_resource_id "
+        "WHERE pa.project_id = ? AND pa.asset_type = 'volume_outline' "
+        "AND pa.status = 'locked' ORDER BY pa.scope_ref, pa.revision",
+        (project_id,),
+    ).fetchall()
+    latest: dict[str, tuple[int, int, int | None, str]] = {}
+    for scope, revision, rowid, meta_json, body in rows:
+        if scope not in latest or revision > latest[scope][0]:
+            try:
+                num = (json.loads(meta_json or "{}") or {}).get("volume_number")
+            except json.JSONDecodeError:
+                num = None
+            latest[scope] = (revision, rowid, num if isinstance(num, int) else None, body)
+    # 排序以卷号为准（T39 卷号锚定），无卷号的 T39 前旧资产按 rowid 兜底（卷序即落库序）
+    ordered = sorted(latest.items(),
+                     key=lambda kv: (kv[1][2] is None, kv[1][2] if kv[1][2] is not None else kv[1][1]))
+    if not ordered:
+        return ("前置卷链（prev_volume_outline）",
+                "（首卷——无已锁定前置卷，进出状态只对弧↔卷映射表负责）")
+    sections = [f"--- 前置卷（scope: {scope}，locked rev {meta[0]}"
+                + (f"，卷 {meta[2]}" if meta[2] is not None else "")
+                + f"）---\n{meta[3]}"
+                for scope, meta in ordered[-2:]]
+    return ("前置卷链（prev_volume_outline——上卷结算的不可逆/新压力/进出状态，本卷须逐项承接）",
+            "\n\n".join(sections))
+
+
+def _slot_promise_ledger(conn: sqlite3.Connection, project_id: str | None,
+                         payload: dict[str, Any] | None,
+                         subject_id: str | None = None) -> tuple[str, str]:
+    """连续性账本最小集（规划端）：未决承诺 + 弧状态 + 读者期待（T38）。
+
+    写作端有 canon_minimal，规划端（卷纲/执行卡）原本全盲——「引种收台账」
+    引的是 locked 前的静态计划，错过 narrative_promises 实际账本。此槽补
+    规划侧最小集；无正文账本（首卷/未启用连续性）显式占位不阻断。
+    """
+    if project_id is None:
+        raise SystemExit("promise_ledger 槽位需要 --project")
+    queries = [
+        ("未决承诺（open，近 30 条）",
+         "SELECT np.promise_key, CAST(r.content AS TEXT) AS description "
+         "FROM narrative_promises np JOIN resources r ON r.id = np.description_resource_id "
+         "WHERE np.project_id = ? AND np.status = 'open' ORDER BY np.rowid DESC LIMIT 30"),
+        ("弧状态（arc_states，近 12 条）",
+         "SELECT a.arc_ref, CAST(r.content AS TEXT) AS state "
+         "FROM arc_states a JOIN resources r ON r.id = a.state_resource_id "
+         "WHERE a.project_id = ? ORDER BY a.rowid DESC LIMIT 12"),
+        ("读者期待（近 12 条）",
+         "SELECT el.expectation_key, CAST(r.content AS TEXT) AS description, el.status "
+         "FROM expectation_ledgers el JOIN resources r ON r.id = el.description_resource_id "
+         "WHERE el.project_id = ? ORDER BY el.rowid DESC LIMIT 12"),
+        ("连续性事实（chapter_facts，近 30 条——卷初实际状态的地面真值）",
+         "SELECT cf.fact_type, cf.subject, cf.status, "
+         "CAST(r.content AS TEXT) AS description "
+         "FROM chapter_facts cf JOIN resources r ON r.id = cf.description_resource_id "
+         "WHERE cf.project_id = ? ORDER BY cf.rowid DESC LIMIT 30"),
+        ("上卷末尾章节摘要（近 12 章——上卷实际结算的叙事证据）",
+         "SELECT v.number AS vol, ch.number AS ch, ch.title, ch.summary "
+         "FROM chapters ch JOIN volumes v ON v.id = ch.volume_id "
+         "JOIN books b ON b.id = v.book_id "
+         "WHERE b.project_id = ? AND ch.summary != '' "
+         "ORDER BY v.number DESC, ch.number DESC LIMIT 12"),
+    ]
+    parts: list[str] = []
+    for title, sql in queries:
+        try:
+            rows = conn.execute(sql, (project_id,)).fetchall()
+        except sqlite3.OperationalError as exc:
+            print(f"[promise_ledger] 账本查询降级（{title}）：{exc}", file=sys.stderr)
+            rows = []
+        body = "\n".join(json.dumps(list(r), ensure_ascii=False) for r in rows) or "（空）"
+        parts.append(f"[{title}]\n{body}")
+    if all(p.endswith("（空）") for p in parts):
+        return ("连续性账本（promise_ledger——规划端最小集）",
+                "（无正文账本——首卷规划或连续性提取未启用；种收对账退回 static 台账，"
+                "启用后必须双对账）")
+    return ("连续性账本（promise_ledger——实际未决承诺/弧进展，种收对账与弧推进以此为准，"
+            "static 台账只作规划基线）",
+            "\n\n".join(parts))
+
+
 def _slot_canon_minimal(conn: sqlite3.Connection, project_id: str | None,
                         subject_id: str | None = None) -> list[tuple[str, str]]:
     """canon 最小集：六类账本近端条目 + 近期已接受章节摘要（SQL 与 sql-reference.md 模板同源）。
@@ -685,10 +871,10 @@ def _slot_canon_minimal(conn: sqlite3.Connection, project_id: str | None,
          "SELECT rs.subject_ref, rs.object_ref, CAST(r.content AS TEXT) AS state "
          "FROM relationship_states rs JOIN resources r ON r.id = rs.state_resource_id "
          "WHERE rs.project_id = ? ORDER BY rs.rowid DESC LIMIT 8"),
-        ("arc_states（近 4 条）",
+        ("arc_states（近 8 条）",
          "SELECT a.arc_ref, CAST(r.content AS TEXT) AS state "
          "FROM arc_states a JOIN resources r ON r.id = a.state_resource_id "
-         "WHERE a.project_id = ? ORDER BY a.rowid DESC LIMIT 4"),
+         "WHERE a.project_id = ? ORDER BY a.rowid DESC LIMIT 8"),
         ("人物状态（死/退/眠优先，近 20 人）",
          "SELECT name, role_class, status, exit_type FROM characters "
          "WHERE project_id = ? ORDER BY CASE status WHEN 'dead' THEN 0 WHEN 'departed' THEN 1 "
@@ -823,6 +1009,10 @@ SLOT_REGISTRY: dict[str, Any] = {
     "character_roster": _slot_character_roster,
     "character_essence": _slot_character_essence,
     "persona_gate": _slot_persona_gate,
+    "book_soul": _slot_book_soul,
+    "mechanisms": _slot_mechanisms,
+    "prev_volume_outline": _slot_prev_volume_outline,
+    "promise_ledger": _slot_promise_ledger,
 }
 
 

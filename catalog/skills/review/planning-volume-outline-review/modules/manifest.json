@@ -29,8 +29,16 @@
     "subject",
     "upstream:story_arc",
     "upstream:world_contract",
+    "book_soul",
+    "mechanisms",
     "character_roster",
-    "persona_gate"
+    "persona_gate",
+    "upstream-reviews:story_arc",
+    "upstream-reviews:world_contract",
+    "project_setup",
+    "genre_pack",
+    "prev_volume_outline",
+    "promise_ledger"
   ],
   "decision_scope": "judge"
 }

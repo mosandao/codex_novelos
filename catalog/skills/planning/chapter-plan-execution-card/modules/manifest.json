@@ -30,7 +30,9 @@
     "upstream:character_contract",
     "upstream:world_contract",
     "character_roster",
-    "persona_gate"
+    "persona_gate",
+    "project_setup",
+    "promise_ledger"
   ],
   "divergence": "balanced",
   "decision_scope": "propose_only"
