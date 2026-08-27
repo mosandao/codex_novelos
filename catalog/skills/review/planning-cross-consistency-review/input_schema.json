@@ -6,7 +6,7 @@
   "properties": {
     "subject_ref": {"type": "string", "minLength": 1},
     "subject_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
-    "reviewer_profile": {"type": "string", "minLength": 1},
+    "reviewer_profile": {"type": "string", "minLength": 1, "description": "审查者模型身份（防共谋机器留痕）：model:<provider:model>（异构厂商模型直审）或 agent:<name>@<model>（具名审查 agent）；裸字符串在落库门不合法"},
     "context_refs": {
       "type": "array",
       "items": {"type": "string", "minLength": 1},

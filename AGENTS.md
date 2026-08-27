@@ -5,19 +5,19 @@
 ## 分层架构
 
 ```
-L0 权威存储   data/novelos-v2.db + config/（schemas ×18 · genre-packs · system_archetypes）
+L0 权威存储   data/novelos-v2.db + config/（schemas ×18 · genre-packs（wizard-data.js 同步镜像，scripts/test-guardrails.mjs 守卫）· system_archetypes）
               —— schemas 与 SQL migrations 与语言无关，是 JS 门直接复用的资产
 L1 运行时     插件 host JS 工具（唯一读写口，目标态达成）
 L2 方法论     catalog/skills/**（prompt.md 主干 + modules/ + manifest v2）——语言无关，原样有效
 L3 组装产物   data/compositions/
 L4 harness 适配 adapters/（单源 adapters/source/harness.yaml）
 L5 会话编排   .agents/skills/novel-*（六个操作层技能）+ 本文件路由协议
-UI            plugin/client/（viewer 原型 docs/novelos-viewer-prototype.html + wizard 三件套）
+UI            plugin/dsh-novelos/（DSH 插件：侧栏+检查器+向导三件套 client/ · 原型 docs/prototype/novelos-dsh-panel.html）
 ```
 
 ## 数据库访问
 
-**写路径**：唯一写入口 = `dsh-novelos-viewer` 插件六个 defineTool 门工具（ajv 校验 + node:sqlite BEGIN IMMEDIATE 单事务，FAIL 返回 ok:false 零写入）：
+**写路径**：唯一写入口 = `dsh-novelos-viewer` 插件 defineTool 门工具（ajv 校验 + node:sqlite BEGIN IMMEDIATE 单事务，FAIL 返回 ok:false 零写入）：
 
 | 工具 | 用途 |
 |---|---|
@@ -27,6 +27,12 @@ UI            plugin/client/（viewer 原型 docs/novelos-viewer-prototype.html 
 | `novelos_register_characters` | 人物重锁登记/动态配角/状态迁移；pendingStatus/auditEntries 只读对账 |
 | `novelos_propagate_stale` | 上游修订后沿依赖图标 stale（fine=精细不误伤） |
 | `novelos_delete_project` | 项目整体删除（dryRun 调查/backup 备份/cleanOrphans 孤儿清理） |
+| `novelos_review_commit` | Review Receipt 落库（reviewer_profile 须 `model:<provider:model>` 或 `agent:<name>@<model>` 格式——防共谋机器留痕） |
+| `novelos_lock_asset` | 规划资产锁定：须绑定 approved 审查回执（封跳审/错绑），旧 locked 翻 superseded |
+| `novelos_accept_chapter` | 章节接受：写 chapters.review_id 机器痕迹；已接受再改默认拒绝（force 仅 hash 未变时幂等重放） |
+| `novelos_validate_asset` | R4 数字门（只读）：七件资产校验器语义（scale 规则表/量化阈值/席位对账），锁定前自查 |
+
+状态机约束：`candidate → locked` 与章节接受必须经门工具完成并留下 review 关联（`db/migrations/019_state_machine_links.sql` 的 chapters.review_id）；裸 `UPDATE … SET status='locked'/'accepted'` 已退役。
 
 禁止手工 INSERT/UPDATE 绕过门直接写库——agent 没有裸 SQL 写通道。写库三件事已在门内固化：① ID 格式 `类型:uuid`；② resources.content 经 BLOB 写入并同步 content_hash。
 
@@ -79,7 +85,7 @@ node scripts\novelos-compose-prompt.mjs --asset <asset> --project <id>
 
 ## 项目创建向导
 
-收到「创建小说项目」请求，首步打开 `dsh-novelos-viewer` 面板的「项目向导」入口（host 托管 `/api/wizard`，kernel 名册由 host 经 node:sqlite 实时直查，无需刷新镜像）；面板不可用时允许浏览器直接打开 `plugin/client/project-wizard.html`（file:// 离线模式）。流程：向导产出 `novelos.project.create.v3` JSON → 入口校验门（FAIL 拒绝）→ mode=create 先建核（kernel-fusion 注入 → 融合 agent → 校验门落库）→ 分身派生 → 单事务六表落库。
+收到「创建小说项目」请求，首步打开 `dsh-novelos` 侧栏「＋」的「项目向导」弹层（host 托管 `/novelos/wizard` 路由，kernel 名册由 host 经 node:sqlite 实时直查，无需刷新镜像）；面板不可用时允许浏览器直接打开 `plugin/dsh-novelos/client/project-wizard.html`（file:// 离线模式）。流程：向导产出 `novelos.project.create.v3` JSON → 入口校验门（FAIL 拒绝）→ mode=create 先建核（kernel-fusion 注入 → 融合 agent → 校验门落库）→ 分身派生 → 单事务六表落库。
 
 ## 重要约束
 

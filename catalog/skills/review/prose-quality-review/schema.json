@@ -13,13 +13,28 @@
         "additionalProperties": false,
         "required": ["severity", "message", "evidence_refs"],
         "properties": {
-          "severity": {"enum": ["blocking", "warning", "note"]},
+          "severity": {"enum": ["blocking", "warning", "note", "strength"]},
+          "code": {"type": "string", "minLength": 1},
           "message": {"type": "string", "minLength": 1},
           "excerpt": {"type": "string"},
           "evidence_refs": {
             "type": "array",
             "items": {"type": "string", "minLength": 1},
             "uniqueItems": true
+          },
+          "defer_to_downstream": {
+            "type": "string",
+            "minLength": 1,
+            "description": "下游豁免：warning 属下游执行责任时标注下游 asset_type"
+          },
+          "accepted_risk": {
+            "type": "boolean",
+            "description": "艺术风险豁免：warning 为有意创作取舍，经用户确认后豁免"
+          },
+          "accepted_by": {
+            "type": "string",
+            "minLength": 1,
+            "description": "accepted_risk 的确认方（user）"
           }
         }
       }
@@ -29,6 +44,6 @@
       "items": {"type": "string", "minLength": 1},
       "uniqueItems": true
     },
-    "reviewer_profile": {"type": "string", "minLength": 1}
+    "reviewer_profile": {"type": "string", "minLength": 1, "description": "审查者模型身份（防共谋机器留痕）：model:<provider:model>（异构厂商模型直审）或 agent:<name>@<model>（具名审查 agent）；裸字符串在落库门不合法"}
   }
 }

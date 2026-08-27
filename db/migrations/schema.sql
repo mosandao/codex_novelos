@@ -2,7 +2,8 @@
 -- 由 data/novelos-v2.db 的 sqlite_master DDL 只读导出重生成（R2 准备，2026-08-24）：
 -- 旧版是迁移链中段快照且缺 004/011/015/018 末端表，无法独立建库。
 -- 用法：node:sqlite / sqlite3 直接执行本文件即得与生产结构一致的空库（测试夹具基线）。
--- 增量演进仍走 migrations/002..018；下次 schema 变更后须重新导出本文件。
+-- 增量演进仍走 migrations/002..019；019（chapters.review_id）为手工并入的相同 DDL，
+-- 下次 schema 变更后仍须从生产库重新导出本文件。
 
 CREATE TABLE arc_states (
     id TEXT PRIMARY KEY,
@@ -77,6 +78,7 @@ CREATE TABLE "chapters" (
     version INTEGER NOT NULL DEFAULT 1 CHECK (version > 0),
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    review_id TEXT REFERENCES reviews(id),
     FOREIGN KEY (volume_id) REFERENCES volumes(id) ON DELETE CASCADE,
     FOREIGN KEY (content_resource_id) REFERENCES resources(id) ON DELETE RESTRICT
 );

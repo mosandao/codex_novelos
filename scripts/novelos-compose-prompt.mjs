@@ -851,7 +851,7 @@ function slotUpstreamReviews(db, assetType, projectId) {
   if (projectId === null || projectId === undefined) {
     fail(`upstream-reviews:${assetType} 槽位需要 --project`);
   }
-  let rows = [];
+  let rows;
   try {
     rows = db.prepare(
       'SELECT pa.id, pa.scope_ref, rv.verdict, rv.findings_json, '
@@ -861,8 +861,8 @@ function slotUpstreamReviews(db, assetType, projectId) {
       + 'ORDER BY pa.scope_ref, rv.created_at, rv.rowid',
     ).all(projectId, assetType);
   } catch (exc) {
-    console.error(`[upstream-reviews] 回执查询降级（${assetType}）：${exc.message}`);
-    rows = [];
+    // R-修复：回执查询失败曾降级为「无回执记录」节 exit 不变，defer_to_downstream 豁免义务可无声蒸发——现在硬失败。
+    fail(`[upstream-reviews] 回执查询失败（${assetType}）：${exc.message}——豁免传递链禁止静默降级`);
   }
   if (rows.length === 0) {
     return [[`上游 ${assetType} 审查回执`, '（无回执记录——上游未经审查即锁定，或回执未入库）']];
@@ -1159,12 +1159,12 @@ function slotPromiseLedger(db, projectId) {
   ];
   const parts = [];
   for (const [title, sql, pick] of queries) {
-    let rows = [];
+    let rows;
     try {
       rows = db.prepare(sql).all(projectId);
     } catch (exc) {
-      console.error(`[promise_ledger] 账本查询降级（${title}）：${exc.message}`);
-      rows = [];
+      // R-修复：查询失败曾降级 stderr+「（空）」exit 0——现在硬失败，与 canon_minimal 同规。
+      fail(`[promise_ledger] 账本查询失败（${title}）：${exc.message}——账本缺失禁止静默降级`);
     }
     const body = rows.map((r) => pyJsonDumps(pick(r))).join('\n') || '（空）';
     parts.push(`[${title}]\n${body}`);
@@ -1222,12 +1222,12 @@ function slotCanonMinimal(db, projectId) {
   ];
   const sections = [];
   for (const [title, sql, pick] of queries) {
-    let rows = [];
+    let rows;
     try {
       rows = db.prepare(sql).all(projectId);
     } catch (exc) {
-      console.error(`[canon_minimal] 账本查询降级（${title}）：${exc.message}`);
-      rows = [];
+      // R-修复：查询失败曾降级 stderr+「（空）」exit 0（py 版账本零注入事故根因未根治）——现在硬失败。
+      fail(`[canon_minimal] 账本查询失败（${title}）：${exc.message}——Canon 缺失禁止静默降级`);
     }
     const body = rows.map((r) => pyJsonDumps(pick(r))).join('\n') || '（空）';
     sections.push([`canon 最小集 · ${title}`, body]);
@@ -1295,13 +1295,16 @@ function slotPersonaGate(db, projectId) {
     + 'WHERE b.project_id = ?',
   ).get(projectId);
   if (row === undefined) {
-    return ['persona 硬边界门', '（未绑定分身——按无门执行）'];
+    // R-修复：缺门曾静默「按无门执行」——现在显式降级标记进产物，主控可见可上报。
+    return ['persona 硬边界门（⚠ 降级运行）', '（未绑定分身——按无门执行。'
+      + '此为降级状态：盲区硬边界与负向约束全部缺席，主控应尽快补绑分身后重组装）'];
   }
   let doc;
   try {
     doc = JSON.parse(row.body);
   } catch {
-    return ['persona 硬边界门', '（分身内容非结构化 JSON——按无门执行）'];
+    return ['persona 硬边界门（⚠ 降级运行）', '（分身内容非结构化 JSON——按无门执行。'
+      + '此为降级状态：请修复分身 content 后重组装）'];
   }
   const anchors = (doc.persona !== null && typeof doc.persona === 'object' && !Array.isArray(doc.persona))
     ? (doc.persona.anchors ?? {})
@@ -1313,7 +1316,8 @@ function slotPersonaGate(db, projectId) {
   for (const item of doc.expression_preferences ?? []) lines.push(`- 表达偏好：${pyStr(item)}`);
   for (const item of doc.negative_constraints ?? []) lines.push(`- 负向约束：${pyStr(item)}`);
   if (lines.length === 0) {
-    return ['persona 硬边界门', '（旧版分身无结构化盲区/约束——按无门执行）'];
+    return ['persona 硬边界门（⚠ 降级运行）', '（旧版分身无结构化盲区/约束——按无门执行。'
+      + '建议升级分身到含 anchors.blindspots 的签名 v2 后重组装）'];
   }
   return ['persona 硬边界门（造人/微档案适用：盲区条目自带绕开方式，'
     + '新造人物不得整档落在「写不了」场景）', lines.join('\n')];

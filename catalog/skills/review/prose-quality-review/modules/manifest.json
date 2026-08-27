@@ -29,7 +29,10 @@
     "subject",
     "kernel_full",
     "persona_full",
+    "persona_gate",
+    "project_setup",
     "upstream:chapter_plan",
+    "canon_minimal",
     "world_lexicon",
     "character_essence"
   ],

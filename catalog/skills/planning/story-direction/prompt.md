@@ -73,7 +73,7 @@ persona 是这本书的第一因。book_soul 不是从题材套路构造的，�
 |---|---|---|---|
 | `organizing_principle` | 组织原则：这本书用什么独特过程组织（故事过程+原创执行） | 一句话可检验：「用 X 方式讲 Y」；脱离本书换一本书即不成立。禁止「升级打怪变强」级泛化表述 | 从 persona 目光长出；architecture 把它翻译为机制 |
 | `central_contradiction` | 核心矛盾：两个都能成立却无法同时完整满足的判断 | 写成「判断A / 判断B」两难，各自都有代价；禁止单向正确口号 | 种子来自 inner_tension + 主原则；recurring_tests 论证它 |
-| `power_currency` | 力量货币：本书「什么等同于更强」及其对价 | 声明货币 + 兑现语义 + 对价（获取付出什么、买不到什么）；至少一端锚进 central_contradiction | genre_profile 候选池选取，或从 persona 库存长出；costly_commitments 以它计价 |
+| `power_currency` | 力量货币：本书「什么等同于更强」及其对价 | 声明货币 + 兑现语义 + 对价（获取付出什么、买不到什么）；至少一端锚进 central_contradiction | genre_profile 非空时：从候选池选取或组合，不现场发明（与 modules/genre-present.md 同一口径）；genre_profile 为 null 时才允许从 persona 库存长出。costly_commitments 以它计价 |
 | `promise_cadence` | 承诺兑现节奏：读者靠什么在中段保持信心 | 声明承诺的兑现节拍（如「每卷级弧兑现一次核心承诺的一个侧面」）。承诺含**正向兑现**（读者得到什么）与**负向承诺**（见证代价/追讨真相/守护将失之物/目睹幻灭）两类，负向承诺是合法的主承诺形态，其兑现单位同样必须可感（真相揭示/代价落地/失去逼近）；可被 strategy 展开为阶段收益 | 与 strategy 的「承诺-收益配对」直接对接 |
 | `unresolved_claims` | 未决追问 | 2-6 条，每条是可追问的具体问题而非抽象主题词；分层（全书终极 1 条+阶段性若干） | deliberate_silences 为它服务；strategy 阶段不得消解 |
 | `costly_commitments` | 有代价的承诺 | 每条写明「牺牲什么便利 + 具体叙事代价」，五种便利（爽点/圆满/推进速度/主角正确性/即时认同）至少占一 | 是 central_contradiction 的代价面 |

@@ -89,6 +89,7 @@
       "skill": "review/planning-direction-review",
       "slots": [
         "project_setup",
+        "genre_pack",
         "kernel_full",
         "persona_full",
         "subject"
@@ -334,6 +335,7 @@
         "upstream:volume_outline",
         "upstream:character_contract",
         "upstream:world_contract",
+        "book_soul",
         "character_roster",
         "persona_gate",
         "project_setup",
@@ -371,6 +373,9 @@
       "slots": [
         "kernel_full",
         "persona_full",
+        "persona_gate",
+        "project_setup",
+        "book_soul",
         "upstream:chapter_plan",
         "canon_minimal",
         "review_feedback",
@@ -390,7 +395,10 @@
         "subject",
         "kernel_full",
         "persona_full",
+        "persona_gate",
+        "project_setup",
         "upstream:chapter_plan",
+        "canon_minimal",
         "world_lexicon",
         "character_essence"
       ],

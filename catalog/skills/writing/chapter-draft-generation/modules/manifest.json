@@ -36,6 +36,9 @@
   "data_slots": [
     "kernel_full",
     "persona_full",
+    "persona_gate",
+    "project_setup",
+    "book_soul",
     "upstream:chapter_plan",
     "world_lexicon",
     "character_essence",

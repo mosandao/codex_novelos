@@ -1,6 +1,6 @@
 # NovelOS SQL 操作速查
 
-用 node:sqlite 只读查询数据库（Python MCP 通道已退役；写路径唯一入口 = 插件六个门工具，见文末「写路径门工具」）。`?` 是参数占位符。
+用 node:sqlite 只读查询数据库（Python MCP 通道已退役；写路径唯一入口 = 插件门工具，见文末「写路径门工具」；规划锁定/章节接受/审查落库三条状态迁移已收口进状态机写门）。`?` 是参数占位符。
 
 ## 内容存储（resources）
 
@@ -52,15 +52,17 @@ VALUES ('book:xxx', 'project:xxx', '第一卷集', 1, '{}');
 INSERT INTO volumes (id, book_id, number, title, summary)
 VALUES ('volume:xxx', 'book:xxx', 1, '卷标题', '');
 
--- 章节（创建草稿）
+-- 章节（创建草稿——仅允许 status='draft'；状态升级一律走门工具）
 INSERT INTO chapters (id, volume_id, number, title, status, content_resource_id, summary, metadata_json, version)
 VALUES ('chapter:xxx', 'volume:xxx', 1, '章标题', 'draft', 'resource:xxx', '', '{}', 1);
 
--- 接受章节
-UPDATE chapters SET status = 'accepted', version = version + 1, updated_at = CURRENT_TIMESTAMP
-WHERE id = 'chapter:xxx';
+-- ❌ 已退役——写路径必须走门工具：接受章节用 `novelos_accept_chapter`
+--    （chapterId+reviewId，强制 approved 回执并写 chapters.review_id 机器痕迹）。
+--    裸 UPDATE status='accepted' 已封死，勿再执行：
+-- UPDATE chapters SET status = 'accepted', version = version + 1, updated_at = CURRENT_TIMESTAMP
+-- WHERE id = 'chapter:xxx';
 
--- 重开为 draft（修改）
+-- 重开为 draft（降级操作，可手工；重开后改稿必须重审再经门重新接受）
 UPDATE chapters SET status = 'draft', version = version + 1, updated_at = CURRENT_TIMESTAMP
 WHERE id = 'chapter:xxx';
 
@@ -170,15 +172,17 @@ trait_profile / inner_tension / life_trajectory 原文注入即可（agent 按�
 ## 规划资产（planning_assets）
 
 ```sql
--- 创建候选
+-- 创建候选（仅允许 status='candidate'；locked/stale/superseded 状态变更一律走门工具）
 INSERT INTO planning_assets (id, project_id, asset_type, scope_ref, revision, status,
     content_resource_id, producer_role, metadata_json, version)
 VALUES ('planning:xxx', 'project:xxx', 'direction', 'book', 1, 'candidate',
     'resource:xxx', '方向智能体', '{}', 1);
 
--- 锁定（审查通过后）
-UPDATE planning_assets SET status = 'locked', locked_review_id = 'review:xxx',
-    updated_at = CURRENT_TIMESTAMP WHERE id = 'planning:xxx';
+-- ❌ 已退役——写路径必须走门工具：锁定用 `novelos_lock_asset`
+--    （assetId+lockedReviewId，强制 approved 回执绑定、自动翻旧 locked 为 superseded、
+--    校验直接上游全部 locked）。跳审裸 UPDATE 已封死，勿再执行：
+-- UPDATE planning_assets SET status = 'locked', locked_review_id = 'review:xxx',
+--     updated_at = CURRENT_TIMESTAMP WHERE id = 'planning:xxx';
 
 -- 标记 stale（上游变更后）
 -- 用门工具：novelos_propagate_stale { asset: 'planning:xxx' }
@@ -195,16 +199,19 @@ VALUES ('planning:downstream', 'planning:upstream', 2);
 
 ## 审查（reviews）
 
+> ❌ 写模板已退役——写路径必须走门工具：审查回执用 `novelos_review_commit`
+> （subjectRef+verdict+findingsJson+reviewerProfile，reviewer_profile 须带 `model:`/`agent:` 前缀）。
+
 ```sql
--- 记录审查结果
-INSERT INTO reviews (id, subject_type, subject_ref, subject_hash, verdict,
-    findings_json, reviewer_profile, evidence_refs_json)
-VALUES ('review:xxx', 'chapter', 'chapter:xxx',
-    'sha256:...',  -- 正文 resource 的 content_hash
-    'approved',
-    '[{"severity":"note","message":"...","evidence_refs":["chapter:xxx"]}]',
-    'prose-v1',
-    '["resource:xxx"]');
+-- 已退役的裸 INSERT（保留作结构对照，禁止执行）：
+-- INSERT INTO reviews (id, subject_type, subject_ref, subject_hash, verdict,
+--     findings_json, reviewer_profile, evidence_refs_json)
+-- VALUES ('review:xxx', 'chapter', 'chapter:xxx',
+--     'sha256:...',  -- 正文 resource 的 content_hash
+--     'approved',
+--     '[{"severity":"note","message":"...","evidence_refs":["chapter:xxx"]}]',
+--     'prose-v1',
+--     '["resource:xxx"]');
 
 -- 查未解决 warning
 SELECT * FROM reviews
@@ -237,14 +244,24 @@ VALUES ('expectation:xxx', 'project:xxx', '期待键名', 'resource:ed', 'open',
 -- status 只接受: open/met/abandoned
 
 -- 人物关系（subject_ref/object_ref + 状态存 resource）
+-- UNIQUE(project_id, subject_ref, object_ref)：同一人物对再次更新状态必须 UPSERT，纯 INSERT 必撞唯一约束
 INSERT INTO resources (id, media_type, content, content_hash) VALUES ('resource:rd', 'text/markdown', CAST(? AS BLOB), ?);
 INSERT INTO relationship_states (id, project_id, subject_ref, object_ref, state_resource_id, source_chapter_id, source_content_hash)
-VALUES ('rel:xxx', 'project:xxx', '人物A的ref', '人物B的ref', 'resource:rd', 'chapter:xxx', 'sha256:...');
+VALUES ('rel:xxx', 'project:xxx', '人物A的ref', '人物B的ref', 'resource:rd', 'chapter:xxx', 'sha256:...')
+ON CONFLICT (project_id, subject_ref, object_ref) DO UPDATE SET
+  state_resource_id = excluded.state_resource_id,
+  source_chapter_id = excluded.source_chapter_id,
+  source_content_hash = excluded.source_content_hash;
 
 -- 故事弧状态（arc_ref 指向 story_arc 资产中的弧线标识）
+-- UNIQUE(project_id, arc_ref)：同一弧线再次更新状态必须 UPSERT，纯 INSERT 必撞唯一约束
 INSERT INTO resources (id, media_type, content, content_hash) VALUES ('resource:ad', 'text/markdown', CAST(? AS BLOB), ?);
 INSERT INTO arc_states (id, project_id, arc_ref, state_resource_id, source_chapter_id, source_content_hash)
-VALUES ('arcstate:xxx', 'project:xxx', '弧线ref', 'resource:ad', 'chapter:xxx', 'sha256:...');
+VALUES ('arcstate:xxx', 'project:xxx', '弧线ref', 'resource:ad', 'chapter:xxx', 'sha256:...')
+ON CONFLICT (project_id, arc_ref) DO UPDATE SET
+  state_resource_id = excluded.state_resource_id,
+  source_chapter_id = excluded.source_chapter_id,
+  source_content_hash = excluded.source_content_hash;
 
 -- 搜索事实
 SELECT cf.*, r.content FROM chapter_facts cf
@@ -274,5 +291,8 @@ console.log(`resource:${randomUUID()}`);  // resource:3bb695f0-...
 | `novelos_register_characters` | 人物注册：roster/entries/statusUpdate + pendingStatus/auditEntries 对账 |
 | `novelos_propagate_stale` | 上游变更后标记下游 stale |
 | `novelos_delete_project` | 项目整体删除（dryRun/backup/cleanOrphans） |
+| `novelos_review_commit` | 审查回执落库（reviews 唯一写入口；reviewer_profile 带 model:/agent: 前缀） |
+| `novelos_lock_asset` | 规划资产锁定：强制 approved 回执绑定，自动翻旧 locked，校验上游顺序 |
+| `novelos_accept_chapter` | 章节接受：强制 approved 回执并写 chapters.review_id；免审改写已封死（force 仅幂等重放） |
 
 content_hash 格式 `'sha256:'+sha256(utf8 hex)`，node:crypto 计算。资产语义校验（book_soul 等 validate_* 机器门）待 R4 JS 化，当前对照各 skill 规则自查。

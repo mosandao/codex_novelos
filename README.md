@@ -37,7 +37,7 @@ catalog/skills/            创作方法论 Catalog（onboarding/planning/writing
 config/
   schemas/                 JSON Schema 校验门 ×18（语言无关，JS 门直接复用的核心资产）
   agent-recipes.json       角色 × 方法论配方矩阵权威
-  genre-packs.json         题材包
+  genre-packs.json         题材包（wizard-data.js 的同步镜像，scripts/test-guardrails.mjs 守卫双源一致）
   system_archetypes.json   系统叙事原型
 data/novelos-v2.db         权威 SQLite 库（变更前先备份；data/compositions/ 组装产物运行时生成）
 db/migrations/             SQL 迁移留档 + schema.sql 基线（语言无关资产）
