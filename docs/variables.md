@@ -1,4 +1,5 @@
 # 变量与配置
+> ⚠️ **口径更新（2026-08-27）**：`plugin/` 与 DSH 插件已退役。本文中「插件门工具 / viewer 面板 / 向导」相关描述为插件时代口径；当前权威口径见 `README.md` 与 `AGENTS.md`（写库 = node:sqlite 受控直写）。
 
 ## 配置总览
 
@@ -12,7 +13,7 @@
 | 方法论组装器 | `node scripts/novelos-compose-prompt.mjs` | 配方矩阵权威在 `config/agent-recipes.json`；组装产物存 `data/compositions/` |
 | 系统叙事原型 | `config/system_archetypes.json` | 18 个原型；内核取代原型进入创建链后降为参考资料库 |
 | 校验 schema | `config/schemas/*.json` | ×18，语言无关资产，由 ajv 门原样复用 |
-| 题材信息包 | `config/genre-packs.json` | 频道×题材数据包的同步镜像：运行期唯一来源是 `plugin/client/project-wizard-data.js` 的 `genre_profiles`（入口校验门读它、组装器读快照）；两源由 `node scripts/test-guardrails.mjs` deepEqual 守卫，改任一侧必须同步另一侧 |
+| 题材信息包 | `config/genre-packs.json` | 频道×题材数据包的**唯一权威源**（原 `plugin/client/project-wizard-data.js` 双源镜像已随插件退役删除）；`node scripts/test-guardrails.mjs` 守卫每包四字段结构自洽 |
 | 创作方法论 | `catalog/skills/` | 只读；manifest 机器门校验命令已随零 Python 退役（语义未 JS 化部分登记 R4 待办，以 `tasks/README.md` 账本为准） |
 | 运行时 | Node.js ≥22 | 全局安装即可；门工具与脚本用 node:sqlite/ajv/crypto，无额外依赖、无虚拟环境 |
 

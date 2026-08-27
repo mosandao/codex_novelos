@@ -67,3 +67,19 @@ py `main()` 在 parent_rationale 含错配标记时仅 print 提示仍继续落�
 - **WP7 回执 schema 同步**：catalog prose-quality-review schema severity 补 strength + code/defer_to_downstream/accepted_risk/accepted_by 四字段，对齐 config 权威版。
 - **WP8 口径修正**：power_currency 调和规则、continuity 提取审查口径对齐配方矩阵、craft 卡付费平台适配 §0、sql-reference upsert 模板、create-project E11a WARN→FAIL（genre_profile=null 漏带将静默丢 taboos 防火墙）。
 - 遗留 TODO：:24 连续性账本直写通道缺口（候选晋升无门工具覆盖）；生产库 019 迁移待用户择机执行（仓库不手工动生产库）。
+
+## 插件退役裁决记录（2026-08-27 之后）
+
+- `plugin/` 整体移除（用户裁决：不再使用 DSH 插件）——`dsh-novelos-viewer` / `dsh-novelos` 插件、defineTool 写门、viewer 面板、wizard 三件套全部退役删除。
+- 写库口径改为：主控 agent 经 node:sqlite 事务直写，SQL 模板唯一来源 = `.agents/skills/novel-project/sql-reference.md`（原「已退役」写模板重新启用为执行模板）；机器校验改为落库前对照 `config/schemas/*.json` 自查。
+- 文档同步：README.md / AGENTS.md / `.agents/skills/` / `docs/` 全量去插件口径；`scripts/test-guardrails.mjs` G1 改为 genre-packs.json 单源自洽校验（原 wizard-data.js 双源镜像已随插件删除）。
+- 遗留 TODO 更新：:24 连续性账本直写通道缺口随插件退役自然闭合（直写 SQL 即通道）；生产库 019 迁移仍待用户择机执行（仓库不手工动生产库）。
+
+## 投影恢复裁决记录（2026-08-27 之后 · 用户指令：「将项目之前投影功能在加回来」）
+
+- 恢复 Markdown 投影渲染器（此前随「视图链退役」删除的 `novelos_render_projection.py` + 投影测试，见 2026-08-24 重组裁决记录）——零 Python 纪律下 JS 移植为 `scripts/novelos-render-projection.mjs`（node:sqlite 只读直连 + node:crypto SHA-256，零依赖；py 版原文取自已删除提交 `aeafdb9^` 的 git 历史）。
+- 语义对齐 py 版（`90e172f` 裸 sqlite3 重写版）：README / 创作约束（作者签名 + 本书创作灵魂）/ 规划（locked 资产；人物契约按「## 人物档案」拆 `人物契约/` 目录）/ 大纲（卷纲 + 章纲）/ 正文（accepted）/ 人物 / 世界 / 连续性（六账本 + 人物状态注册表）/ manifest.json；「渲染—校验—原子替换」流程原样恢复（临时目录写入 → 原子 rename；manifest 逐文件 SHA-256 可 `--verify` 复核；目标目录归属校验防覆盖其他项目）。
+- 移植修复 py 版真实 bug：章纲卷号解析带 `volume:` 前缀查裸 id 永远落第一卷（≥2 卷必现错卷），JS 版剥前缀按真实卷号渲染。
+- 新增 `scripts/test-render-projection.mjs`：py 版 5 个拆分用例移植 + 端到端集成（临时库最小 schema → 渲染 25 文件 → manifest 校验 → 确定性 / 篡改检出 / 归属保护 / 残缺契约单文件兜底）**48/48 PASS**；生产库真实项目渲染 + `--verify` 实测通过（10 文件）。
+- 口径联动：README.md（渲染器行 / 路线图 / 退役清单撤销「md 投影渲染器」条目 / 目录结构加 novels/ 行 /「用户展示（项目投影）」节 / 验证口径 +③）、AGENTS.md（分层 UI 行 / 读路径 /「单渲染器 = md 投影」约束）、docs/architecture.md 与 docs/flows.md（「投影已退役不要重建」表述全部回改为单渲染器 = md 投影；viewer 面板与 HTML 渲染器仍退役，不要重建）。
+- 退役清单现状：`plugin/`（DSH 插件、defineTool 写门、viewer 面板、wizard 三件套）仍退役；md 投影渲染器已恢复为 JS 实现（README「已退役清单」尾部已注明）。`novels/` 输出目录本地忽略（.gitignore 已含）。

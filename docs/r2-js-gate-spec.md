@@ -1,4 +1,5 @@
 # R2 规格文档：项目创建写路径校验门的 TypeScript 等价重实现规格
+> ⚠️ **历史档案（插件时代，仅考古参考，不再更新）**：本文描述的对象（DSH 插件 / defineTool 写门 / viewer 面板）已随 `plugin/` 移除退役（2026-08-27）。当前写库口径见 `README.md` 与 `AGENTS.md`。
 
 > 依据 `legacy-python/scripts/novelos_create_project.py`（854 行，v3 管线）逐行提炼。
 > 目标：读者不接触任何 Python 代码，即可用 **ajv + node:sqlite + node:crypto** 在插件 host 中写出行为等价的 JS 门。

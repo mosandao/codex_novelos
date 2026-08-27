@@ -1,7 +1,7 @@
-// 护栏测试：题材词表双源同步 + 配方矩阵⊆manifest 一致性。
+// 护栏测试：题材词表单源自洽 + 配方矩阵⊆manifest 一致性。
 // 背景（对抗审查 A 路发现）：config/genre-packs.json 曾沦为运行期死配置
 // （gate 读 wizard-data.js、组装器读 metadata_json 快照，两源无同步校验即漂移无声）；
-// manifest.data_slots 与 agent-recipes.json 槽位漂移曾致 recipe-only 槽声明了却永不注入。
+// plugin/client/project-wizard-data.js 已随 plugin/ 移除退役，genre-packs.json 现为唯一词表源。
 // 运行：node scripts/test-guardrails.mjs —— 全部 PASS 退出码 0，任一 FAIL 非零退出。
 
 import fs from 'node:fs';
@@ -26,40 +26,23 @@ function deepEqual(a, b) {
   return JSON.stringify(a) === JSON.stringify(b);
 }
 
-function loadWizardData() {
-  const raw = fs.readFileSync(path.join(ROOT, 'plugin/client/project-wizard-data.js'), 'utf8');
-  const eq = raw.indexOf('=');
-  let json = raw.slice(eq + 1).trim();
-  if (json.endsWith(';')) json = json.slice(0, -1).trim();
-  return JSON.parse(json);
-}
-
-// ── 守卫一：题材词表双源同步 ────────────────────────────────────────────
-// 唯一来源约定（docs/archive/tasks/29 P3-1）：向导 genre_profiles 与
-// config/genre-packs.json 必须逐包逐字段一致；改任一侧必须同步另一侧。
-const wizard = loadWizardData();
+// ── 守卫一：题材词表结构自洽（单一来源） ────────────────────────────────
+// 唯一来源约定：config/genre-packs.json 是题材词表的唯一权威（原 plugin/client/
+// project-wizard-data.js 双源镜像已随 plugin/ 移除退役）。每包必须含四个非空数组字段。
 const packs = JSON.parse(
   fs.readFileSync(path.join(ROOT, 'config/genre-packs.json'), 'utf8')
 );
+const PACK_FIELDS = ['power_currency_candidates', 'typical_dilemmas', 'reader_expectations', 'taboos'];
 
-check(
-  'G1 词表键集一致（wizard.genre_profiles ≡ genre-packs.json）',
-  deepEqual(Object.keys(wizard.genre_profiles ?? {}).sort(), Object.keys(packs).sort()),
-  `wizard=${Object.keys(wizard.genre_profiles ?? {}).length} 包, config=${Object.keys(packs).length} 包` +
-    (() => {
-      const w = new Set(Object.keys(wizard.genre_profiles ?? {}));
-      const c = new Set(Object.keys(packs));
-      const onlyW = [...w].filter((k) => !c.has(k));
-      const onlyC = [...c].filter((k) => !w.has(k));
-      return ` 仅wizard:[${onlyW}] 仅config:[${onlyC}]`;
-    })()
-);
+check('G1 词表源存在且非空（config/genre-packs.json）', Object.keys(packs).length > 0);
 
-for (const key of Object.keys(packs)) {
+for (const [key, pack] of Object.entries(packs)) {
+  const missing = PACK_FIELDS.filter((f) => !Array.isArray(pack?.[f]));
+  const empty = PACK_FIELDS.filter((f) => Array.isArray(pack?.[f]) && pack[f].length === 0);
   check(
-    `G1 包一致 ${key}`,
-    deepEqual(wizard.genre_profiles?.[key], packs[key]),
-    '内容漂移——以 plugin/client/project-wizard-data.js 为唯一来源修正另一侧'
+    `G1 包结构自洽 ${key}`,
+    missing.length === 0 && empty.length === 0,
+    `缺失字段:[${missing}] 空字段:[${empty}]`
   );
 }
 

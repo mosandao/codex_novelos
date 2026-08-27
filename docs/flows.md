@@ -1,4 +1,5 @@
 # 关键流程
+> ⚠️ **口径更新（2026-08-27）**：`plugin/` 与 DSH 插件已退役。本文中「插件门工具 / viewer 面板 / 向导」相关描述为插件时代口径；当前权威口径见 `README.md` 与 `AGENTS.md`（写库 = node:sqlite 受控直写）。
 
 ## 项目创建向导
 
@@ -28,7 +29,7 @@
 3. **状态迁移**：`$novel-continuity` 提取 character_status 候选（正文确认的退场/转化/休眠/死亡；新登场与下落不明不算），晋升后主控用 statusUpdate 更新注册表（单对象或数组；dead 必带 死亡型 exit_type；非退场状态不带 exit_type 并整体清空退场痕迹——复活场景；每次迁移在 state_json.状态史 留审计记录；未登记人物按 minor 补登）。
 4. **升级**：动态配角需要卷级职责/回归时走 change proposal → character_contract 新 revision（回归面孔名单为判定清单）→ 新 roster 重跑登记（升级 role_class，不覆盖 status）。
 5. **对账**：连续性收尾必跑 `novelos_register_characters` 只读对账（pendingStatus:true）——比对 promoted 候选集中每人物最新 character_status 候选与注册表现状，漂移（漏跑迁移/迁移被回滚）非零退出，处理完才能开下一章。
-6. **消费**：canon 最小集注入「人物状态」节（死/退/眠优先近 20 人）；人类查看注册表走 viewer 面板，Markdown 投影已退役。
+6. **消费**：canon 最小集注入「人物状态」节（死/退/眠优先近 20 人）；人类查看注册表走 novels/ 投影（`连续性/人物状态注册表.md`）。
 
 ## 用户实时打断
 
@@ -94,24 +95,24 @@ characters/worlds/factions/rules/timelines 等实体的状态（`state_json`）�
 6. 恢复演练在临时数据库上以备份副本验证 `quick_check` 与逻辑 Hash 一致，不覆盖正式数据库。
 7. 只有授权和完整性同时成立的数据才可接入生产配置。
 
-## 人类视图（dsh-novelos-viewer 面板）
+## 人类视图（md 投影渲染器）
 
-参与者：用户、dsh-novelos-viewer 插件面板。
+参与者：用户、主控智能体（`scripts/novelos-render-projection.mjs`）。
 
-1. 人类视图 = `dsh-novelos-viewer` 面板：host 暴露双只读路由 `GET /db-bytes` + `GET /manifest`，client 以 sql.js(WASM) 在内存直读 db 字节渲染六视图；规格见 `docs/novelos-viewer-design.md`，视觉基准 `docs/novelos-viewer-prototype.html`。面板只读、不落盘、不构成第二存储。
-2. Markdown 投影已永久退役：`novelos_render_projection.py` 与其生成的 `novels/<项目目录>/` 树（含 `manifest.json`）均已删除，原「渲染—校验—原子替换」流程不复存在。HTML 单渲染器原则下不要重建任何 md 投影生成器。
-3. agent 查库用一次性 node:sqlite 只读查询；写路径不经任何视图——唯一经插件门工具（见上文「项目创建向导」节与 AGENTS.md「数据库访问」节）。
+1. 人类视图 = md 投影：`node scripts/novelos-render-projection.mjs --project <id> [--verify]`（node:sqlite 只读直连）把权威库单向渲染为 `novels/<项目目录>/`（创作约束/规划/大纲/正文/人物/世界/连续性 + manifest.json），临时目录写入后原子替换；投影只读、可删除重建、不构成第二存储。viewer 面板已退役（历史规格见 `docs/novelos-viewer-design.md`），不要重建。
+2. 「渲染—校验—原子替换」流程已按用户裁决恢复为 JS 实现（`scripts/novelos-render-projection.mjs`，移植自 py 版）：渲染后 manifest 逐文件 SHA-256 可经 `--verify` 复核；直接修改投影文件不会回写数据库。
+3. agent 查库用一次性 node:sqlite 只读查询；写路径不经任何视图——主控 node:sqlite 受控直写（见 AGENTS.md「数据库访问」节）。
 
 ## 删除项目
 
-参与者：用户、主控智能体、`novelos_delete_project` 门工具。
+参与者：用户、主控智能体（node:sqlite 受控直写）。
 
-一个项目分布在 projects、books、volumes、chapters、planning_assets、characters、worlds、连续性账本、reviews、resources 等多张表，且存在大量 `ON DELETE RESTRICT` 约束（`planning_asset_dependencies.upstream_asset_id`、`reviews`、`resources` 等不级联），不能简单 `DELETE FROM projects`。删除由确定性门工具 `novelos_delete_project` 完成（插件 host 内，不调 LLM）。
+一个项目分布在 projects、books、volumes、chapters、planning_assets、characters、worlds、连续性账本、reviews、resources 等多张表，且存在大量 `ON DELETE RESTRICT` 约束（`planning_asset_dependencies.upstream_asset_id`、`reviews`、`resources` 等不级联），不能简单 `DELETE FROM projects`。删除由主控以 node:sqlite 受控直写完成（确定性 SQL、不调 LLM；SQL 模板见 `.agents/skills/novel-project/sql-reference.md`）。
 
 1. 主控先以 `dryRun:true` 调查项目范围，确认将删除的 books/volumes/chapters、各 `asset_type`/`status` 的 planning_assets、待删 resources 与 reviews 数量。
 2. 需要安全网时加 `backup:true`，在 `data/` 下写出 `.db.bak-<时间戳>`（已被 gitignore 覆盖）。
-3. 执行删除：门内在 `foreign_keys=OFF` 下按依赖逆序逐表删除——先解除 `planning_asset_dependencies` 与 `reviews`（避免 RESTRICT 与留孤儿），再删连续性账本、chapters、volumes、planning_assets、characters、worlds、project_creator_bindings、books、projects，最后删项目专属 resources。全程单事务显式 `BEGIN IMMEDIATE`/`COMMIT`，避免连接关闭未提交而回滚。
+3. 执行删除：主控在 `foreign_keys=OFF` 下按依赖逆序逐表删除——先解除 `planning_asset_dependencies` 与 `reviews`（避免 RESTRICT 与留孤儿），再删连续性账本、chapters、volumes、planning_assets、characters、worlds、project_creator_bindings、books、projects，最后删项目专属 resources。全程单事务显式 `BEGIN IMMEDIATE`/`COMMIT`，避免连接关闭未提交而回滚。
 4. 门只删项目专属内容资源（planning_assets/chapters/实体/连续性的 `resource_id`），**不动** `creator_profile_versions` 引用的共享系统原型资源（跨项目共享）。
-5. 删除后门用 `foreign_keys=ON` 复验：项目残留为 0、全库孤儿 reviews/dependencies 计数。`cleanOrphans:true` 可顺手清理全库历史遗留孤儿（非本次删除造成）。
+5. 删除后主控用 `foreign_keys=ON` 复验：项目残留为 0、全库孤儿 reviews/dependencies 计数。`cleanOrphans:true` 可顺手清理全库历史遗留孤儿（非本次删除造成）。
 
 拒绝路径：项目不存在时门返回 FAIL；共享 creator_profile 资源一律保留；`dryRun` 不写任何数据；删除按单事务提交，不产生部分删除。

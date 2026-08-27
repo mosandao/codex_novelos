@@ -5,7 +5,7 @@ description: 根据已锁定 Chapter Plan 和已确认 Canon 上下文起草或�
 
 # 小说写作
 
-通过 node:sqlite 只读查询数据库（Python MCP 通道已退役）；写路径唯一入口 = 插件门工具（章节接受走 `novelos_accept_chapter`、审查落库走 `novelos_review_commit`）。SQL 模板见 `novel-project/sql-reference.md`。
+通过 node:sqlite 操作数据库（读=只读查询；写=受控直写，插件门工具已退役）。SQL 模板见 `novel-project/sql-reference.md`。
 
 ## 工作流
 
@@ -14,9 +14,9 @@ description: 根据已锁定 Chapter Plan 和已确认 Canon 上下文起草或�
 3. 将已确认上游与 Canon 视为约束。缺少关键材料时返回 context gap。
 4. 完整章节由 Main Agent 创建 sub agent（Writer）执行；局部改句可直接处理。
 5. 写作时保持人物动机、知识边界、地点规则、时间顺序、伏笔和场景状态变化一致。通过选择和后果表现 `book_soul`、`soul_pressure` 与 `moral_residue`；不要自行创造作者思想。
-6. 产出正文后落库为**草稿**（仅允许 `status='draft'`——`accepted` 变更一律走门工具 `novelos_accept_chapter`，禁止手工 UPDATE 接受）：
+6. 产出正文后落库为**草稿**（仅允许 `status='draft'`；`accepted` 变更按第 7 步纪律执行）：
    ```sql
-   -- 存内容（草稿暂存；接受必须经门工具）
+   -- 存内容（草稿暂存）
    INSERT INTO resources (id, media_type, content, content_hash) VALUES (?, 'text/markdown', CAST(? AS BLOB), ?);
    -- 创建/更新章节（draft 专用）
    INSERT INTO chapters (id, volume_id, number, title, status, content_resource_id, summary, metadata_json, version)
@@ -25,9 +25,9 @@ description: 根据已锁定 Chapter Plan 和已确认 Canon 上下文起草或�
    UPDATE chapters SET content_resource_id = ?, summary = ?, version = version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?;
    ```
    content_hash 格式 `'sha256:'+sha256(内容 UTF-8 字节的 hex)`，用 node:crypto 计算（`crypto.createHash('sha256').update(content,'utf8')`）。
-7. 交给 `$novel-review` 审查：回执经门工具 `novelos_review_commit` 落库。审查通过后接受：调用插件门工具 `novelos_accept_chapter`（参数 `chapterId`+`reviewId`）——门内强制 `reviewId` 指向 approved 且 subject_ref=该章节的 review，并把 review_id 写入 `chapters.review_id` 机器痕迹；裸 `UPDATE chapters SET status='accepted' ...` 已退役。
+7. 交给 `$novel-review` 审查：回执按 sql-reference.md「审查」模板以受控 SQL 落库。审查通过后接受：单事务内先核对回执为 approved 且 subject_ref=该章节，再 `UPDATE chapters SET status='accepted', review_id=? ...`（写 `chapters.review_id` 机器痕迹，模板见 sql-reference.md）。
 
-修改已接受章节：免审直改已封死——必须重开 draft（降级操作可手工 UPDATE status='draft'）→ 改稿 → `$novel-review` 重审（`novelos_review_commit` 落新回执）→ `novelos_accept_chapter` 重新接受。唯一例外是幂等重放：对已 accepted 章节重复调用 `novelos_accept_chapter` 且内容 hash 未变时，须显式传 `force=true`（零写入确认）；内容已变 force 也 FAIL，必须重审。
+修改已接受章节：免审直改禁止——必须重开 draft（降级操作 UPDATE status='draft'）→ 改稿 → `$novel-review` 重审（落新回执）→ 按第 7 步接受 SQL 重新接受。唯一例外是幂等确认：对已 accepted 章节重复接受且内容 hash 未变时，允许零写入确认；内容已变必须重审。
 
 Writer 不接受、锁定或晋升任何结果——这些都是主控的职责。
 

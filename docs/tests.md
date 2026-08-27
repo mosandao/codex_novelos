@@ -1,4 +1,5 @@
 # 测试覆盖
+> ⚠️ **口径更新（2026-08-27）**：`plugin/` 与 DSH 插件已退役。本文中「插件门工具 / viewer 面板 / 向导」相关描述为插件时代口径；当前权威口径见 `README.md` 与 `AGENTS.md`（写库 = node:sqlite 受控直写）。
 
 ## 现有覆盖
 
@@ -30,6 +31,9 @@
 | 仓库产物卫生 | prospective Git 文件集、忽略规则、生成物和本地敏感文件失败关闭 | `hygiene.json`、`test_repository_hygiene.py` | existing |
 
 当前基线为 53 项根测试和 154 项 MCP 测试。Profile 测试覆盖 binding 缺失、键名拼错、空值、未注册引用、自定义运行时映射，以及 enforcement 缺省值、boolean 类型、未知 key 和未知查询名；交叉审查测试覆盖 pending、错配、stale、缺失及 lock 前来源失效。完整本地门禁还包括 Migration/Catalog manifest、Agent 质量数据集、seed inventory、迁移汇总、备份/导出恢复、仓库卫生、cutover plan/readiness 和 `compileall` 检查。仓库没有 CI，这些检查目前不自动阻止合并。
+
+零 Python 终态后的 JS 验证口径见 `README.md`「验证口径」：`node scripts/test-compose-prompt.mjs`（19 用例）、`node scripts/test-guardrails.mjs`、`node scripts/test-render-projection.mjs`（投影渲染器 48 用例，2026-08-27 之后按用户裁决恢复）。本表为插件时代 py 覆盖留档。
+
 
 ## 已提出但未完成
 

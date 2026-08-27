@@ -6,7 +6,7 @@
 ## 核心契约（三家共用，零变体）
 
 - **sub agent ABI**：组装产物文件（scripts/novelos-compose-prompt.mjs 的 stdout / data/compositions/ 落盘件）——三家用同一份，零变体
-- **主控只做三件事**：调插件门工具（dsh-novelos-viewer 六个 defineTool 写门）+ node scripts/novelos-compose-prompt.mjs；读文件（组装产物 / catalog 方法论）；把组装产物交给 sub agent
+- **主控只做三件事**：以 node:sqlite 受控直写落库（SQL 模板唯一来源 = .agents/skills/novel-project/sql-reference.md）+ node scripts/novelos-compose-prompt.mjs；读文件（组装产物 / catalog 方法论）；把组装产物交给 sub agent
 
 ## 接入指引
 
@@ -29,7 +29,8 @@
 
 ```bash
 node scripts/test-compose-prompt.mjs        # 仓库根运行（19 用例）
-cd plugin/dsh-novelos-viewer && pnpm test   # vitest 55 用例
+node scripts/test-guardrails.mjs           # 题材词表自洽 + 配方矩阵⊆manifest
+node scripts/test-render-projection.mjs    # 投影渲染器（48 用例）
 ```
 
 （手写维护；与 source/harness.yaml 内容保持一致）

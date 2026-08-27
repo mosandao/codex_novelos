@@ -1,4 +1,5 @@
 # NovelOS × DSH 插件化提案 · 对抗审查报告
+> ⚠️ **历史档案（插件时代，仅考古参考，不再更新）**：本文描述的对象（DSH 插件 / defineTool 写门 / viewer 面板）已随 `plugin/` 移除退役（2026-08-27）。当前写库口径见 `README.md` 与 `AGENTS.md`。
 
 > 审查对象：《NovelOS 改造为 dsh-oil-creator 形式 hybrid 插件》可行性初评。
 > 方法：三路独立只读红队子代理（技术可行性 / 架构价值 / 安全治理）+ 主控本地实证交叉印证。

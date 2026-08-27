@@ -5,7 +5,7 @@ description: 独立审查不可变小说资产并生成 Review Receipt。规划�
 
 # 小说审查
 
-通过 node:sqlite 只读查询数据库（Python MCP 通道已退役）；写路径唯一入口 = 插件门工具（审查回执落库走 `novelos_review_commit`）。SQL 模板见 `novel-project/sql-reference.md`。
+通过 node:sqlite 操作数据库（读=只读查询；回执落库走受控 SQL，插件门工具已退役）。SQL 模板见 `novel-project/sql-reference.md`。
 
 ## 工作流
 
@@ -14,13 +14,13 @@ description: 独立审查不可变小说资产并生成 Review Receipt。规划�
 3. 审查 sub agent 需要**完整的审查依据**：候选正文全文 + 全部已锁定上游原文。直接从数据库 SELECT resources 读取，注入 sub agent prompt。禁止让 sub agent 自行读文件。
 4. 按 review prompt 的检查维度逐项审查。finding severity 四档：`blocking` / `warning` / `note`（问题分级）与 `strength`（记录候选独有赌注与亮点，供选型与修复参考，不阻断不修复）；问题类 finding 给出最小直接证据和原文片段，strength 可引用候选对比与推理但须写明依据。
 5. 只要有 `blocking`，verdict 必须是 `rejected`。
-6. 记录审查结果——主控调用插件门工具 `novelos_review_commit`（裸 INSERT INTO reviews 已退役）：
+6. 记录审查结果——主控按 sql-reference.md「审查」模板以受控 SQL 落库：
    - `subjectRef`：被审对象 ID（`planning:xxx` 或 `chapter:xxx`；对象必须已落库）
    - `verdict`：`approved` 或 `rejected`
    - `findingsJson`：`[{"severity":"note","message":"...","evidence_refs":["..."]}]` JSON 数组文本（severity 取 blocking/warning/note/strength；豁免标记见下文豁免通道）
-   - `reviewerProfile`：审查者身份，必须携带模型身份前缀——`model:<provider:model>`（异构厂商模型直审，防共谋）或 `agent:<name>@<model>`（具名审查 agent）；匿名裸字符串（如 `prose-v1`）FAIL
-   - 可选 `evidenceRefsJson`（证据引用数组）、`metadataJson`、`dryRun=true`（只校验不落库）
-   - 门内以库内资源 content_hash 固化 `subject_hash` 溯源锚点；返回 `reviewId` 供锁定/接受引用
+   - `reviewerProfile`：审查者身份，必须携带模型身份前缀——`model:<provider:model>`（异构厂商模型直审，防共谋）或 `agent:<name>@<model>`（具名审查 agent）；匿名裸字符串（如 `prose-v1`）拒绝落库
+   - 可选 `evidenceRefsJson`（证据引用数组）、`metadataJson`
+   - `subject_hash` 取被审对象库内资源的 content_hash 溯源锚点；落库后把 `reviewId` 交给锁定/接受步骤引用
 
 ## 审查标准来源
 
@@ -39,7 +39,7 @@ description: 独立审查不可变小说资产并生成 Review Receipt。规划�
 
 1. 审查 candidate → 得到 findings（`blocking` / `warning` / `note`）。
 2. **`blocking` 与 `warning` 都必须修复**：修复产生新 revision（candidate），回到步骤 1 重新审查该 revision。**修复经组装器受控重试**：`node scripts/novelos-compose-prompt.mjs --asset <asset> --project <id> --review-feedback <上轮回执.json> --round <N>`——回执的 blocking+warning 注入 review_feedback 槽（note 不注入），组装日志记录轮次。
-3. **退出条件**：审查结果只剩 `note`（或无 finding）→ 锁定；旧 revision 标 `superseded`。部分唯一索引 `idx_planning_assets_current` 要求同 scope 同时只有一个 `locked`——门工具 `novelos_lock_asset` 在单事务内**先翻旧 locked 为 superseded，再置新行 locked**（先 supersede 后 lock 的纪律已在门内固化，手工 UPDATE 已退役）。
+3. **退出条件**：审查结果只剩 `note`（或无 finding）→ 锁定；旧 revision 标 `superseded`。部分唯一索引 `idx_planning_assets_current` 要求同 scope 同时只有一个 `locked`——锁定 SQL 必须在单事务内**先翻旧 locked 为 superseded，再置新行 locked**（先 supersede 后 lock，模板见 sql-reference.md「规划资产」）。
 4. `note` 记录备查，不阻断、不必修复。
 
 ### 循环边界（防无限打转，必须执行）
@@ -50,7 +50,7 @@ description: 独立审查不可变小说资产并生成 Review Receipt。规划�
 
 ### 修复产生新 revision 的纪律
 - 每次修复 = 新 revision（candidate），重审该 revision，不直接改已审查的正文。
-- 锁定经 `novelos_lock_asset`（`assetId`+`lockedReviewId`）：门内自动把旧 revision 翻 `superseded`、新 revision 置 `locked` 并绑定 `locked_review_id`。
+- 锁定按受控 SQL：单事务内把旧 revision 翻 `superseded`、新 revision 置 `locked` 并绑定 `locked_review_id`（模板见 sql-reference.md「规划资产」）。
 - 循环可多轮，直到满足退出条件（无 blocking、无未豁免 warning）。
 - **修复不得削平 strength 指认的特质**：上轮回执中 strength 标记的独有赌注是设计意图，修复其他问题时不得顺手抹平（表里反差、激进节奏等被 strength 认定的棱角）。
 

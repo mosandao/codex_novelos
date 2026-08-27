@@ -1,32 +1,33 @@
 # NovelOS
 
-> **零 Python 演进已完成**：全仓无任何 `.py`，`legacy-python/` 与 `.venv` 已删除。全部读写收口为 `dsh-novelos-viewer` 插件的 JS 门工具，方法论组装器已 JS 化并与 py 版金样逐字节等价。
+> **零 Python 演进已完成**：全仓无任何 `.py`，`legacy-python/` 与 `.venv` 已删除；方法论组装器已 JS 化并与 py 版金样逐字节等价。
+> **插件时代已结束**：`plugin/`（DSH 插件、defineTool 写门、viewer 面板、wizard 三件套）已整体移除退役，数据库读写改为 node:sqlite 直连 + 文档纪律约束。
 > 路线与验证记录见 [tasks/README.md](./tasks/README.md)，agent 行为规则见 [AGENTS.md](./AGENTS.md)。
 
 ## 项目定位
 
 NovelOS 是一套**面向长篇小说创作的多智能体创作操作系统**：
 
-- **L0 权威存储**：`data/novelos-v2.db`（SQLite，25 表）承载全部规划资产与正文，`config/` 提供与语言无关的 JSON Schema 校验门（schemas ×18）、题材包与系统叙事原型——这是整个系统的唯一事实源。
-- **L1 运行时**：插件 host JS 工具是唯一读写口（目标态达成）——写路径 = `dsh-novelos-viewer` 六个 defineTool 门工具，读路径 = viewer 面板或一次性 node:sqlite 只读查询。
+- **L0 权威存储**：`data/novelos-v2.db`（SQLite，25 表）承载全部规划资产与正文，`config/` 提供与语言无关的 JSON Schema 校验基准（schemas ×18）、题材包与系统叙事原型——这是整个系统的唯一事实源。
+- **L1 运行时**：主控 agent 经 node:sqlite（Node ≥ 22）直连权威库——读为一次性只读查询，写为受控事务直写（SQL 模板唯一来源 = `.agents/skills/novel-project/sql-reference.md`）。
 - **L2 方法论**：`catalog/skills/**` 创作方法论 Catalog（prompt.md 主干 + 条件模块 + manifest），与语言无关，原样有效。
 - **L3–L5**：组装产物（`data/compositions/`）、harness 适配（`adapters/`，单源 `adapters/source/harness.yaml`）、会话编排（`.agents/skills/novel-*` 六个操作技能 + `AGENTS.md` 路由协议）。
 
-主控 agent 经组装器把方法论注入各角色 agent（内核融合、分身融合、方向／架构／策略／世界／人物／故事弧／卷纲／章纲、写作、审查、连续性），产物经确定性校验门落库。
+主控 agent 经组装器把方法论注入各角色 agent（内核融合、分身融合、方向／架构／策略／世界／人物／故事弧／卷纲／章纲、写作、审查、连续性），产物按状态机纪律（候选→锁定→stale、审查留痕）落库。
 
 ## 系统现状（终态）
 
 | 能力 | 终态实现 |
 |---|---|
-| 写路径 | 唯一守门人 = `dsh-novelos-viewer` 插件六个 defineTool 门工具：ajv 校验复用 `config/schemas/*.json` + node:sqlite BEGIN IMMEDIATE 单事务 + crypto content_hash，FAIL 返回 ok:false 零写入 |
-| 读路径（人类） | `dsh-novelos-viewer` 面板：client sql.js(WASM) 直读 db 字节，渲染总览／卷纲／章节／人物／世界／连续性六视图 |
-| 读路径（agent） | 一次性 node:sqlite 只读查询（Python MCP 通道已删除） |
+| 写路径 | node:sqlite 事务直写（主控 agent，`BEGIN IMMEDIATE` + 失败整体回滚）——SQL 模板与纪律见 `.agents/skills/novel-project/sql-reference.md`；content_hash 用 node:crypto 计算并与 BLOB 同步写入 |
+| 读路径 | 一次性 node:sqlite 查询（agent）；人类浏览用任意 SQLite 工具只读打开 `data/novelos-v2.db` |
 | 方法论组装 | `node scripts/novelos-compose-prompt.mjs`，配方矩阵权威在 `config/agent-recipes.json`，与 py 版金样逐字节等价 |
-| 渲染器 | HTML(JS) 是唯一人类视图（md 投影已退役） |
+| 校验 | 机器校验门已随插件退役；`config/schemas/*.json`（×18）保留为落库前自查基准 |
+| 渲染器 | md 投影渲染器（`scripts/novelos-render-projection.mjs`，node:sqlite 只读，单向渲染到 `novels/`，可删除重建；viewer 面板与独立 HTML/Web 渲染器仍退役，不要重建） |
 
-**路线图**：R1 插件实体化、R2 JS 写门与组装器 JS 化均已交付收官；唯一登记待办为 R4——七个 `validate_*` 资产校验器（story_arc/volume_outline/strategy/character/world 等）的机器门语义尚未 JS 化，catalog prompt 内的机器门引用随 py 门删除失效，以 [tasks/README.md](./tasks/README.md) 账本为准，不要重建 py 实现。
+**路线图**：R1 插件实体化、R2 JS 写门、R3 编排层与 R4 数字门均已交付收官；此后 `plugin/` 整体移除退役（2026-08-27 裁决），写库口径改为 node:sqlite 直写 + 文档纪律，机器校验以 `config/schemas/*.json` 落库前自查替代。其后经用户裁决恢复 md 投影渲染器（2026-08-27 之后，JS 移植自 py 版 `novelos_render_projection.py`，零 Python 纪律下重建，见 [tasks/README.md](./tasks/README.md)「投影恢复裁决记录」）。账本以 [tasks/README.md](./tasks/README.md) 为准，不要重建 py 实现或插件门。
 
-**已退役清单**（不要寻找、不要重建）：`legacy-python/`（py 校验门 + unittest，JS 门等价迁移后删除）、`.venv`、`mcp/sqlite-mcp/`（Python MCP 通道）、`run_sqlite_mcp.cmd/.sh`、`.codex/config.toml`、`requirements-mcp.txt`、md 投影渲染器、`ui/` 三件套（已迁 `plugin/client/`）、`documentation/`（已并入 `docs/`）、python 四命令验证纪律。仓库无任何 MCP 配置需求、无任何 Python 依赖。
+**已退役清单**（不要寻找、不要重建）：`plugin/`（DSH 插件与 defineTool 写门、viewer 面板、wizard 三件套，2026-08-27 移除）、`legacy-python/`（py 校验门 + unittest）、`.venv`、`mcp/sqlite-mcp/`（Python MCP 通道）、`run_sqlite_mcp.cmd/.sh`、`.codex/config.toml`、`requirements-mcp.txt`、`ui/` 三件套、`documentation/`（已并入 `docs/`）、python 四命令验证纪律。仓库无任何 MCP 配置需求、无任何 Python 依赖、无任何插件依赖。（md 投影渲染器已按用户裁决恢复，见「用户展示」节。）
 
 ## 目录结构
 
@@ -35,32 +36,31 @@ NovelOS 是一套**面向长篇小说创作的多智能体创作操作系统**�
 adapters/                  harness 适配层，单源 adapters/source/harness.yaml
 catalog/skills/            创作方法论 Catalog（onboarding/planning/writing/review/continuity/craft/expansions）
 config/
-  schemas/                 JSON Schema 校验门 ×18（语言无关，JS 门直接复用的核心资产）
+  schemas/                 JSON Schema ×18（落库前自查的校验基准，语言无关）
   agent-recipes.json       角色 × 方法论配方矩阵权威
-  genre-packs.json         题材包（wizard-data.js 的同步镜像，scripts/test-guardrails.mjs 守卫双源一致）
+  genre-packs.json         题材包（唯一词表源；scripts/test-guardrails.mjs 守卫结构自洽与配方一致）
   system_archetypes.json   系统叙事原型
 data/novelos-v2.db         权威 SQLite 库（变更前先备份；data/compositions/ 组装产物运行时生成）
+novels/                    用户可读项目文件夹投影（只读派生，可删除重建，本地忽略）
 db/migrations/             SQL 迁移留档 + schema.sql 基线（语言无关资产）
-docs/                      文档（历史任务账本在 docs/archive/tasks/）
-plugin/dsh-novelos-viewer/ L1 插件：六个 defineTool 写门（vitest 测试）+ scripts/smoke-*.mjs 冒烟脚本
-plugin/client/             UI 资产三件套：project-wizard.html / project-wizard-data.js / kernel-roster.js
-scripts/                   JS 工具脚本：novelos-compose-prompt.mjs 组装器 + test-compose-prompt.mjs（19 用例）+ fixtures/compose-golden/ 金样
-tasks/README.md            零 Python 路线图 + 重组裁决记录
+docs/                      文档（历史任务账本在 docs/archive/tasks/；插件时代规格保留作历史档案）
+scripts/                   JS 工具脚本：novelos-compose-prompt.mjs 组装器 + novelos-render-projection.mjs 投影渲染器 + test-compose-prompt.mjs（19 用例）+ test-guardrails.mjs + test-render-projection.mjs（48 用例）+ fixtures/compose-golden/ 金样
+tasks/README.md            路线图 + 裁决记录
 ```
 
 ## 快速上手
 
 ### 环境要求
 
-- Node.js ≥ 22（内置 `node:sqlite`；ajv 由插件依赖提供）。无 Python、无 venv、无 MCP 配置。
+- Node.js ≥ 22（内置 `node:sqlite`）。无 Python、无 venv、无 MCP 配置、无插件依赖。
 
 ### 创建小说项目
 
-1. 打开 `dsh-novelos-viewer` 面板的「项目向导」入口（host 托管 `/api/wizard`，kernel 名册由 host 经 node:sqlite 实时直查）；面板不可用时允许浏览器直接打开 `plugin/client/project-wizard.html`（file:// 离线模式）。
-2. 向导产出 `novelos.project.create.v3` JSON → 入口校验门 `novelos_gate_entry` 校验（FAIL 拒绝）。
-3. mode=create 先建核：内核融合 agent 产出 author_kernel（`novelos_kernel_commit` 校验落库）→ 分身派生 creator_signature → `novelos_project_commit` 单事务六表落库。
+向导 UI 已随插件退役，当前由主控 agent 编排（细节见 [AGENTS.md](./AGENTS.md)「项目创建向导」与 `.agents/skills/novel-project/SKILL.md`）：
 
-细节与角色分工见 [AGENTS.md](./AGENTS.md)「项目创建向导」；viewer 面板的实现规格见 [docs/novelos-viewer-design.md](./docs/novelos-viewer-design.md)。
+1. 与用户确认项目约束，产出 `novelos.project.create.v3` 形态的 JSON 载荷。
+2. `node scripts/novelos-compose-prompt.mjs --asset fusion --payload <json>`（建核另用 `kernel-fusion`）产出注入文本，交给 onboarding sub agent 产出 author_kernel / creator_signature 候选。
+3. 落库前对照 `config/schemas/*.json` 自查，随后以 node:sqlite 单事务直写落库（六表 SQL 模板见 sql-reference.md「作者签名链」）。
 
 ### 查询数据库（agent 一次性只读查询）
 
@@ -68,7 +68,17 @@ tasks/README.md            零 Python 路线图 + 重组裁决记录
 node -e "const {DatabaseSync}=require('node:sqlite');const db=new DatabaseSync('data/novelos-v2.db');console.log(db.prepare('SELECT id FROM projects').all())"
 ```
 
-读可随意，写必须走插件六写门（见下节）；人类浏览库内容用 viewer 面板。
+读可随意；写库由主控按受控 SQL 直写（模板见 `.agents/skills/novel-project/sql-reference.md`，纪律见下节）。人类浏览库内容用任意 SQLite 工具只读打开 db，或直接打开「用户展示」节渲染出的 `novels/` 投影目录阅读。
+
+### 用户展示（项目投影）
+
+SQLite 仍是唯一权威数据源；人类视图由单向 Markdown 投影提供：
+
+```bash
+node scripts/novelos-render-projection.mjs --project project:xxx [--output novels] [--db data/novelos-v2.db] [--verify]
+```
+
+渲染结果在 `novels/<项目目录>/`：`创作约束/`（作者签名 + 本书创作灵魂）、`规划/`（locked 资产；人物契约按「## 人物档案」拆成 `人物契约/` 目录：总览 + 每人物一份）、`大纲/`（卷纲 + 章纲）、`正文/`（accepted 章节）、`人物/`、`世界/`、`连续性/`（六账本 + 人物状态注册表）与 `manifest.json`（逐文件 SHA-256 可校验，`--verify` 复核）。渲染过程只读直连权威库 + 临时目录原子替换；投影可随时删除重建，直接修改其中文件**不会回写**数据库。不提供独立 HTTP/Web 应用（viewer 面板仍退役，不要重建）。
 
 ### 组装方法论注入文本
 
@@ -87,21 +97,21 @@ node scripts/novelos-compose-prompt.mjs --asset <asset> --project <id>
 # ① 组装器测试（19 用例）
 node scripts/test-compose-prompt.mjs
 
-# ② 插件六写门测试（vitest，55 用例）
-cd plugin/dsh-novelos-viewer && pnpm test
+# ② 护栏测试（题材词表自洽 + 配方矩阵⊆manifest）
+node scripts/test-guardrails.mjs
 
-# ③ 冒烟脚本（只读直查 / 门工具链路回归）
-node plugin/dsh-novelos-viewer/scripts/smoke-sql.mjs
-node plugin/dsh-novelos-viewer/scripts/smoke-gate.mjs
-node plugin/dsh-novelos-viewer/scripts/smoke-r6.mjs
-node plugin/dsh-novelos-viewer/scripts/smoke-r7.mjs
+# ③ 投影渲染器测试（人物契约拆分 + 端到端渲染/校验，48 用例）
+node scripts/test-render-projection.mjs
 ```
+（插件 vitest 与 smoke-*.mjs 已随 plugin/ 退役删除。）
 
-## 写库纪律（红线）
+## 写库纪律（文档约束）
 
-- **唯一写入口**：写库只能经 `dsh-novelos-viewer` 插件六个 defineTool 门工具（ajv 校验 + node:sqlite BEGIN IMMEDIATE 单事务，FAIL 返回 ok:false 零写入）：`novelos_gate_entry`（入口校验，只读）、`novelos_kernel_commit`（内核候选校验落库）、`novelos_project_commit`（分身六表落库）、`novelos_register_characters`（人物重锁登记/动态配角/状态迁移）、`novelos_propagate_stale`（上游修订沿依赖图标 stale）、`novelos_delete_project`（项目整体删除）。禁止手工 INSERT/UPDATE 绕过门直接写库——agent 没有裸 SQL 写通道。
-- **写库约定已在门内固化**：① ID 格式 `类型:uuid`；② `resources.content` 经 BLOB 写入并同步 content_hash。
-- **裁决门红线**：`novelos_project_commit` 遇 mismatch 必须用户裁决（`userAdjudicated:true`）才放行；任何门 FAIL 必须阻断退出，mismatch 仅警告放行 = 纸面化。
+插件门工具已退役，以下纪律由主控 agent 自查执行（不再是机器强制；SQL 模板唯一来源 = `.agents/skills/novel-project/sql-reference.md`）：
+
+- **写库收口主控**：sub agent 不持有数据库访问；读为一次性 node:sqlite 只读查询，写由主控以 `BEGIN IMMEDIATE` + `PRAGMA foreign_keys=ON` 单事务直写，任一步失败整体回滚零写入。
+- **写库三约定**：① ID 格式 `类型:uuid`；② `resources.content` 经 BLOB 写入并同步 content_hash（`'sha256:'+hex`，node:crypto 计算）；③ 状态流转留痕——`candidate→locked` 必须绑定 approved 回执，章节 `accepted` 必须写 `chapters.review_id`（`db/migrations/019_state_machine_links.sql`）。
+- **裁决纪律**：项目创建遇内核/签名错配（mismatch）必须呈报用户裁决后才落库；审查有 `blocking` 不得锁定/接受。mismatch 仅警告放行 = 纸面化（红队 F2 教训）。
 - **备份先行**：任何 schema 变更前先复制 `data/novelos-v2.db`。
 - **生产镜像只读**：`/Users/yiyi/github/novelos` 是生产环境，只读。
 
@@ -110,7 +120,7 @@ node plugin/dsh-novelos-viewer/scripts/smoke-r7.mjs
 Agent 协作入口：
 
 - [AGENTS.md](./AGENTS.md) — agent 行为规则、路由顺序、小说工作流（权威）
-- [tasks/README.md](./tasks/README.md) — 零 Python 路线图（收官记录 + R4 待办）与重组裁决记录
+- [tasks/README.md](./tasks/README.md) — 路线图（收官记录）与裁决记录
 
 设计与参考文档（均在 `docs/` 下）：
 
@@ -122,9 +132,10 @@ Agent 协作入口：
 - [docs/automation.md](./docs/automation.md) — Agent 与自动化
 - [docs/agent-recipes.md](./docs/agent-recipes.md) — 配方矩阵说明
 - [docs/worldbuilding-redesign.md](./docs/worldbuilding-redesign.md) — 世界观契约重设计
+历史档案（插件时代，仅考古参考，不再更新）：
+
 - [docs/plugin-feasibility-adversarial-review.md](./docs/plugin-feasibility-adversarial-review.md) — 插件化可行性红队评审
 - [docs/r2-js-gate-spec.md](./docs/r2-js-gate-spec.md) — R2 JS 写门规格
-- [docs/novelos-viewer-design.md](./docs/novelos-viewer-design.md) — viewer 面板设计规格
-- [docs/novelos-viewer-prototype.html](./docs/novelos-viewer-prototype.html) — viewer 视觉原型
+- [docs/novelos-viewer-design.md](./docs/novelos-viewer-design.md) — viewer 面板设计规格（面板已退役）
 - [scripts/COMPOSE-PORT-NOTES.md](./scripts/COMPOSE-PORT-NOTES.md) — 组装器 py → JS 移植记录（金样等价验收）
 - [docs/archive/tasks/](./docs/archive/tasks) — 历史任务账本（Task 06–39，py 时代考古参考，不再更新）

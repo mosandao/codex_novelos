@@ -5,7 +5,7 @@ description: 从已接受小说章节提取连续性数据。章节接受后需�
 
 # 小说连续性
 
-通过 node:sqlite 与插件门工具操作数据库（Python MCP 通道已退役）。SQL 模板见 `novel-project/sql-reference.md`。
+通过 node:sqlite 操作数据库（读写均走受控 SQL，模板见 `novel-project/sql-reference.md`；Python MCP 通道与插件门工具均已退役）。
 
 ## 工作流
 
@@ -18,7 +18,7 @@ description: 从已接受小说章节提取连续性数据。章节接受后需�
    - 表与列名以 `db/migrations/schema.sql` 为准：`chapter_facts(fact_type/subject/description_resource_id)`、`narrative_promises(promise_key)`、`expectation_ledgers(expectation_key)`、`relationship_states(subject_ref/object_ref/state_resource_id)`、`arc_states(arc_ref/state_resource_id)`。
 
 5. 如果提取的事实与既有 Canon 冲突，列出双方来源让主控决策，不静默覆盖。
-6. **character_status 晋升后**：经插件门工具 `novelos_register_characters` 更新人物注册表（参数 `project` + `statusUpdate`=JSON 文本，单对象或数组，一章多个迁移一次提交）。条目形如 `{"name": …, "status": dead|departed|transformed|dormant|peripheral|active, "exit_type": 七型之一, "exit_chapter_id": …}`：dead 必须带 死亡型 exit_type；非退场状态（active/peripheral）不带 exit_type，且会整体清空遗留退场痕迹（复活场景）；每次迁移在 state_json.状态史 留审计记录。执行卡预登记的新配角若尚未入库，用 `entries` 参数补登。
-7. **收尾必跑对账**：插件门工具 `novelos_register_characters`（`pendingStatus=true` 只读开关）——比对 promoted 候选集中每人物最新 character_status 候选与注册表现状，报告含漂移项即有漏项（漏跑状态迁移或迁移被回滚），处理完才能开始下一章。
+6. **character_status 晋升后**：以受控 SQL 更新人物注册表（characters 表 state_json，一章多个迁移在单事务内一次提交）。条目形如 `{"name": …, "status": dead|departed|transformed|dormant|peripheral|active, "exit_type": 七型之一, "exit_chapter_id": …}`：dead 必须带 死亡型 exit_type；非退场状态（active/peripheral）不带 exit_type，且会整体清空遗留退场痕迹（复活场景）；每次迁移在 state_json.状态史 留审计记录。执行卡预登记的新配角若尚未入库，补登 characters 行。
+7. **收尾必跑对账**：SELECT 比对 promoted 候选集中每人物最新 character_status 候选与注册表现状，报告含漂移项即有漏项（漏跑状态迁移或迁移被回滚），处理完才能开始下一章。
 
 连续性候选须经质量审查后才写入：提取 sub agent 只产候选（`node scripts/novelos-compose-prompt.mjs --asset continuity-extraction --subject <chapter_ref>` 注入 subject+canon_minimal），主控将候选交独立审查（`--asset continuity-quality-review`，同样注入 canon_minimal 供审查者对照 Canon 判漂移）——条目拒绝进修订循环，通过后按第 4 步纪律落库。配方矩阵权威见 `config/agent-recipes.json` 的 continuity-extraction / continuity-quality-review 两资产。

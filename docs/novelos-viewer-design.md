@@ -1,4 +1,5 @@
 # NovelOS Viewer · 产品架构与原型说明
+> ⚠️ **历史档案（插件时代，仅考古参考，不再更新）**：本文描述的对象（DSH 插件 / defineTool 写门 / viewer 面板）已随 `plugin/` 移除退役（2026-08-27）。当前写库口径见 `README.md` 与 `AGENTS.md`。
 
 > 产品定位：NovelOS 权威库的**纯只读可视化工作台**——DSH ui-panel 插件形态，浏览器内 sql.js(WASM) 直读 `data/novelos-v2.db`，全 JS 渲染，零 Python 参与视图链。
 > 设计原则继承自对抗审查报告（`docs/plugin-feasibility-adversarial-review.md`）：快照制新鲜度 / 物理只读 / 零写路径 / 零 argv / 单渲染器。
