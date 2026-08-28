@@ -64,6 +64,12 @@ node scripts\novelos-compose-prompt.mjs --asset <asset> --project <id>
 
 角色→模型分工由主控在编排时显式指定（格式 `provider:model` 或裸 model 名）：写作=强创意模型；审查=异构厂商模型（防共谋，reviewer_profile 留机器身份前缀）；记忆提取=廉价快速模型。在 workflow/subagent 按 per-agent provider/model 覆盖。方法论与校验基准均模型无关——映射只影响编排，不改代码。
 
+默认映射（主控编排首选，随 API key 可用性调整；完整方案与备选见 `docs/model-roles.md`）：
+- 写作：`deepseek-v4-pro`（备选 `minimax-m3`）
+- 审查：`zai-coding-cn:glm-5.3`（备选 `kimi-k3` 仅关键章双审；与写作端必须不同厂商）
+- 记忆提取：`glm-5.3-flash`（备选 `deepseek-v4-flash`）
+- 视觉：`glm-4v-flash`（已配置）
+
 ## 小说工作流
 
 1. `$novel-memory` 组织上下文（canon 最小集经组装器注入）。

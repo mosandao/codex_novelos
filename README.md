@@ -1,4 +1,4 @@
-﻿> ⛔ **本仓已冻结归档(2026-08-28)**:NovelOS 的唯一生产权威已迁移至 `D:\github\dsh_novelos`(DSH 侧本体)。
+> ⛔ **本仓已冻结归档(2026-08-28)**:NovelOS 的唯一生产权威已迁移至 `D:\github\dsh_novelos`(DSH 侧本体)。
 > 此后不要在本仓继续写入;迁移溯源与差异清单见新仓 `PROVENANCE.md`(来源 commit = 本仓 d7abbcf7)。本 README 以下内容为迁移时点快照,仅供考古。
 # NovelOS
 
@@ -134,10 +134,8 @@ Agent 协作入口：
 - [docs/automation.md](./docs/automation.md) — Agent 与自动化
 - [docs/agent-recipes.md](./docs/agent-recipes.md) — 配方矩阵说明
 - [docs/worldbuilding-redesign.md](./docs/worldbuilding-redesign.md) — 世界观契约重设计
-历史档案（插件时代，仅考古参考，不再更新）：
+- [docs/model-roles.md](./docs/model-roles.md) — 多模型分工方案（角色槽默认映射与防共谋矩阵）
+历史档案（仅考古参考，不再更新）：
 
-- [docs/plugin-feasibility-adversarial-review.md](./docs/plugin-feasibility-adversarial-review.md) — 插件化可行性红队评审
-- [docs/r2-js-gate-spec.md](./docs/r2-js-gate-spec.md) — R2 JS 写门规格
-- [docs/novelos-viewer-design.md](./docs/novelos-viewer-design.md) — viewer 面板设计规格（面板已退役）
 - [scripts/COMPOSE-PORT-NOTES.md](./scripts/COMPOSE-PORT-NOTES.md) — 组装器 py → JS 移植记录（金样等价验收）
 - [docs/archive/tasks/](./docs/archive/tasks) — 历史任务账本（Task 06–39，py 时代考古参考，不再更新）
