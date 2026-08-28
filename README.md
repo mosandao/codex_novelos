@@ -1,3 +1,5 @@
+﻿> ⛔ **本仓已冻结归档(2026-08-28)**:NovelOS 的唯一生产权威已迁移至 `D:\github\dsh_novelos`(DSH 侧本体)。
+> 此后不要在本仓继续写入;迁移溯源与差异清单见新仓 `PROVENANCE.md`(来源 commit = 本仓 d7abbcf7)。本 README 以下内容为迁移时点快照,仅供考古。
 # NovelOS
 
 > **零 Python 演进已完成**：全仓无任何 `.py`，`legacy-python/` 与 `.venv` 已删除；方法论组装器已 JS 化并与 py 版金样逐字节等价。
