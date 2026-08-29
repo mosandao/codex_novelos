@@ -39,6 +39,14 @@
         "field": "setup.genre_profile",
         "is_null": true
       }
+    },
+    {
+      "id": "reference-world-settings",
+      "file": "reference-world-settings.md",
+      "when": {
+        "field": "setup.genre_profile",
+        "non_empty": true
+      }
     }
   ],
   "data_slots": [

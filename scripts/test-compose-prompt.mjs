@@ -444,6 +444,89 @@ test('⑦f prose-blindtest 可组装（subject + 指纹 craft 卡）', () => {
   assert.ok(r.stdout.includes('被审对象全文'), '缺 subject 槽注入');
 });
 
+// ---- ⑧ 规划层参照模块（R4 modules 预组合通道，裁-7） ----
+// when 路由语义（selectModules/evaluateWhen 实读）：{"field": "setup.genre_profile",
+// "non_empty": true} = pyTruthy（null/{} 为假，非空对象为真）。夹具走 /tmp 副本，
+// 生产库零写入；genre_profile 通过 UPDATE metadata_json 调整。
+
+/** 改 /tmp 夹具库项目的 setup.genre_profile（null = 反例），返回影响行数。 */
+function setFixtureGenreProfile(pid, genreProfile) {
+  const db = new DatabaseSync(FIXTURE_DB);
+  try {
+    const row = db.prepare('SELECT metadata_json FROM projects WHERE id = ?').get(pid);
+    const meta = JSON.parse(row.metadata_json);
+    meta.setup.genre_profile = genreProfile;
+    return db.prepare('UPDATE projects SET metadata_json = ? WHERE id = ?')
+      .run(JSON.stringify(meta), pid).changes;
+  } finally {
+    db.close();
+  }
+}
+
+test('⑧a direction 组装 when 命中（genre_profile 非空）：参照模块在场+信封头+日志留痕', () => {
+  if (!hasFixture) return;
+  const pid = buildFixtureDb();
+  setFixtureGenreProfile(pid, { primary_genre: '诸天无限' });
+  const r = runCli(['--asset', 'direction', '--project', pid, '--db', FIXTURE_DB,
+    '--log-dir', FIXTURE_LOG]);
+  assert.equal(r.status, 0, `stderr: ${r.stderr}`);
+  assert.ok(r.stdout.includes('参照素材(非 Canon、无对账义务)'), '缺参照信封头');
+  assert.ok(r.stdout.includes('读者承诺形态谱系'), '缺参照模块正文');
+  assert.ok(r.stdout.includes('不得直接复用其题材场景、书名与设定'), '信封隔离条款缺失');
+  // 组装日志留痕：index.jsonl 末条 modules 含参照模块 id（writeCompositionLog L1580）
+  const index = rfSync(path.join(FIXTURE_LOG, 'index.jsonl'), 'utf8').trim().split('\n');
+  const last = JSON.parse(index[index.length - 1]);
+  assert.ok(last.modules.includes('reference-book-appeal'),
+    `modules 未留痕: ${JSON.stringify(last.modules)}`);
+});
+
+test('⑧b direction 组装 when 不命中（genre_profile=null）：参照模块不出现', () => {
+  if (!hasFixture) return;
+  const pid = buildFixtureDb();
+  setFixtureGenreProfile(pid, null);
+  const r = runCli(['--asset', 'direction', '--project', pid, '--db', FIXTURE_DB,
+    '--no-log']);
+  assert.equal(r.status, 0, `stderr: ${r.stderr}`);
+  assert.ok(!r.stdout.includes('读者承诺形态谱系'), '参照模块未按 when 跳过');
+  assert.ok(!r.stdout.includes('非 Canon、无对账义务):以下为成品网书'), '信封头未随模块跳过');
+});
+
+/** 向 /tmp 夹具库插入一条 locked 上游资产（world-contract 上游缺失即停）。 */
+function insertFixtureUpstream(pid, assetType, scopeRef, text) {
+  const db = new DatabaseSync(FIXTURE_DB);
+  try {
+    const hash = 'sha256:' + createHash('sha256').update(text, 'utf8').digest('hex');
+    const rid = `resource:zzfix-${assetType}`;
+    db.prepare('INSERT OR REPLACE INTO resources (id, media_type, content, content_hash) '
+      + "VALUES (?, 'text/markdown', ?, ?)").run(rid, text, hash);
+    db.prepare('INSERT OR REPLACE INTO planning_assets (id, project_id, asset_type, scope_ref, '
+      + "revision, status, content_resource_id, producer_role, metadata_json) VALUES "
+      + "(?, ?, ?, ?, 1, 'locked', ?, ?, '{}')")
+      .run(`planning:zzfix-${assetType}`, pid, assetType, scopeRef, rid, assetType);
+  } finally {
+    db.close();
+  }
+}
+
+test('⑧c world-contract 组装同规则命中/不命中：形态谱系随 genre_profile 出现或消失', () => {
+  if (!hasFixture) return;
+  const pid = buildFixtureDb();
+  insertFixtureUpstream(pid, 'architecture', 'book:zzfix', '架构夹具：三幕式主干。');
+  insertFixtureUpstream(pid, 'strategy', 'book:zzfix', '战略夹具：阶段收益配比。');
+  setFixtureGenreProfile(pid, { primary_genre: '诸天无限' });
+  const hit = runCli(['--asset', 'world-contract', '--project', pid, '--db', FIXTURE_DB, '--no-log']);
+  assert.equal(hit.status, 0, `stderr: ${hit.stderr}`);
+  assert.ok(hit.stdout.includes('非 Canon、无对账义务):以下为成品网书世界设定的形态归纳'),
+    '缺 world 参照信封头');
+  assert.ok(hit.stdout.includes('力量体系形态'), '缺 world 参照模块正文');
+  assert.ok(hit.stdout.includes('语域/词表唯一来源仍是 genre_pack'), '缺词表单源声明');
+
+  setFixtureGenreProfile(pid, null);
+  const miss = runCli(['--asset', 'world-contract', '--project', pid, '--db', FIXTURE_DB, '--no-log']);
+  assert.equal(miss.status, 0, `stderr: ${miss.stderr}`);
+  assert.ok(!miss.stdout.includes('力量体系形态'), '参照模块未按 when 跳过');
+});
+
 // ---------------------------------------------------------------- 汇总
 
 console.log(`\n${passed} passed, ${failed} failed`);

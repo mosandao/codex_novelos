@@ -63,6 +63,14 @@
         "field": "setup.aesthetic_styles",
         "non_empty": true
       }
+    },
+    {
+      "id": "reference-book-appeal",
+      "file": "reference-book-appeal.md",
+      "when": {
+        "field": "setup.genre_profile",
+        "non_empty": true
+      }
     }
   ],
   "data_slots": [

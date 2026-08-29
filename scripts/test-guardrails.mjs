@@ -140,5 +140,46 @@ for (const f of kgFiles) {
     `实际 ${Buffer.byteLength(String(doc.card_module_md ?? ''), 'utf8')}B`);
 }
 
+// ── 守卫四：规划层参照模块红线（KG2，R4） ────────────────────────────────
+// catalog/skills/planning/*/modules/reference-*.md 是「形态参照」模块（R5 裁-7
+// modules 预组合通道投递）。三重隔离：
+//   ① 信封头「非 Canon、无对账义务」必须在场（00-chain-coverage 发现二：参照不得
+//      被当对账对象/对账源）；
+//   ② 字节数 ≤2560（D3 计划 planning 参照预算）；
+//   ③ 正文不含词表型键名（lexicon/positive_terms/banned_categories/measure_system
+//      的键位形态：token 后接 := 或引号包裹键）——防参照变第二词表源；信封声明句
+//      中对词表源名的提及（如 world_lexicon」）不带键位形态，不误伤。
+const PLANNING_SKILLS = path.join(ROOT, 'catalog/skills/planning');
+const KG2_ENVELOPE = '非 Canon、无对账义务';
+const KG2_MAX_BYTES = 2560;
+const KG2_TOKENS = 'lexicon|positive_terms|banned_categories|measure_system';
+const KG2_KEY_RES = [
+  new RegExp(`(?:^|[^A-Za-z0-9_])(?:${KG2_TOKENS})\\s*[:=]`, 'i'),
+  new RegExp(`["'](?:${KG2_TOKENS})["']\\s*:`, 'i'),
+];
+
+const kg2Files = [];
+if (fs.existsSync(PLANNING_SKILLS)) {
+  for (const skill of fs.readdirSync(PLANNING_SKILLS).sort()) {
+    const modDir = path.join(PLANNING_SKILLS, skill, 'modules');
+    if (!fs.statSync(modDir, { throwIfNoEntry: false })?.isDirectory()) continue;
+    for (const f of fs.readdirSync(modDir).sort()) {
+      if (f.startsWith('reference-') && f.endsWith('.md')) {
+        kg2Files.push({ label: `planning/${skill}/modules/${f}`, p: path.join(modDir, f) });
+      }
+    }
+  }
+}
+check('KG2 参照模块存在（planning/*/modules/reference-*.md ≥1）', kg2Files.length > 0);
+
+for (const { label, p } of kg2Files) {
+  const text = fs.readFileSync(p, 'utf8');
+  check(`KG2 信封头「${KG2_ENVELOPE}」在场 ${label}`, text.includes(KG2_ENVELOPE));
+  const bytes = Buffer.byteLength(text, 'utf8');
+  check(`KG2 字节数 ≤${KG2_MAX_BYTES}B ${label}`, bytes <= KG2_MAX_BYTES, `实际 ${bytes}B`);
+  const hit = KG2_KEY_RES.map((re) => (text.match(re) ?? [])[0]).filter(Boolean);
+  check(`KG2 无词表型键名 ${label}`, hit.length === 0, `命中:[${hit.join(', ')}]`);
+}
+
 console.log(`\n${passCount} passed, ${failCount} failed`);
 process.exit(failCount > 0 ? 1 : 0);
