@@ -1,5 +1,16 @@
 # D3 · 知识蒸馏与组装器接入（可执行设计）
 
+> ⚠ **R0 执行偏差记录（2026-08-29）**——导入层已执行（`scripts/novelos-import-knowledge.mjs`），以下为实际执行与本文的差异（未列者仍以本文为准）：
+> 1. **落盘路径与文件名**（裁-5/P0-3）：原始导出层由 `config/knowledge/*.json`（入 git）改为 **`data/knowledge/<table>.json`**（gitignore，文件名=源表名）；`config/knowledge/` 仅留蒸馏产物（后续轮次）。
+> 2. **不导表扩至 7 张**：`kb_author_personas`（裁-5：D4 于 R5 轮走 MySQL 直连 12-16 条试点，staging 导出取消，author_name 归并预处理随之移交 D4）、`kb_corpus_articles/excerpts`（裁-4：由金丝雀选样执行员按 D2 装载器格式 `data/canary/g{N}/*.md` 直连导出，本文 §8.1 的 jsonl 交付取消）+ 本文既定的 worldbuilding_priority / reusable_templates / memes / imported_files。23 张 kb_* 表全部在脚本 TABLE_DISPOSITIONS 注册表逐条登记。
+> 3. **quality 口径**（裁-6/P0-2）：SQL 侧原始 `BETWEEN 8 AND 10` 过滤（techniques 1310 实数确认）；normScore 不参与过滤，条目仅保留 `norm_score` 排序辅助字段。
+> 4. **dup_key 排序**（P1-8）：字面 `category, dup_key, id` 在实测数据上无法保证同 key 相邻（同 dup_key 条目 category 实测发散，如 id 6/258/435 分属世界观融入/信息差运用/叙事技法），改为 **`dup_key, category, id`** 兑现「同 key 相邻」意图；连接符 `::`。
+> 5. **scene_maps 死引用**：不自动剔除（避免丢数据），`--verify` 双口径报告（源表死引用 1 个、quality 过滤外失联 74 个），剔除决策留蒸馏层。
+> 6. **字段名保持源列名**（不采用 §3.2 短名 schema 草案）；溯源三件套每条必备（`kb:<域>:<orig_id>` / orig_id / book_source / exported_at）；`--canary-only` flag 未做（tags.json 随 kb_corpus_tags 双落 `data/canary/tags.json`，articles/excerpts 已不在本管道）。
+> 7. **幂等口径**：`exported_at` 为 UTC 日期粒度——同库状态同日重跑字节一致（已验证 diff 为空）；跨日重跑仅该字段变化。
+> 8. **biz_\***：红队快照 41 张，2026-08-29 实测 **42 张**，已全量显式排除（脚本头注释逐一登记）。
+> 9. **验证证据**：`--all` 16 表导出成功；`--verify` 全绿（运行时 COUNT 对账，不写死数字）；幂等 diff 为空；独立 SQL COUNT 双源对账一致；83 条 parse_error 均为源库坏 JSON（数组元素间缺英文逗号），按「保真 + `_parse_error` 标记」处置。
+
 > 状态：`TODO`（设计文档，待 G4 红方规格审 + 用户裁决后执行）
 > 负责范围：R0 导入管道（kb_* → config/knowledge/ + data/canary/）· R3 写作层 knowledge 槽 · R4 规划层参照投递 · 蒸馏流程与注入预算
 > 边界：既有 fingerprint 卡修改归 D1；craft 卡**内容蒸馏**归本文；onboarding/签名归 D4；门规程（G1/G2/G3 运行时）归 D5；本计划不修改任何其他仓库文件（仅本文件）

@@ -72,6 +72,16 @@ py `main()` 在 parent_rationale 含错配标记时仅 print 提示仍继续落�
 
 - 指导计划:`tasks/R5-knowledge-absorption.md`(**v2 整合版**——五方向规划 `tasks/r5-plans/d{1-5}-*.plan.md` + 五红方对抗审查 `*.redteam.md`(P0×14/P1×31)经主控整合仲裁:12 条跨方向裁决、统一契约注册表(fpr: 编号/code 前缀/留痕位置/版权通道/注入通道矩阵)、U1-U13 裁决点、修订轮次 R0-R6)。执行条目开跑后在此记账。
 
+### R5 执行记账(R0 轮)
+
+- [x] `DONE` 计划基线固定:`b753a44`(v2 整合版+5 方向计划+5 红方报告入库);`.gitignore` 补 `data/knowledge|canary|stylecorp/`(裁-5 版权隔离)。**验证:git status 干净,14 文件入库**
+- [x] `DONE` R0 知识导入:`scripts/novelos-import-knowledge.mjs`(23 张 kb 表逐一处置:16 导+7 不导记理由;biz_* 42 张显式排除)+ `data/knowledge/*.json` ×16 + `data/canary/tags.json`。**验证:`--all` 成功;`--verify` 运行时对账全绿;幂等 diff 空;techniques 1310 实数(裁-6 原始 BETWEEN 口径);dup_key 聚簇抽查 3 组 ✓;83 条源库坏 JSON 保真+_parse_error 标记**;执行偏差已回写 d3 计划顶部
+- [x] `DONE` R0 金丝雀选样:22 篇全文级落 `data/canary/g{1,2,3}/`(S18+甜虐 B 级补 2+奇幻补 2;tiebreaker 可复现;正文自 source_url 压缩块程序化解压,329,300 字 vs 库 347,436 ratio 0.948)+ `_meta/selection.json` + **U1 包** `tasks/r5-plans/u1-canary-package.md`(覆盖 8/13 轴、缺口 5 轴如实声明、甜虐 B 级偏离声明、U13 男频缺失登记)。**验证:JSON.parse 通过;头尾抽查无截断;MySQL 全程只读**
+- [x] `DONE` R0 机器校验:`scripts/novelos-prose-fingerprint.mjs`(43 规则注册表 fpr: 主键,screen 12/measure 31,L07b=measure/B02 增设,对话过滤栈式引号配对+叙述层分母,advisory 三指标)+ `scripts/novelos-canary.mjs`(--save 基线/--compare tier 分层 exit 1 仅拦 screen/语料指纹校验)+ `scripts/test-prose-fingerprint.mjs`。**验证:49 用例全绿;save→compare PASS→篡改语料 exit 1→漂移 exit 2 全链验证;AI 味文本冒烟 10 条 screen 命中坐标可回指**
+- [x] `DONE` R0 基线测量(主控收口):`docs/knowledge/canary-baseline.json|.md`。**核心发现:screen 零容忍语义仅对 L06/L11/P02 成立;L03 破折号 0.92/千字、L02 0.14/千字等 7 条规则在人类小说叙述层有命中;L07b 直发 screen 将 8 误报(红方 F4 预判命中);spread>5 共 9 条标「仅 direction 佐证」**;层级重校方案 A/B/C 已入 U1 包呈报
+- [ ] `TODO` **U1/U12/U13 裁决(R0 批,呈报用户)**:金丝雀选样+基线+层级重校(方案 A 建议)/版权数据通道确认/男频语料授权补采
+- [ ] `TODO` R1 语言层:prose-revision 注册前置包(裁-3)+fingerprint 卡修订(编号映射/RT- 前缀/锚点标注/「不作为」表)+双模式+rubric;**前置依赖:U1 层级重校结果决定卡面阈值标注口径**
+
 ## 插件退役裁决记录（2026-08-27 之后）
 
 - `plugin/` 整体移除（用户裁决：不再使用 DSH 插件）——`dsh-novelos-viewer` / `dsh-novelos` 插件、defineTool 写门、viewer 面板、wizard 三件套全部退役删除。
