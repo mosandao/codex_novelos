@@ -377,6 +377,7 @@
         "project_setup",
         "book_soul",
         "upstream:chapter_plan",
+        "knowledge:techniques",
         "canon_minimal",
         "review_feedback",
         "world_lexicon",
@@ -399,6 +400,18 @@
       "decision_scope": "execute",
       "output": "修订候选正文（双模式）",
       "failure": "审查循环；3 轮未收敛升级用户"
+    },
+    {
+      "asset": "prose-blindtest",
+      "composer_key": "prose-blindtest",
+      "skill": "review/prose-blindtest",
+      "slots": [
+        "subject"
+      ],
+      "divergence": null,
+      "decision_scope": "judge",
+      "output": "盲测判据表（判源判定+置信度+指纹 findings 逐条指认规则编号；双向判据表）",
+      "failure": "判源全对→复核文体泄漏，重抽；连续两轮识破匿名标签→盲测协议修订升级主控"
     },
     {
       "asset": "prose-quality-review",

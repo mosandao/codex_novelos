@@ -25,8 +25,10 @@
  *   node scripts/novelos-compose-prompt.mjs --asset fusion --payload <向导JSON路径>
  *
  * CLI 参数与 py 版一致：--asset / --project / --payload / --subject / --review-feedback /
- * --round / --log-dir / --no-log / --proposal。JS 版新增 --db <路径>（默认 data/novelos-v2.db）；
- * --review-feedback 额外接受内联 JSON（以 { 开头即按字面解析，否则按文件路径读）。
+ * --round / --log-dir / --no-log / --proposal。JS 版新增 --db <路径>（默认 data/novelos-v2.db）
+ * 与 --without-slot <name>（可重复；组装时跳过指定槽/craft 卡——盲测有/无对照，红方 P1-6，
+ * 禁用清单入组装日志 without_slots）；--review-feedback 额外接受内联 JSON（以 { 开头即按
+ * 字面解析，否则按文件路径读）。
  *
  * 输出组装后的完整注入文本到 stdout。U 型排布：主干（普适方法论）→
  * 输入数据区（可回读原料）→ 条件模块（高信号约束贴近生成点）→ 自检汇总（尾部确认）。
@@ -71,6 +73,7 @@ export const ASSET_DIRS = {
   'chapter-draft': path.join(ROOT, 'catalog/skills/writing/chapter-draft-generation'),
   'prose-review': path.join(ROOT, 'catalog/skills/review/prose-quality-review'),
   'prose-revision': path.join(ROOT, 'catalog/skills/expansions/prose-revision'),
+  'prose-blindtest': path.join(ROOT, 'catalog/skills/review/prose-blindtest'),
   'continuity-extraction': path.join(ROOT, 'catalog/skills/continuity/continuity-candidate-extraction'),
   'continuity-review': path.join(ROOT, 'catalog/skills/review/continuity-quality-review'),
   'cross-consistency-review': path.join(ROOT, 'catalog/skills/review/planning-cross-consistency-review'),
@@ -1324,6 +1327,150 @@ function slotPersonaGate(db, projectId) {
     + '新造人物不得整档落在「写不了」场景）', lines.join('\n')];
 }
 
+// ---------------------------------------------------------------- knowledge 槽（R3）
+// knowledge:<domain> 动态槽：惰性读取 config/knowledge/distilled.<source>.json（蒸馏产物，
+// 入 git；原始拆解数据在 data/knowledge/（gitignored），本槽永不触碰）。
+// 域→源文件映射：techniques 为聚合域（首批三份蒸馏全量检索）；其余域直读同名文件。
+// 【惰性读取纪律（红方 P2-13）】所有文件 open 都发生在 resolveKnowledge 调用链内，
+// 模块加载期零读取——无 knowledge: 槽声明则零行为变化；文件缺失/不可解析 = 该源静默
+// 跳过，全部缺失 = 槽整体静默跳过（旧库组装不炸）。
+const KNOWLEDGE_DIR = path.join(ROOT, 'config', 'knowledge');
+const KNOWLEDGE_DOMAIN_SOURCES = {
+  techniques: ['dialogue', 'opening', 'pacing'], // 首批蒸馏三域（对话/开篇/节奏）聚合检索
+};
+const KNOWLEDGE_ENTRY_BYTES = 512;    // 单条渲染上限（≈170 汉字；超限 UTF-8 安全截断）
+const KNOWLEDGE_TOTAL_BYTES = 4096;   // 槽总注入上限（超限按命中排名截断；R5 U4 裁决值）
+const KNOWLEDGE_GROUP_SIZE = 5;       // top-5×2 组：命中最多的 5 条 + 次高的 5 条
+const KNOWLEDGE_FOOTNOTE_RESERVE = 160; // 脚注行字节预留（超限截断时仍保证节 ≤ 上限）
+// 渲染字段白名单（红方 P2-15：禁渲染名词列表型字段——source/orig_ids/genres 永不出现在注入文本）
+const KNOWLEDGE_HEADER = '以下为知识参照，非 Canon、无对账义务，示例表述不构成成稿标准。';
+
+/** 惰性读取域的全部蒸馏源条目。文件缺失或不可解析 = 静默跳过该源。 */
+function knowledgeLoadEntries(domain) {
+  const sources = KNOWLEDGE_DOMAIN_SOURCES[domain] ?? [domain];
+  const entries = [];
+  for (const src of sources) {
+    let doc;
+    try {
+      doc = JSON.parse(readText(path.join(KNOWLEDGE_DIR, `distilled.${src}.json`)));
+    } catch {
+      continue; // 增益非权威：缺文件/坏 JSON 不炸组装，只降级为少一个源
+    }
+    if (Array.isArray(doc.entries)) entries.push(...doc.entries.filter((e) => e && typeof e === 'object'));
+  }
+  return entries;
+}
+
+/** 上游 locked chapter_plan 全文（场景词检索源）。缺 locked → 空串（增益缺位，不 fail——
+ *  与 upstream 槽「缺失即停」的硬语义有意不同）。 */
+function knowledgePlanText(db, projectId) {
+  if (projectId === null || projectId === undefined) return '';
+  let rows;
+  try {
+    rows = db.prepare(
+      'SELECT CAST(r.content AS TEXT) AS body, pa.metadata_json '
+      + 'FROM planning_assets pa JOIN resources r ON r.id = pa.content_resource_id '
+      + "WHERE pa.project_id = ? AND pa.asset_type = 'chapter_plan' AND pa.status = 'locked'",
+    ).all(projectId);
+  } catch {
+    return '';
+  }
+  return rows.map((row) => `${row.body ?? ''}\n${row.metadata_json ?? ''}`).join('\n');
+}
+
+/** 确定性关键词检索（零嵌入零依赖）：场景词 = 全部条目 scene_tags 词表 ∩ 章纲文本
+ *  （包含匹配）；条目得分 = scene_tags 命中×2 + name/trigger_scene 包含命中×1。
+ *  返回 { hitWords, ranked }（ranked 按得分降序，并列保持声明序）。 */
+function knowledgeRetrieve(entries, planText) {
+  const hitWords = [...new Set(entries.flatMap((e) => (Array.isArray(e.scene_tags) ? e.scene_tags : [])))]
+    .filter((w) => typeof w === 'string' && w !== '' && planText.includes(w));
+  const ranked = [];
+  for (const entry of entries) {
+    let score = 0;
+    for (const w of hitWords) {
+      if (Array.isArray(entry.scene_tags) && entry.scene_tags.includes(w)) score += 2;
+      if ((typeof entry.name === 'string' && entry.name.includes(w))
+        || (typeof entry.trigger_scene === 'string' && entry.trigger_scene.includes(w))) score += 1;
+    }
+    if (score > 0) ranked.push({ entry, score });
+  }
+  ranked.sort((a, b) => b.score - a.score); // Array.sort 稳定：并列保持原序
+  return { hitWords, ranked };
+}
+
+/** UTF-8 安全截断：不在多字节序列中间断开，截断处以「…」收尾。 */
+function knowledgeTruncateUtf8(s, maxBytes) {
+  const buf = Buffer.from(s, 'utf8');
+  if (buf.length <= maxBytes) return s;
+  let cut = maxBytes - Buffer.byteLength('…', 'utf8');
+  while (cut > 0 && (buf[cut] & 0xc0) === 0x80) cut--; // 回退到字符边界
+  return buf.subarray(0, cut).toString('utf8') + '…';
+}
+
+/** 渲染单条（白名单字段：name/trigger_scene/formula/anti_patterns；尾部溯源标记 id），
+ *  单条 ≤ KNOWLEDGE_ENTRY_BYTES——内容按 512B 减去溯源标记后的预算截断，标记恒保留。 */
+function knowledgeRenderEntry(entry) {
+  const parts = [];
+  if (typeof entry.name === 'string' && entry.name !== '') parts.push(entry.name);
+  if (typeof entry.trigger_scene === 'string' && entry.trigger_scene !== '') parts.push(`触发：${entry.trigger_scene}`);
+  if (Array.isArray(entry.formula) && entry.formula.length > 0) parts.push(`公式：${entry.formula.join('→')}`);
+  if (Array.isArray(entry.anti_patterns) && entry.anti_patterns.length > 0) {
+    parts.push(`反模式：${entry.anti_patterns.join('；')}`);
+  }
+  const tail = typeof entry.id === 'string' && entry.id !== '' ? `（${entry.id}）` : '';
+  const tailBytes = Buffer.byteLength(tail, 'utf8');
+  const contentMax = Math.max(KNOWLEDGE_ENTRY_BYTES - tailBytes, 64);
+  return knowledgeTruncateUtf8('- ' + parts.join('｜'), contentMax) + tail;
+}
+
+/** knowledge:<domain> 槽解析。返回 [title, body] 或 null（槽静默跳过）。
+ *  预算：单条 ≤512B；槽总注入（含槽头/组标签/脚注）≤4096B，超限按命中排名截断，
+ *  节尾脚注透明化截断数（组装产物 diff 可审计）。 */
+export function resolveKnowledge(db, domain, projectId) {
+  const entries = knowledgeLoadEntries(domain);
+  if (entries.length === 0) return null; // 全部蒸馏源缺失 = 槽整体静默跳过（零行为变化）
+  const title = `知识参照（knowledge:${domain}——外部方法论蒸馏）`;
+  const { hitWords, ranked } = knowledgeRetrieve(entries, knowledgePlanText(db, projectId));
+  if (hitWords.length === 0 || ranked.length === 0) {
+    return [[title, KNOWLEDGE_HEADER
+      + '\n（无 locked chapter_plan 或场景词零命中——场景检索缺位，本节不注入条目）']];
+  }
+  // top-5×2 组：命中最多的 5 条 + 次高的 5 条
+  const groups = [];
+  for (let i = 0; i < ranked.length && groups.length < 2; i += KNOWLEDGE_GROUP_SIZE) {
+    groups.push(ranked.slice(i, i + KNOWLEDGE_GROUP_SIZE));
+  }
+  const groupLabels = ['命中最多的 5 条', '次高的 5 条'];
+  const rendered = ranked.map((r) => knowledgeRenderEntry(r.entry));
+  const bodyLines = [KNOWLEDGE_HEADER, `（场景词命中：${hitWords.join('、')}）`, ''];
+  let used = Buffer.byteLength(bodyLines.join('\n'), 'utf8');
+  let injected = 0;
+  let cutByBudget = 0;
+  outer:
+  for (let g = 0; g < groups.length; g++) {
+    const label = `—— ${groupLabels[g]} ——`;
+    const labelBytes = Buffer.byteLength('\n' + label, 'utf8');
+    if (used + labelBytes + KNOWLEDGE_FOOTNOTE_RESERVE > KNOWLEDGE_TOTAL_BYTES) break;
+    bodyLines.push(label);
+    used += labelBytes;
+    for (let i = g * KNOWLEDGE_GROUP_SIZE; i < g * KNOWLEDGE_GROUP_SIZE + groups[g].length; i++) {
+      const lineBytes = Buffer.byteLength('\n' + rendered[i], 'utf8');
+      if (used + lineBytes + KNOWLEDGE_FOOTNOTE_RESERVE > KNOWLEDGE_TOTAL_BYTES) {
+        cutByBudget = ranked.length - injected;
+        break outer; // 按排名截断：放不下即停（后面排名更低）
+      }
+      bodyLines.push(rendered[i]);
+      used += lineBytes;
+      injected++;
+    }
+  }
+  const dropped = ranked.length - injected;
+  bodyLines.push(`（knowledge 槽预算 ${KNOWLEDGE_TOTAL_BYTES}B：命中 ${ranked.length} 条，`
+    + `注入 ${injected} 条，弃 ${dropped} 条${cutByBudget > 0 ? '（超限按排名截断）' : ''}；`
+    + `单条 ≤${KNOWLEDGE_ENTRY_BYTES}B，白名单 name/trigger_scene/formula/anti_patterns）`);
+  return [[title, bodyLines.join('\n')]];
+}
+
 export const SLOT_REGISTRY = {
   project_setup: slotProjectSetup,
   persona_full: slotPersonaFull,
@@ -1344,14 +1491,23 @@ export const SLOT_REGISTRY = {
   promise_ledger: slotPromiseLedger,
 };
 
-/** 按 manifest 的 data_slots 声明顺序解析注入槽位。未注册槽位即报错。 */
+/** 按 manifest 的 data_slots 声明顺序解析注入槽位。未注册槽位即报错。
+ *  withoutSlots（--without-slot，可重复）：组装时跳过指定槽（data_slots 槽名或 craft 卡名）
+ *  ——盲测有/无对照用（红方 P1-6）；禁用清单由 writeCompositionLog 留痕。 */
 export function resolveSlots(db, skillDir, {
   projectId = null, payload = null, subjectId = null,
-  context = null, reviewFeedback = null,
+  context = null, reviewFeedback = null, withoutSlots = null,
 } = {}) {
   const manifest = loadManifest(skillDir);
+  const disabled = Array.isArray(withoutSlots) ? withoutSlots : [];
   const sections = [];
   for (const slot of manifest.data_slots ?? []) {
+    if (disabled.includes(slot)) continue;
+    if (slot.startsWith('knowledge:')) {
+      const section = resolveKnowledge(db, slot.slice('knowledge:'.length), projectId);
+      if (section !== null) sections.push(...section); // null = 蒸馏源全缺，槽静默跳过
+      continue;
+    }
     if (slot.startsWith('upstream:')) {
       sections.push(...slotUpstream(db, slot.slice('upstream:'.length), projectId));
       continue;
@@ -1376,6 +1532,7 @@ export function resolveSlots(db, skillDir, {
     sections.push(resolver(db, projectId, payload, subjectId, context));
   }
   for (const craft of manifest.craft_refs ?? []) {
+    if (disabled.includes(craft)) continue;
     const craftPath = path.join(ROOT, 'catalog/skills/craft', craft, 'prompt.md');
     let craftText;
     try {
@@ -1415,9 +1572,10 @@ function strftimeTs(d) {
     + `${pad(d.getMilliseconds() * 1000, 6)}`;
 }
 
-/** 把一次组装的产物与路由事实记入日志目录，返回产物文件路径。 */
+/** 把一次组装的产物与路由事实记入日志目录，返回产物文件路径。
+ *  withoutSlots = 本次组装的 --without-slot 禁用清单（盲测对照留痕；null = 无禁用）。 */
 export function writeCompositionLog(logDir, skillDir, asset, scope, text, context,
-  proposal = null, reviewRound = null) {
+  proposal = null, reviewRound = null, withoutSlots = null) {
   const manifest = loadManifest(skillDir);
   let moduleIds = selectModules(skillDir, context).map(([mid]) => mid);
   const proposalModules = [];
@@ -1447,6 +1605,7 @@ export function writeCompositionLog(logDir, skillDir, asset, scope, text, contex
     decision_scope: manifest.decision_scope !== undefined ? manifest.decision_scope : null,
     proposal: proposalModules,
     review_round: reviewRound,
+    without_slots: withoutSlots,
     file: relPosix,
   };
   const indexFile = path.join(logDir, 'index.jsonl');
@@ -1463,14 +1622,15 @@ function buildUsage() {
   return `usage: ${PROG} [-h] --asset {${Object.keys(ASSET_DIRS).sort().join(',')}}`
     + ` [--project PROJECT] [--subject SUBJECT] [--payload PAYLOAD]\n`
     + `                   [--log-dir LOG_DIR] [--no-log] [--proposal PROPOSAL]\n`
-    + `                   [--review-feedback REVIEW_FEEDBACK] [--round ROUND] [--db DB]`;
+    + `                   [--review-feedback REVIEW_FEEDBACK] [--round ROUND] [--db DB]\n`
+    + `                   [--without-slot NAME]`;
 }
 
 function parseCliArgs(argv) {
   const args = {
     asset: null, project: null, subject: null, payload: null,
     logDir: COMPOSITIONS_DIR, noLog: false, proposal: null,
-    reviewFeedback: null, round: null, db: DB_PATH,
+    reviewFeedback: null, round: null, db: DB_PATH, withoutSlots: [],
   };
   const needValue = (flag) => {
     argFail(PROG, `argument ${flag}: expected one argument`);
@@ -1505,6 +1665,7 @@ function parseCliArgs(argv) {
       case '--review-feedback': args.reviewFeedback = takeValue(); break;
       case '--round': args.round = takeValue(); break;
       case '--db': args.db = takeValue(); break;
+      case '--without-slot': args.withoutSlots.push(takeValue()); break;
       default:
         argFail(PROG, `unrecognized arguments: ${flag}`);
     }
@@ -1562,6 +1723,7 @@ export async function main(argv = process.argv.slice(2)) {
       var data = resolveSlots(db, skillDir, {
         projectId: args.project, subjectId: args.subject,
         context, reviewFeedback: feedback,
+        withoutSlots: args.withoutSlots,
       });
     }
   } finally {
@@ -1579,7 +1741,8 @@ export async function main(argv = process.argv.slice(2)) {
   if (!args.noLog) {
     const scope = args.project || 'wizard';
     const logged = writeCompositionLog(args.logDir, skillDir, args.asset,
-      scope, output, context, proposal, args.round);
+      scope, output, context, proposal, args.round,
+      args.withoutSlots.length > 0 ? args.withoutSlots : null);
     console.error(`[compose] logged: ${logged}`);
   }
   process.stdout.write(output + '\n');

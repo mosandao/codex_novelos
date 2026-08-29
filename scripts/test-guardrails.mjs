@@ -56,7 +56,7 @@ const { SLOT_REGISTRY } = await import('./novelos-compose-prompt.mjs');
 const recipes = JSON.parse(
   fs.readFileSync(path.join(ROOT, 'config/agent-recipes.json'), 'utf8')
 );
-const DYNAMIC_PREFIXES = ['upstream:', 'upstream-reviews:', 'canon_minimal', 'review_feedback'];
+const DYNAMIC_PREFIXES = ['upstream:', 'upstream-reviews:', 'canon_minimal', 'review_feedback', 'knowledge:'];
 
 for (const entry of recipes.assets) {
   const label = entry.asset;
@@ -86,6 +86,58 @@ for (const entry of recipes.assets) {
     deepEqual(rs, ms),
     `仅recipe:[${rs.filter((s) => !ms.includes(s))}] 仅manifest:[${ms.filter((s) => !rs.includes(s))}]`
   );
+}
+
+// ── 守卫三：knowledge 蒸馏域文件 schema（KG1，R3） ────────────────────────
+// 校验 config/knowledge/distilled.<domain>.json（蒸馏产物，入 git）的结构契约：
+// 必需字段齐 / id 格式 kg-<domain>-NNN / placement 枚举 / formula 为非空数组 /
+// card_module_md ≤2560B。校验器只读 config/knowledge/，不得依赖 gitignored 的 data/ 源。
+const KG_DIR = path.join(ROOT, 'config/knowledge');
+const KG_REQUIRED = ['id', 'name', 'trigger_scene', 'formula', 'anti_patterns', 'placement', 'scene_tags', 'source'];
+const KG_PLACEMENTS = ['slot', 'card', 'both'];
+const KG_CARD_MAX_BYTES = 2560;
+
+const kgFiles = fs.existsSync(KG_DIR)
+  ? fs.readdirSync(KG_DIR).filter((f) => /^distilled\.[a-z0-9-]+\.json$/.test(f)).sort()
+  : [];
+check('KG1 蒸馏域文件存在（config/knowledge/distilled.*.json ≥1）', kgFiles.length > 0);
+
+for (const f of kgFiles) {
+  const domain = f.replace(/^distilled\./, '').replace(/\.json$/, '');
+  let doc = null;
+  try {
+    doc = JSON.parse(fs.readFileSync(path.join(KG_DIR, f), 'utf8'));
+  } catch { /* 保持 null，下方判定 FAIL */ }
+  check(`KG1 ${f} 可解析且 domain 字段一致`, doc !== null && doc.domain === domain,
+    'JSON 不可解析或 domain 与文件名不符');
+  if (doc === null) continue;
+
+  const entries = Array.isArray(doc.entries) ? doc.entries : [];
+  check(`KG1 ${f} entries 非空数组`, entries.length > 0);
+  if (entries.length === 0) continue;
+
+  const badFields = [];
+  const badIds = [];
+  const badPlacement = [];
+  const badFormula = [];
+  const idRe = new RegExp(`^kg-${domain}-\\d{3}$`);
+  for (const [i, e] of entries.entries()) {
+    const missing = KG_REQUIRED.filter((k) => e?.[k] === undefined || e?.[k] === null);
+    if (missing.length > 0) badFields.push(`#${i}缺[${missing.join(',')}]`);
+    if (typeof e?.id !== 'string' || !idRe.test(e.id)) badIds.push(`#${i}:${JSON.stringify(e?.id)}`);
+    if (!KG_PLACEMENTS.includes(e?.placement)) badPlacement.push(`#${i}:${JSON.stringify(e?.placement)}`);
+    if (!Array.isArray(e?.formula) || e.formula.length === 0) badFormula.push(`#${i}`);
+  }
+  check(`KG1 ${f} 条目必需字段齐（${KG_REQUIRED.join('/')}）`, badFields.length === 0,
+    badFields.slice(0, 3).join(' '));
+  check(`KG1 ${f} id 格式 kg-${domain}-NNN`, badIds.length === 0, badIds.slice(0, 3).join(' '));
+  check(`KG1 ${f} placement 枚举 [${KG_PLACEMENTS.join('|')}]`, badPlacement.length === 0,
+    badPlacement.slice(0, 3).join(' '));
+  check(`KG1 ${f} formula 为非空数组`, badFormula.length === 0, badFormula.slice(0, 3).join(' '));
+  check(`KG1 ${f} card_module_md ≤${KG_CARD_MAX_BYTES}B`,
+    typeof doc.card_module_md === 'string'
+    && Buffer.byteLength(doc.card_module_md, 'utf8') <= KG_CARD_MAX_BYTES,
+    `实际 ${Buffer.byteLength(String(doc.card_module_md ?? ''), 'utf8')}B`);
 }
 
 console.log(`\n${passCount} passed, ${failCount} failed`);

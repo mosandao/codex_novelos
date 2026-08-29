@@ -1,0 +1,10 @@
+{
+  "modules": [],
+  "data_slots": [
+    "subject"
+  ],
+  "craft_refs": [
+    "prose-anti-ai-fingerprint"
+  ],
+  "decision_scope": "judge"
+}

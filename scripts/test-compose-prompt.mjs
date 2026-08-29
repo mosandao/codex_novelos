@@ -24,7 +24,7 @@ const CLI = path.join(__dirname, 'novelos-compose-prompt.mjs');
 const ROOT = path.resolve(__dirname, '..');
 
 const { evaluateWhen, getField, pyJsonDumps, contentHash, extractChecklist,
-  extractModuleChecklist, validateFusionPayloadStruct } = await import(
+  extractModuleChecklist, validateFusionPayloadStruct, resolveKnowledge } = await import(
   `file://${CLI.replace(/\\/g, '/')}`);
 
 let passed = 0;
@@ -232,6 +232,216 @@ test('附6 fusion 载荷结构校验：合法放行、非法报字段路径', ()
   assert.ok(errs.some((e) => e.includes('extra')), JSON.stringify(errs));
   assert.ok(errs.some((e) => e.includes('setup.channel')), JSON.stringify(errs));
   assert.ok(errs.some((e) => e.includes('setup.emotional_surface')), JSON.stringify(errs));
+});
+
+// ---------------------------------------------------------------- ⑦ knowledge 槽（R3）
+
+const { createHash } = await import('node:crypto');
+const fs = await import('node:fs');
+const { mkdirSync, rmSync, writeFileSync, readFileSync: rfSync, existsSync, copyFileSync } = fs;
+
+/** 内存夹具库：planning_assets + resources 最小结构（knowledgePlanText 查询面）。 */
+function makeMemoryDb(planText) {
+  const db = new DatabaseSync(':memory:');
+  db.exec('CREATE TABLE planning_assets (id TEXT PRIMARY KEY, project_id TEXT, '
+    + 'asset_type TEXT, scope_ref TEXT, revision INTEGER, status TEXT, '
+    + 'content_resource_id TEXT, metadata_json TEXT)');
+  db.exec('CREATE TABLE resources (id TEXT PRIMARY KEY, content BLOB)');
+  if (planText !== null) {
+    db.prepare("INSERT INTO resources VALUES ('res:1', ?)").run(planText);
+    db.prepare("INSERT INTO planning_assets VALUES ('pa:1', 'project:x', 'chapter_plan', "
+      + "'vol:1', 1, 'locked', 'res:1', '{}')").run();
+  }
+  return db;
+}
+
+/** 临时夹具蒸馏文件（config/knowledge/distilled.zz-kfix.json），测试后清理。 */
+const FIXTURE_FILE = path.join(ROOT, 'config', 'knowledge', 'distilled.zz-kfix.json');
+function buildFixtureDoc({ longEntries = 3, fillerEntries = 30 } = {}) {
+  const longTrigger = '对话场景。' + '超长触发场景。'.repeat(120); // 含场景词抬高命中分；≈1000B 渲染必超 512B
+  const entries = [];
+  for (let i = 1; i <= longEntries; i++) {
+    entries.push({
+      id: `kg-zz-kfix-${String(i).padStart(3, '0')}`,
+      name: `长条目${i}`,
+      trigger_scene: longTrigger,
+      formula: ['步骤甲', '步骤乙', '步骤丙'],
+      anti_patterns: ['反例一', '反例二'],
+      genres: ['ZZ题材九'],
+      source: { orig_ids: [987654], book_sources: ['ZZ书名'] },
+      placement: 'slot',
+      scene_tags: ['对话'],
+    });
+  }
+  for (let i = longEntries + 1; i <= longEntries + fillerEntries; i++) {
+    entries.push({
+      id: `kg-zz-kfix-${String(i).padStart(3, '0')}`,
+      name: i === longEntries + 1 ? '白名单探测条目' : `短条目${i}`,
+      trigger_scene: '短触发场景，含对话。',
+      formula: ['一步', '两步'],
+      anti_patterns: ['一反'],
+      genres: ['ZZ题材九'],
+      source: { orig_ids: [987654], book_sources: ['ZZ书名'] },
+      placement: 'slot',
+      scene_tags: ['对话'],
+    });
+  }
+  return {
+    domain: 'zz-kfix',
+    generated: '2026-08-29',
+    entries,
+    card_module_md: '1. 夹具卡面模块(仅测试用)。',
+  };
+}
+function withFixtureFile(doc, fn) {
+  writeFileSync(FIXTURE_FILE, JSON.stringify(doc), 'utf8');
+  try {
+    fn();
+  } finally {
+    rmSync(FIXTURE_FILE, { force: true });
+  }
+}
+
+test('⑦a knowledge 槽渲染：槽头标注/溯源标记/字段白名单/512B 单条截断', () => {
+  withFixtureFile(buildFixtureDoc(), () => {
+    const db = makeMemoryDb('本章为章纲：开场是一场谈判与多次对话。');
+    try {
+      const sections = resolveKnowledge(db, 'zz-kfix', 'project:x');
+      assert.ok(sections !== null, '夹具域文件存在时槽不得静默跳过');
+      const [title, body] = sections[0];
+      assert.ok(title.includes('knowledge:zz-kfix'), title);
+      assert.ok(body.includes('非 Canon、无对账义务，示例表述不构成成稿标准'), '缺槽头标注');
+      // 探测条目（kg-zz-kfix-004，score 最高组）必在第一组
+      assert.ok(body.includes('（kg-zz-kfix-004）'), '缺条目溯源标记');
+      assert.ok(body.includes('白名单探测条目'), '探测条目未渲染');
+      // 字段白名单（P2-15）：source/orig_ids/genres 不渲染
+      assert.ok(!body.includes('987654'), '泄漏 orig_ids');
+      assert.ok(!body.includes('ZZ书名'), '泄漏 book_sources');
+      assert.ok(!body.includes('ZZ题材九'), '泄漏 genres');
+      // 单条 ≤512B（超限 UTF-8 安全截断）
+      const itemLines = body.split('\n').filter((l) => l.startsWith('- '));
+      assert.ok(itemLines.length > 0, '无条目行');
+      for (const line of itemLines) {
+        assert.ok(Buffer.byteLength(line, 'utf8') <= 512,
+          `单条超 512B：${Buffer.byteLength(line, 'utf8')}B`);
+      }
+      const truncated = itemLines.filter((l) => l.includes('…'));
+      assert.ok(truncated.length > 0, '超长条目未被截断（缺省略号标记）');
+      db.close();
+    } catch (e) {
+      db.close();
+      throw e;
+    }
+  });
+});
+
+test('⑦b knowledge 槽总限 4096B：超限按排名截断且脚注如实', () => {
+  // 12 条长条目（各渲染至 512B）→ top-5×2 组全为长条目，10×512B > 4096B 触发总限截断
+  withFixtureFile(buildFixtureDoc({ longEntries: 12, fillerEntries: 0 }), () => {
+    const db = makeMemoryDb('章纲：对话与谈判密集。');
+    try {
+      const [title, body] = resolveKnowledge(db, 'zz-kfix', 'project:x')[0];
+      assert.ok(Buffer.byteLength(body, 'utf8') <= 4096,
+        `槽 body ${Buffer.byteLength(body, 'utf8')}B 超 4096B`);
+      assert.ok(body.includes('超限按排名截断'), '超限场景缺截断脚注');
+      assert.ok(body.includes('—— 命中最多的 5 条 ——'), '缺第一组标签');
+      assert.ok(body.includes('—— 次高的 5 条 ——'), '缺第二组标签');
+      db.close();
+    } catch (e) {
+      db.close();
+      throw e;
+    }
+  });
+});
+
+test('⑦c 蒸馏源全缺 = 槽静默跳过（P2-13 惰性读取）；无章纲 = 显式缺位节', () => {
+  const db = makeMemoryDb(null);
+  try {
+    assert.equal(resolveKnowledge(db, 'zz-absent-domain', 'project:x'), null,
+      '不存在的域文件应返回 null（零行为变化）');
+    withFixtureFile(buildFixtureDoc({ longEntries: 0, fillerEntries: 2 }), () => {
+      const [title, body] = resolveKnowledge(db, 'zz-kfix', 'project:x')[0];
+      assert.ok(body.includes('场景检索缺位'), '无 locked chapter_plan 应显式缺位');
+    });
+    db.close();
+  } catch (e) {
+    db.close();
+    throw e;
+  }
+});
+
+// ---- ⑦d/⑦e/⑦f CLI 冒烟：/tmp 夹具库副本（生产库零写入） ----
+
+const FIXTURE_DB = '/tmp/r3-compose-fixture.db';
+const FIXTURE_LOG = '/tmp/r3-compose-fixture-log';
+
+function buildFixtureDb() {
+  rmSync(FIXTURE_DB, { force: true });
+  rmSync(FIXTURE_LOG, { recursive: true, force: true });
+  copyFileSync(path.join(ROOT, 'data', 'novelos-v2.db'), FIXTURE_DB);
+  const db = new DatabaseSync(FIXTURE_DB);
+  const pid = db.prepare('SELECT id FROM projects LIMIT 1').get().id;
+  const planText = '第一章章纲：主角进入拍卖行，与对手展开谈判与多轮对话；'
+    + '开篇用危机切入，中段战斗收尾。';
+  const hash = 'sha256:' + createHash('sha256').update(planText, 'utf8').digest('hex');
+  db.prepare("INSERT INTO resources (id, media_type, content, content_hash) "
+    + "VALUES ('resource:zzfix-plan', 'text/markdown', ?, ?)").run(planText, hash);
+  db.prepare("INSERT INTO planning_assets (id, project_id, asset_type, scope_ref, revision, "
+    + "status, content_resource_id, producer_role, metadata_json) "
+    + "VALUES ('planning:zzfix-plan', ?, 'chapter_plan', 'volume:zzfix#1', 1, 'locked', "
+    + "'resource:zzfix-plan', 'chapter_plan', '{}')").run(pid);
+  db.close();
+  return pid;
+}
+
+const hasFixture = existsSync(path.join(ROOT, 'data', 'novelos-v2.db'));
+
+test('⑦d chapter-draft 组装含 knowledge 槽（槽头标注+≥1 条 kg 条目），槽体 ≤4096B', () => {
+  if (!hasFixture) return; // 无生产库环境跳过（夹具库依赖副本源）
+  const pid = buildFixtureDb();
+  const r = runCli(['--asset', 'chapter-draft', '--project', pid, '--db', FIXTURE_DB,
+    '--no-log']);
+  assert.equal(r.status, 0, `stderr: ${r.stderr}`);
+  assert.ok(r.stdout.includes('### 知识参照（knowledge:techniques'), '缺 knowledge 槽节标题');
+  assert.ok(r.stdout.includes('非 Canon、无对账义务，示例表述不构成成稿标准'), '缺槽头标注');
+  assert.ok(/（kg-(dialogue|opening|pacing)-\d{3}）/.test(r.stdout), '缺 kg 条目溯源标记');
+  // 槽体积实测：从节标题切到下一个 ### 节
+  const at = r.stdout.indexOf('### 知识参照（knowledge:techniques');
+  const rest = r.stdout.slice(at);
+  const next = rest.indexOf('\n### ', 1);
+  const section = next === -1 ? rest : rest.slice(0, next);
+  assert.ok(Buffer.byteLength(section, 'utf8') <= 4096 + 80,
+    `knowledge 节实测 ${Buffer.byteLength(section, 'utf8')}B（含标题余量）`);
+});
+
+test('⑦e --without-slot knowledge:techniques 生效且组装日志记录禁用清单', () => {
+  if (!hasFixture) return;
+  const pid = buildFixtureDb();
+  const r = runCli(['--asset', 'chapter-draft', '--project', pid, '--db', FIXTURE_DB,
+    '--no-log', '--without-slot', 'knowledge:techniques']);
+  assert.equal(r.status, 0, `stderr: ${r.stderr}`);
+  assert.ok(!r.stdout.includes('knowledge:techniques'), '禁用槽仍出现在产物中');
+  // 留痕：不带 --no-log 再跑一次，断言 index.jsonl 的 without_slots
+  const r2 = runCli(['--asset', 'chapter-draft', '--project', pid, '--db', FIXTURE_DB,
+    '--log-dir', FIXTURE_LOG, '--without-slot', 'knowledge:techniques',
+    '--without-slot', 'dialogue-techniques']);
+  assert.equal(r2.status, 0, `stderr: ${r2.stderr}`);
+  assert.ok(!r2.stdout.includes('### 知识参照（knowledge:techniques'), '槽未跳过');
+  assert.ok(!r2.stdout.includes('对白技法'), 'craft 卡禁用未生效');
+  const index = rfSync(path.join(FIXTURE_LOG, 'index.jsonl'), 'utf8').trim().split('\n');
+  const last = JSON.parse(index[index.length - 1]);
+  assert.deepEqual(last.without_slots, ['knowledge:techniques', 'dialogue-techniques']);
+});
+
+test('⑦f prose-blindtest 可组装（subject + 指纹 craft 卡）', () => {
+  if (!hasFixture) return;
+  const pid = buildFixtureDb();
+  const r = runCli(['--asset', 'prose-blindtest', '--project', pid,
+    '--subject', 'planning:zzfix-plan', '--db', FIXTURE_DB, '--no-log']);
+  assert.equal(r.status, 0, `stderr: ${r.stderr}`);
+  assert.ok(r.stdout.includes('盲测执行卡'), '缺盲测卡主干');
+  assert.ok(r.stdout.includes('双向判据表'), '缺判据表协议');
+  assert.ok(r.stdout.includes('被审对象全文'), '缺 subject 槽注入');
 });
 
 // ---------------------------------------------------------------- 汇总

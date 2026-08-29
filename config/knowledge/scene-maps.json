@@ -1,0 +1,180 @@
+{
+  "meta": {
+    "schema_version": 1,
+    "generated": "2026-08-29",
+    "source": "data/knowledge/kb_technique_scene_maps.json（gitignored 原始导出）经三份蒸馏产物 source.orig_ids 映射",
+    "domains": [
+      "dialogue",
+      "opening",
+      "pacing"
+    ],
+    "note": "场景→kg 条目索引,供未来场景级检索;R3 只做转换不接线。映射不到的 orig id 丢弃并计入 unresolvable_count。",
+    "totals": {
+      "scene_rows": 15,
+      "technique_id_refs": 772,
+      "mapped": 155,
+      "unresolvable": 617
+    }
+  },
+  "items": [
+    {
+      "scene_type": "打脸逆袭",
+      "kg_ids": [],
+      "unresolvable_count": 61
+    },
+    {
+      "scene_type": "悬念铺设",
+      "kg_ids": [
+        "kg-pacing-019"
+      ],
+      "unresolvable_count": 100
+    },
+    {
+      "scene_type": "情感升温",
+      "kg_ids": [
+        "kg-dialogue-002",
+        "kg-dialogue-003",
+        "kg-pacing-002",
+        "kg-pacing-013"
+      ],
+      "unresolvable_count": 31
+    },
+    {
+      "scene_type": "战斗场面",
+      "kg_ids": [
+        "kg-dialogue-033",
+        "kg-pacing-001",
+        "kg-pacing-002",
+        "kg-pacing-004",
+        "kg-pacing-005",
+        "kg-pacing-006",
+        "kg-pacing-008",
+        "kg-pacing-009",
+        "kg-pacing-010",
+        "kg-pacing-011",
+        "kg-pacing-013",
+        "kg-pacing-015",
+        "kg-pacing-020",
+        "kg-pacing-021",
+        "kg-pacing-022",
+        "kg-pacing-023",
+        "kg-pacing-024",
+        "kg-pacing-025",
+        "kg-pacing-028",
+        "kg-pacing-029",
+        "kg-pacing-030",
+        "kg-pacing-032",
+        "kg-pacing-034",
+        "kg-pacing-036",
+        "kg-pacing-037",
+        "kg-pacing-038",
+        "kg-pacing-039",
+        "kg-pacing-040"
+      ],
+      "unresolvable_count": 63
+    },
+    {
+      "scene_type": "日常推进",
+      "kg_ids": [
+        "kg-dialogue-001",
+        "kg-dialogue-004",
+        "kg-dialogue-005",
+        "kg-dialogue-010",
+        "kg-dialogue-011",
+        "kg-dialogue-012",
+        "kg-dialogue-014",
+        "kg-dialogue-015",
+        "kg-dialogue-016",
+        "kg-dialogue-019",
+        "kg-dialogue-021",
+        "kg-dialogue-026",
+        "kg-dialogue-036",
+        "kg-dialogue-037",
+        "kg-dialogue-039",
+        "kg-pacing-002",
+        "kg-pacing-014",
+        "kg-pacing-015",
+        "kg-pacing-016",
+        "kg-pacing-017",
+        "kg-pacing-018"
+      ],
+      "unresolvable_count": 41
+    },
+    {
+      "scene_type": "世界观构建",
+      "kg_ids": [],
+      "unresolvable_count": 45
+    },
+    {
+      "scene_type": "反转揭秘",
+      "kg_ids": [
+        "kg-pacing-019"
+      ],
+      "unresolvable_count": 69
+    },
+    {
+      "scene_type": "虐心高潮",
+      "kg_ids": [
+        "kg-pacing-006",
+        "kg-pacing-012"
+      ],
+      "unresolvable_count": 21
+    },
+    {
+      "scene_type": "女性角色",
+      "kg_ids": [],
+      "unresolvable_count": 20
+    },
+    {
+      "scene_type": "开头章节",
+      "kg_ids": [
+        "kg-opening-001",
+        "kg-opening-002",
+        "kg-opening-013",
+        "kg-opening-014",
+        "kg-opening-015",
+        "kg-opening-020",
+        "kg-opening-021",
+        "kg-opening-025",
+        "kg-pacing-002"
+      ],
+      "unresolvable_count": 17
+    },
+    {
+      "scene_type": "人物塑造",
+      "kg_ids": [
+        "kg-dialogue-002",
+        "kg-dialogue-003",
+        "kg-dialogue-016",
+        "kg-dialogue-024",
+        "kg-dialogue-033",
+        "kg-dialogue-034",
+        "kg-dialogue-035"
+      ],
+      "unresolvable_count": 83
+    },
+    {
+      "scene_type": "结局设计",
+      "kg_ids": [],
+      "unresolvable_count": 16
+    },
+    {
+      "scene_type": "大纲设计",
+      "kg_ids": [],
+      "unresolvable_count": 17
+    },
+    {
+      "scene_type": "环境映射",
+      "kg_ids": [],
+      "unresolvable_count": 13
+    },
+    {
+      "scene_type": "章末设计",
+      "kg_ids": [
+        "kg-opening-008",
+        "kg-pacing-011"
+      ],
+      "unresolvable_count": 20
+    }
+  ]
+}

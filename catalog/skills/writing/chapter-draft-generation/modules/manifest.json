@@ -40,6 +40,7 @@
     "project_setup",
     "book_soul",
     "upstream:chapter_plan",
+    "knowledge:techniques",
     "world_lexicon",
     "character_essence",
     "canon_minimal",
@@ -49,7 +50,8 @@
     "prose-format-hardrules",
     "prose-anti-ai-fingerprint",
     "prose-webnovel-accessibility",
-    "worldview-lexicon"
+    "worldview-lexicon",
+    "dialogue-techniques"
   ],
   "divergence": "constrained",
   "decision_scope": "execute"
