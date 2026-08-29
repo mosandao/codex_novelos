@@ -68,6 +68,10 @@ py `main()` 在 parent_rationale 含错配标记时仅 print 提示仍继续落�
 - **WP8 口径修正**：power_currency 调和规则、continuity 提取审查口径对齐配方矩阵、craft 卡付费平台适配 §0、sql-reference upsert 模板、create-project E11a WARN→FAIL（genre_profile=null 漏带将静默丢 taboos 防火墙）。
 - 遗留 TODO：:24 连续性账本直写通道缺口（候选晋升无门工具覆盖）；生产库 019 迁移待用户择机执行（仓库不手工动生产库）。
 
+## R5 · 知识吸收与对抗审查体系(整合版 v2 已立,待批准执行)
+
+- 指导计划:`tasks/R5-knowledge-absorption.md`(**v2 整合版**——五方向规划 `tasks/r5-plans/d{1-5}-*.plan.md` + 五红方对抗审查 `*.redteam.md`(P0×14/P1×31)经主控整合仲裁:12 条跨方向裁决、统一契约注册表(fpr: 编号/code 前缀/留痕位置/版权通道/注入通道矩阵)、U1-U13 裁决点、修订轮次 R0-R6)。执行条目开跑后在此记账。
+
 ## 插件退役裁决记录（2026-08-27 之后）
 
 - `plugin/` 整体移除（用户裁决：不再使用 DSH 插件）——`dsh-novelos-viewer` / `dsh-novelos` 插件、defineTool 写门、viewer 面板、wizard 三件套全部退役删除。
