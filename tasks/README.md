@@ -79,8 +79,9 @@ py `main()` 在 parent_rationale 含错配标记时仅 print 提示仍继续落�
 - [x] `DONE` R0 金丝雀选样:22 篇全文级落 `data/canary/g{1,2,3}/`(S18+甜虐 B 级补 2+奇幻补 2;tiebreaker 可复现;正文自 source_url 压缩块程序化解压,329,300 字 vs 库 347,436 ratio 0.948)+ `_meta/selection.json` + **U1 包** `tasks/r5-plans/u1-canary-package.md`(覆盖 8/13 轴、缺口 5 轴如实声明、甜虐 B 级偏离声明、U13 男频缺失登记)。**验证:JSON.parse 通过;头尾抽查无截断;MySQL 全程只读**
 - [x] `DONE` R0 机器校验:`scripts/novelos-prose-fingerprint.mjs`(43 规则注册表 fpr: 主键,screen 12/measure 31,L07b=measure/B02 增设,对话过滤栈式引号配对+叙述层分母,advisory 三指标)+ `scripts/novelos-canary.mjs`(--save 基线/--compare tier 分层 exit 1 仅拦 screen/语料指纹校验)+ `scripts/test-prose-fingerprint.mjs`。**验证:49 用例全绿;save→compare PASS→篡改语料 exit 1→漂移 exit 2 全链验证;AI 味文本冒烟 10 条 screen 命中坐标可回指**
 - [x] `DONE` R0 基线测量(主控收口):`docs/knowledge/canary-baseline.json|.md`。**核心发现:screen 零容忍语义仅对 L06/L11/P02 成立;L03 破折号 0.92/千字、L02 0.14/千字等 7 条规则在人类小说叙述层有命中;L07b 直发 screen 将 8 误报(红方 F4 预判命中);spread>5 共 9 条标「仅 direction 佐证」**;层级重校方案 A/B/C 已入 U1 包呈报
-- [ ] `TODO` **U1/U12/U13 裁决(R0 批,呈报用户)**:金丝雀选样+基线+层级重校(方案 A 建议)/版权数据通道确认/男频语料授权补采
-- [ ] `TODO` R1 语言层:prose-revision 注册前置包(裁-3)+fingerprint 卡修订(编号映射/RT- 前缀/锚点标注/「不作为」表)+双模式+rubric;**前置依赖:U1 层级重校结果决定卡面阈值标注口径**
+- [x] `DONE` R1 语言层(`ceec226` + G5 收口 `8badbba`):prose-revision 注册前置包(composer +1 键/manifest 新建/recipes 条目,guardrails G2b 全等校验过)+ fingerprint 卡全文重写(FP↔fpr 映射 21 行/零容忍 3·阈值 7·观察期 2 与 U1 方案 A 一致/不作为表 12 行/逐特征豁免/RT-1..6)+ prose-revision 双模式(编号白名单+T×Canon 用例组 U1-U4)+ rubric 增补(message 头部 `[fpr:x]` 编号,组装实测闭环)+ 盲测夹具编备。**G5 异构红方盲测(`r1-g5-redteam.md`):A 组 screen 39→18(−54%),语义项主类全清;B 组人类段 3/3 零改动 diff 全空;P0×0,P1×2 已修(口径差注记),P2 随批 3 项已修;四命令全绿(guardrails 245/compose 19/fingerprint 49/canary PASS)**。登记待办:F-5 词表扩充/F-6 L01b·L10 正则扩项(→校准批次,动 rule_table 须重跑基线)/F-8 code 透传(→schema 合并轮)/F-9 注入体积入 M5
+- [ ] `IN PROGRESS` R2 机器校验:verify-review-evidence 脚本(G2 三路 FATAL)+AGENTS/SKILL 接线(预筛自查/引文验证/修订轮重跑)+deny 率首测(合成夹具,标非真实折扣)+metrics.md 建档
+- [ ] `TODO` R3 蒸馏首批 262 条+knowledge 槽+blindtest 配方;R4 规划层参照(modules 预组合);R5 签名链(migration 020/schema v3/personas 试点,前置 U5/U6/U7);R6 全链路演练(前置 U11/U-dirs)
 
 ## 插件退役裁决记录（2026-08-27 之后）
 

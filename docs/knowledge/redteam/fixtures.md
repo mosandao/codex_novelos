@@ -134,6 +134,20 @@
 - **频道泄漏折扣声明（裁-9）**：金丝雀全库为女频短篇叙事，判官盲评「判源」结论须单列折扣口径，不与男频项目混读；男频叙事语料补采（U13）到位前，本对照组不是干净判源对照。
 - 段落范围复现基准：按「非空行=段、1-based」计段（与预筛脚本 splitParagraphs 的 prose 段口径近似；段号以本文登记时快照为准，data/canary 内容变更须重新登记）。
 
+## R2 轮登记（2026-08-29）
+
+### A 组复用 · deny 率首测 + G2 引文验证自证（G3/G2，合成回执文件级演练）
+
+- 素材：**R1 轮 A 组三段（FIX-R1-A1/A2/A3）原样复用**，无新素材。本轮按本文登记正文程序化重切（`#### FIX-R1-A*` 节），去空白字符 851/1047/930 与 R1 登记逐段一致；机器口径指纹（`--json --stable`，rule_table_hash `sha256:1b0cca0e…`）与 R1 红方留存的 `A1.before.json`（L01×4/L03×4/L11×1）一致。
+- provider:model 留痕：审查方（合成回执出具者）= `model:builtin:bigmodel-start-plan/GLM-5.3-Flash`（主控扮演审查 agent 按卡面语义逐条表态）；**回执为纯文件级演练，未落生产库**。
+- 用途：① G3 deny 率首测（预筛候选逐条 confirm/deny，口径=条数级）；② G2 引文验证链路自证（对自己产的回执跑 verify，应 PASS——自证不豁免「回执未经他审」这一局限，记录在案）。
+- 流程与结果摘要：
+  1. 预筛（`novelos-prose-fingerprint.mjs --json`）：screen 候选 **23 条**——L01×4 / L03×9 / L08×1 / L11×9；**P 层本轮 0 命中**（R1 G5 报告表的 P 层行与其留存 JSON 不一致，登记以机器留存产物 + 本轮可复现复跑为准）。
+  2. 逐条表态：**confirm 13**（L01 4 / L03 6 / L08 1 / L11 2，severity 按方案 A：阈值=warning、零容忍=blocking，`code='fpr:<ID>'`+message 头部 `[fpr:<ID>]`）；**deny 10**（L03 3 / L11 7，severity=note，`code='fpr-deny:<ID>'`+理由——判据=卡面 FP-1.7 只判揭晓式破折号、FP-6.5 只判真复述，推论型新结论合法），与 R1 G5 残留归因的语义判断交叉一致（L11 7 deny 全对齐；L03 的 A1 段1 补充型、A2 段9 列举型对齐；A3 段8「——甚至」1 处边缘案例本轮独立判 deny，R1 修订曾按命中清除，差异记录不追溯）。
+  3. G2 自证：合成回执（23 findings，excerpt 取命中±窗口且联合草稿内唯一）跑 `novelos-verify-review-evidence.mjs` → **PASS exit 0**（23/23 hit、subject_hash 绑定通过、无 weak/多处命中）；构造 no_hit 实例（篡改 1 条 excerpt）→ 正确 exit 1。
+- 结果摘要：**deny 率 = 10/23 = 43.5%**（L01 0/4、L03 3/9、L08 0/1、L11 7/9）。**折扣声明：非真实章节数据**——合成段为 AI 味特征高密度埋入，deny 率仅作 G3 校准基线，不代表生产分布；真实章节首测后在 `docs/knowledge/metrics.md` M3 追加行。
+- 中间产物（`/tmp/r2-g3/`，未入仓库）：`prescreen.json`（预筛全量）、`draft-combined.md`（三段联合草稿）、`receipt-synthetic.json`（合成回执）、`verify-synthetic.json`（PASS 报告）、`receipt-nohit-fatal.json`（no_hit 构造实例）。
+
 ## 使用约束（G5 编排）
 
 - 判官 = 异构红方模型（与写作/修订方不同厂商；reviewer_profile 带机器身份前缀）；材料打乱顺序、不告知任何一段来源，材料真伪由主控掌管（攻击面 A5：来源声明不可作为判官输入）。

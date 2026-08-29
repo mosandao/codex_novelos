@@ -67,8 +67,8 @@ node scripts\novelos-compose-prompt.mjs --asset <asset> --project <id>
 ## 小说工作流
 
 1. `$novel-memory` 组织上下文（canon 最小集经组装器注入）。
-2. `$novel-writing` 起草 → sub agent → 主控按 sql-reference.md 模板落库（draft）。
-3. `$novel-review` 审查：blocking+warning 必修，修复 = 新 revision 受控重组装；3 轮未收敛或同因复发 → 升级用户裁决，禁止无限打转。
+2. `$novel-writing` 起草 → sub agent → 主控按 sql-reference.md 模板落库（draft）。落库前跑 `node scripts/novelos-prose-fingerprint.mjs --text-file <draft>` 预筛（screen 命中即候选，只报事实不判级），候选清单由主控手工附审查注入尾部并标注「仅供证伪，须逐条 confirm（`fpr:<ID>`）或 deny（`fpr-deny:<ID>`）+理由」；修订轮 UPDATE 分支重跑预筛并更新 `metadata_json.prescreen`。
+3. `$novel-review` 审查：blocking+warning 必修，修复 = 新 revision 受控重组装；3 轮未收敛或同因复发 → 升级用户裁决，禁止无限打转。回执落库前跑 `node scripts/novelos-verify-review-evidence.mjs --receipt <回执> --draft <该版草稿>` 引文验证，FATAL（excerpt 无命中/缺失/subject_hash 错配）即打回、不得落库。
 4. `$novel-continuity` 提取连续性：账本候选落库后与人物注册表对账（SQL 见 sql-reference.md），有漂移即处理完才开下一章。
 5. **用户实时打断与修改（最高优先级）**：任何阶段用户提出修改——①暂停生成与提交；②按影响面分流（setup 级→UPDATE+全量 stale 重审；资产级→change proposal 走上游修订；章内级→审查回执受控重组装）；③呈报影响面清单获确认后执行。禁止以「生成进行中」为由推迟用户指令。
 

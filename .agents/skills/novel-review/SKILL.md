@@ -21,6 +21,7 @@ description: 独立审查不可变小说资产并生成 Review Receipt。规划�
    - `reviewerProfile`：审查者身份，必须携带模型身份前缀——`model:<provider:model>`（异构厂商模型直审，防共谋）或 `agent:<name>@<model>`（具名审查 agent）；匿名裸字符串（如 `prose-v1`）拒绝落库
    - 可选 `evidenceRefsJson`（证据引用数组）、`metadataJson`
    - `subject_hash` 取被审对象库内资源的 content_hash 溯源锚点；落库后把 `reviewId` 交给锁定/接受步骤引用
+   - 回执落库前主控先跑 G2 引文验证：`node scripts/novelos-verify-review-evidence.mjs --receipt <回执JSON> --draft <该版草稿>`，FATAL（excerpt 无命中/缺失/subject_hash 错配）即打回重审、不得落库；该验证只管证据存在性与版本绑定，不验证相关性（归主控/红方抽查）
 
 ## 审查标准来源
 
