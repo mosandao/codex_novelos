@@ -31,6 +31,14 @@
         "field": "setup.genre_profile",
         "not_null": true
       }
+    },
+    {
+      "id": "reference-archetype-spectrum",
+      "file": "reference-archetype-spectrum.md",
+      "when": {
+        "field": "setup.genre_profile",
+        "non_empty": true
+      }
     }
   ],
   "data_slots": [

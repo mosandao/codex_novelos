@@ -23,6 +23,14 @@
         "field": "setup.channel",
         "equals": "全向"
       }
+    },
+    {
+      "id": "reference-emotional-arcs",
+      "file": "reference-emotional-arcs.md",
+      "when": {
+        "field": "setup.genre_profile",
+        "non_empty": true
+      }
     }
   ],
   "data_slots": [

@@ -23,6 +23,14 @@
         "field": "setup.channel",
         "equals": "全向"
       }
+    },
+    {
+      "id": "reference-scene-blueprints",
+      "file": "reference-scene-blueprints.md",
+      "when": {
+        "field": "setup.genre_profile",
+        "non_empty": true
+      }
     }
   ],
   "data_slots": [
