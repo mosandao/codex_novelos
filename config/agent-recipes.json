@@ -388,6 +388,19 @@
       "failure": "prose-quality-review 循环；persona 盲区场景按绕开方式处理"
     },
     {
+      "asset": "prose-revision",
+      "composer_key": "prose-revision",
+      "skill": "expansions/prose-revision",
+      "slots": [
+        "subject",
+        "review_feedback"
+      ],
+      "divergence": "constrained",
+      "decision_scope": "execute",
+      "output": "修订候选正文（双模式）",
+      "failure": "审查循环；3 轮未收敛升级用户"
+    },
+    {
       "asset": "prose-quality-review",
       "composer_key": "prose-review",
       "skill": "review/prose-quality-review",

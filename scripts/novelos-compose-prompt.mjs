@@ -70,6 +70,7 @@ export const ASSET_DIRS = {
   'chapter-plan-review': path.join(ROOT, 'catalog/skills/review/planning-chapter-plan-review'),
   'chapter-draft': path.join(ROOT, 'catalog/skills/writing/chapter-draft-generation'),
   'prose-review': path.join(ROOT, 'catalog/skills/review/prose-quality-review'),
+  'prose-revision': path.join(ROOT, 'catalog/skills/expansions/prose-revision'),
   'continuity-extraction': path.join(ROOT, 'catalog/skills/continuity/continuity-candidate-extraction'),
   'continuity-review': path.join(ROOT, 'catalog/skills/review/continuity-quality-review'),
   'cross-consistency-review': path.join(ROOT, 'catalog/skills/review/planning-cross-consistency-review'),

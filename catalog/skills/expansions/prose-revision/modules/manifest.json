@@ -1,0 +1,9 @@
+{
+  "modules": [],
+  "data_slots": [
+    "subject",
+    "review_feedback"
+  ],
+  "divergence": "constrained",
+  "decision_scope": "execute"
+}
