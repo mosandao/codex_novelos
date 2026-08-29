@@ -108,6 +108,51 @@
             }
           ]
         },
+        "style_seed": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "可选风格种子段（R5，U6 裁决后启用）。mode=persona_select 时走库内反查（主控自查，与 author_kernel select 同构且更严）：seed_version_id 存在 + 该 profile ownership='style_seed' + status='active' + seed_subject_hash 与该版本 subject_hash 相符。种子卡语义 = 表达层风格参照，不是 parent（parent 永远是内核版本）；种子与内核/表里基调根本相斥时须用户裁决，禁止静默硬融",
+          "required": [
+            "mode"
+          ],
+          "properties": {
+            "mode": {
+              "enum": [
+                "none",
+                "persona_select"
+              ]
+            },
+            "seed_version_id": {
+              "type": "string",
+              "pattern": "^creator-profile-version:[a-z0-9][a-z0-9-]*(:[0-9]+)?$"
+            },
+            "seed_subject_hash": {
+              "$ref": "#/$defs/hash"
+            },
+            "seed_display_name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 60
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "mode": {
+                    "const": "persona_select"
+                  }
+                }
+              },
+              "then": {
+                "required": [
+                  "seed_version_id",
+                  "seed_subject_hash"
+                ]
+              }
+            }
+          ]
+        },
         "channel": {
           "enum": [
             "男频",
