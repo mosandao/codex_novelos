@@ -332,6 +332,7 @@ function buildWritePlan(cards) {
 
 function guardTargetDb(dbPath) {
   if (!COMMIT) return;
+  const allowProd = process.argv.includes('--allow-production'); // R5 执行轮（U5/U6 已裁决）：显式放行生产库，默认仍拒绝
   if (!TARGET_DB || TARGET_DB === 'undefined') {
     console.error('REFUSE --commit 须显式 --db 指向副本库（生产库零写入红线）');
     process.exit(1);
@@ -340,8 +341,12 @@ function guardTargetDb(dbPath) {
     console.error(`REFUSE 目标库不存在: ${TARGET_DB} —— --commit 只允许对既有副本库执行`);
     process.exit(1);
   }
-  if (TARGET_DB === path.resolve(PROD_DB)) {
-    console.error('REFUSE 目标库是生产库 data/novelos-v2.db —— 生产库零写入（硬编码保护，prepare-only 红线）');
+  if (TARGET_DB === path.resolve(PROD_DB) && !allowProd) {
+    console.error('REFUSE 目标库是生产库 data/novelos-v2.db —— 生产库零写入（硬编码保护；U5/U6 已裁决后加 --allow-production 显式放行）');
+    process.exit(1);
+  }
+  if (TARGET_DB === path.resolve(PROD_DB) && !fs.existsSync(path.join(path.dirname(TARGET_DB), '.allow-production-r5'))) {
+    console.error('REFUSE --allow-production 需要现场凭据：先执行 touch data/.allow-production-r5（裁决留痕，导入后删除）');
     process.exit(1);
   }
 }

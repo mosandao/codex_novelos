@@ -540,6 +540,31 @@ export function render(snapshot, projectId, outputRoot) {
       lines.push('', `## ${label}`);
       for (const item of sig[field] ?? []) lines.push(`- ${item}`);
     }
+    // 风格 DNA（schema v3，R5；全部防御式——v1/v2 签名无此字段时整段跳过）
+    const dna = sig.style_dna;
+    if (dna && typeof dna === 'object' && !Array.isArray(dna)) {
+      lines.push('', '## 风格 DNA（style_dna）');
+      const tier = dna.corpus_basis?.tier;
+      if (tier) lines.push(`- **语料分级**：${tier}${dna.corpus_basis?.notes ? `——${dna.corpus_basis.notes}` : ''}`);
+      for (const [key, label] of [
+        ['lexicon_summary', '语言习惯摘要'],
+        ['syntax_patterns', '句式模式'],
+        ['punctuation_habits', '标点习惯'],
+        ['structure_preferences', '结构偏好'],
+        ['dialogue_style', '对白风格'],
+      ]) {
+        const v = dna[key];
+        if (typeof v === 'string' && v.trim()) lines.push(`- **${label}**：${v}`);
+        else if (Array.isArray(v) && v.length) for (const item of v) lines.push(`- **${label}**：${item}`);
+      }
+    }
+    const feats = sig.measured_features;
+    if (Array.isArray(feats) && feats.length) {
+      lines.push('', '## 逐特征豁免依据（measured_features）');
+      for (const f of feats) {
+        if (f && f.feature) lines.push(`- \`${f.feature}\`${f.metric ? `（${f.metric}=${f.value ?? '?'}` : ''}${f.metric ? '）' : ''}${f.source ? ` —— ${f.source}` : ''}`);
+      }
+    }
     const derivation = snapshot.creator_derivation;
     if (derivation && typeof derivation === 'object') {
       lines.push('', '## 派生溯源', '');

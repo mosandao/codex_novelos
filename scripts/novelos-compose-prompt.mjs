@@ -400,9 +400,10 @@ export function validateFusionPayloadStruct(payload) {
   const SETUP_REQUIRED = ['title', 'author_kernel', 'channel', 'platform', 'platform_traits', 'scale',
     'primary_genre', 'secondary_directions', 'emotional_surface', 'emotional_core', 'tonal_contrast',
     'aesthetic_styles', 'genre_profile', 'reference_material'];
+  const SETUP_OPTIONAL = ['style_seed']; // R5（U6）：可选风格种子段（schema v3 已同步）
   const unknownKeys = [];
   for (const k of Object.keys(setup)) {
-    if (!SETUP_REQUIRED.includes(k)) unknownKeys.push(`setup.${k}: 未声明的字段`);
+    if (!SETUP_REQUIRED.includes(k) && !SETUP_OPTIONAL.includes(k)) unknownKeys.push(`setup.${k}: 未声明的字段`);
   }
   const missingKeys = SETUP_REQUIRED.filter((k) => !(k in setup))
     .map((k) => `setup.${k}: 是必填字段`);
@@ -411,6 +412,29 @@ export function validateFusionPayloadStruct(payload) {
     return errs.concat(unknownKeys, missingKeys);
   }
   errs.push(...unknownKeys);
+
+  // style_seed（可选，schema v3 同构；DB 层四查=主控纪律，此处只做形状）
+  if ('style_seed' in setup) {
+    const ss = setup.style_seed;
+    if (ss === null || typeof ss !== 'object' || Array.isArray(ss)) {
+      errs.push('setup.style_seed: 必须为对象');
+    } else {
+      for (const k of Object.keys(ss)) {
+        if (!['mode', 'seed_version_id', 'seed_subject_hash', 'seed_display_name'].includes(k)) {
+          errs.push(`setup.style_seed.${k}: 未声明的字段`);
+        }
+      }
+      if (!('mode' in ss)) errs.push('setup.style_seed.mode: 是必填字段');
+      else if (!['none', 'persona_select'].includes(ss.mode)) errs.push('setup.style_seed.mode: 必须是 none/persona_select 之一');
+      if (ss.mode === 'persona_select') {
+        if (!('seed_version_id' in ss)) errs.push('setup.style_seed.seed_version_id: mode=persona_select 时必填');
+        else if (!(typeof ss.seed_version_id === 'string' && KERNEL_ID_RE.test(ss.seed_version_id))) errs.push('setup.style_seed.seed_version_id: 必须匹配 creator-profile-version ID 格式');
+        if (!('seed_subject_hash' in ss)) errs.push('setup.style_seed.seed_subject_hash: mode=persona_select 时必填');
+        else if (!(typeof ss.seed_subject_hash === 'string' && HASH_RE.test(ss.seed_subject_hash))) errs.push('setup.style_seed.seed_subject_hash: 必须匹配 ^sha256:[0-9a-f]{64}$');
+      }
+      if ('seed_display_name' in ss && !isStrRange(ss.seed_display_name, 1, 60)) errs.push('setup.style_seed.seed_display_name: 必须是 1-60 字符的字符串');
+    }
+  }
 
   if (!isStrRange(setup.title, 1, 120)) errs.push('setup.title: 必须是 1-120 字符的字符串');
   // author_kernel
