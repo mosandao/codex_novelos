@@ -24,7 +24,8 @@
     "prev_volume_outline",
     "promise_ledger",
     "upstream:<asset_type>",
-    "prev_chapter_tail"
+    "prev_chapter_tail",
+    "open_adjudications"
   ],
   "divergence_tiers": {
     "expansive": "多候选、禁早收敛、张力菜单——方向与架构层",
@@ -333,6 +334,7 @@
       "composer_key": "chapter-plan",
       "skill": "planning/chapter-plan-execution-card",
       "slots": [
+        "open_adjudications",
         "upstream:volume_outline",
         "upstream:character_contract",
         "upstream:world_contract",
@@ -372,6 +374,7 @@
       "composer_key": "chapter-draft",
       "skill": "writing/chapter-draft-generation",
       "slots": [
+        "open_adjudications",
         "kernel_full",
         "persona_full",
         "persona_gate",
@@ -421,6 +424,7 @@
       "skill": "review/prose-quality-review",
       "slots": [
         "subject",
+        "open_adjudications",
         "kernel_full",
         "persona_full",
         "persona_gate",

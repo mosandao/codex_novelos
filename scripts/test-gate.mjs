@@ -714,6 +714,162 @@ test('V9 narrative_promises.resolved_chapter_id 列在位（021 schema 同步）
   assert.ok(cols.includes('resolved_chapter_id'));
 });
 
+// ═══ A5 TBD 物化：open/resolve-adjudication + 门互锁（R8-T2，022） ═══════════
+
+const openAdj = (db, over = {}) => gate.openAdjudication(db, {
+  projectId: 'project:t1', subjectType: 'planning', subjectRef: 'planning:strat1',
+  reason: '3 轮未收敛：节奏判级反复', rounds: [{ round: 1, blocking: '节奏超档' }, { round: 2, blocking: '同因复发' }],
+  dryRun: false, ...over,
+});
+
+test('AD1 open-adjudication：dry-run 零写入', () => {
+  const db = freshDb();
+  fixture(db);
+  const r = openAdj(db, { dryRun: true });
+  assert.equal(r.dryRun, true);
+  assert.ok(r.results[0].startsWith('dry-run'));
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM adjudications').get().n, 0);
+});
+
+test('AD2 open-adjudication：commit 落行，rounds_json 留痕', () => {
+  const db = freshDb();
+  fixture(db);
+  const r = openAdj(db);
+  assert.equal(r.dryRun, false);
+  const row = db.prepare('SELECT * FROM adjudications WHERE id=?').get(r.adjudicationId);
+  assert.equal(row.status, 'open');
+  assert.equal(row.subject_ref, 'planning:strat1');
+  const rounds = JSON.parse(row.rounds_json);
+  assert.equal(rounds.length, 2);
+  assert.equal(rounds[1].blocking, '同因复发');
+});
+
+test('AD3 重复开单 → GateFail（同 subject 已 open；022 部分唯一索引兜底）', () => {
+  const db = freshDb();
+  fixture(db);
+  openAdj(db);
+  throwsGate(() => openAdj(db, { reason: '再开一单' }), '重复开单');
+  // 直接绕过门插库也须被 DB 约束拦截
+  assert.throws(() => db.prepare(
+    "INSERT INTO adjudications (id, project_id, subject_type, subject_ref, reason) VALUES ('adjudication:dup', 'project:t1', 'planning', 'planning:strat1', 'dup')",
+  ).run());
+});
+
+test('AD4 subject 不存在 / 错项目 / 非法 subject_type → GateFail', () => {
+  const db = freshDb();
+  fixture(db);
+  throwsGate(() => openAdj(db, { subjectRef: 'planning:nonexistent' }), 'subject 不存在');
+  throwsGate(() => openAdj(db, { projectId: 'project:other' }), '错项目开单');
+  throwsGate(() => openAdj(db, { subjectType: 'volume' }), 'subject_type 须为');
+});
+
+test('AD5 门互锁：open 后 lock-asset 阻断，resolve 后放行', () => {
+  const db = freshDb();
+  fixture(db);
+  gate.openAdjudication(db, {
+    projectId: 'project:t1', subjectType: 'planning', subjectRef: 'planning:char1',
+    reason: '人物契约 3 轮未收敛', rounds: [], dryRun: false,
+  });
+  throwsGate(() => gate.lockAsset(db, { assetId: 'planning:char1', reviewId: 'review:ok-char1', dryRun: true }), '未决裁决阻断');
+  throwsGate(() => gate.lockAsset(db, { assetId: 'planning:char1', reviewId: 'review:ok-char1', dryRun: false }), '未决裁决阻断');
+  // 裁决放行
+  const adjId = db.prepare("SELECT id FROM adjudications WHERE status='open'").get().id;
+  gate.resolveAdjudication(db, { adjudicationId: adjId, resolution: '用户裁决：按第 2 轮版本放行', dryRun: false });
+  const r = gate.lockAsset(db, { assetId: 'planning:char1', reviewId: 'review:ok-char1', dryRun: false });
+  assert.ok(r.results[0].includes('已锁定'));
+});
+
+test('AD6 门互锁：chapter subject open 后 accept-chapter 阻断（幂等重放也拦）', () => {
+  const db = freshDb();
+  fixture(db);
+  gate.openAdjudication(db, {
+    projectId: 'project:t1', subjectType: 'chapter', subjectRef: 'chapter:t1',
+    reason: 'mismatch 待裁决', rounds: [], dryRun: false,
+  });
+  throwsGate(() => gate.acceptChapter(db, { chapterId: 'chapter:t1', reviewId: 'review:ok-ch1', dryRun: true }), '未决裁决阻断');
+  throwsGate(() => gate.acceptChapter(db, { chapterId: 'chapter:t1', reviewId: 'review:ok-ch1', dryRun: false }), '未决裁决阻断');
+});
+
+test('AD7 resolve-adjudication：不存在 / 已 resolved / resolution 必填 → GateFail', () => {
+  const db = freshDb();
+  fixture(db);
+  throwsGate(() => gate.resolveAdjudication(db, { adjudicationId: 'adjudication:ghost', resolution: 'x', dryRun: false }), '裁决单不存在');
+  const r = openAdj(db);
+  throwsGate(() => gate.resolveAdjudication(db, { adjudicationId: r.adjudicationId, resolution: '', dryRun: false }), 'resolution 必填');
+  gate.resolveAdjudication(db, { adjudicationId: r.adjudicationId, resolution: '放行', dryRun: false });
+  throwsGate(() => gate.resolveAdjudication(db, { adjudicationId: r.adjudicationId, resolution: '再裁一次', dryRun: false }), '终态不可重裁决');
+});
+
+test('AD8 缺表兼容：022 未应用时互锁静默放行，open 显式报错不静默', () => {
+  const db = freshDb();
+  fixture(db);
+  db.exec('DROP INDEX IF EXISTS idx_adjudications_project; DROP INDEX IF EXISTS idx_adjudications_open_subject; DROP TABLE adjudications;');
+  const r = gate.lockAsset(db, { assetId: 'planning:char1', reviewId: 'review:ok-char1', dryRun: true }); // 不抛
+  assert.ok(r.results[0].startsWith('dry-run'));
+  throwsGate(() => openAdj(db, { dryRun: true }), 'migration 022');
+});
+
+test('AD9 open 不拦 commit-review（裁决期间补审查是合法输入）', () => {
+  const db = freshDb();
+  fixture(db);
+  openAdj(db); // planning:strat1
+  const r = gate.commitReview(db, { receiptRaw: receiptFor(), dryRun: false }); // chapter:t1 新回执照常落库
+  assert.equal(r.dryRun, false);
+  assert.ok(db.prepare('SELECT COUNT(*) AS n FROM reviews').get().n >= 6);
+});
+
+test('AD10 adjudication 生命周期全链（open → 阻断 → resolve → 放行 → 再开新单）', () => {
+  const db = freshDb();
+  fixture(db);
+  const r1 = openAdj(db);
+  gate.resolveAdjudication(db, { adjudicationId: r1.adjudicationId, resolution: '首轮裁决：修订后重审', dryRun: false });
+  const row = db.prepare('SELECT status, resolution, resolved_at FROM adjudications WHERE id=?').get(r1.adjudicationId);
+  assert.equal(row.status, 'resolved');
+  assert.ok(row.resolved_at !== null);
+  const r2 = openAdj(db, { reason: '修订后同因复发，二次升级' }); // resolve 后可再开
+  assert.notEqual(r2.adjudicationId, r1.adjudicationId);
+});
+
+test('AD11 CLI open/resolve：临时库端到端（dry-run 零写入 → --commit → --json 回读）', () => {
+  const fsMod = await_import_fs();
+  const dbPath = path.join(ROOT, 'data', `gate-adj-fixture-${Date.now()}.tmp.db`);
+  try {
+    const db = new DatabaseSync(dbPath);
+    db.exec(readFileSync(path.join(ROOT, 'db/migrations/schema.sql'), 'utf8'));
+    fixture(db);
+    db.close();
+    const dry = runCli(['open-adjudication', '--project', 'project:t1', '--subject-type', 'planning',
+      '--subject-ref', 'planning:char1', '--reason', 'CLI 演练', '--db', dbPath]);
+    assert.equal(dry.status, 0, dry.stdout + dry.stderr);
+    assert.ok(dry.stdout.includes('dry-run'));
+    const conn = new DatabaseSync(dbPath);
+    assert.equal(conn.prepare('SELECT COUNT(*) AS n FROM adjudications').get().n, 0);
+    conn.close();
+    const commit = runCli(['open-adjudication', '--project', 'project:t1', '--subject-type', 'planning',
+      '--subject-ref', 'planning:char1', '--reason', 'CLI 演练', '--rounds', '[{"round":1,"blocking":"b"}]', '--commit', '--db', dbPath]);
+    assert.equal(commit.status, 0, commit.stdout + commit.stderr);
+    const commit2 = runCli(['open-adjudication', '--project', 'project:t1', '--subject-type', 'planning',
+      '--subject-ref', 'planning:char1', '--reason', 'dup', '--commit', '--db', dbPath]);
+    assert.equal(commit2.status, 1); // 重复开单 GateFail
+    const list = runCli(['resolve-adjudication', '--adjudication', 'adjudication:ghost', '--resolution', 'x', '--db', dbPath]);
+    assert.equal(list.status, 1); // 不存在
+    const j = runCli(['open-adjudication', '--project', 'project:t1', '--subject-type', 'planning',
+      '--subject-ref', 'planning:strat1', '--reason', 'json 演练', '--commit', '--json', '--db', dbPath]);
+    assert.equal(j.status, 0, j.stdout + j.stderr);
+    const parsed = JSON.parse(j.stdout.slice(j.stdout.indexOf('{'))); // results 行先打，JSON 尾随（pretty 多行）
+    assert.ok(parsed.adjudicationId.startsWith('adjudication:'));
+  } finally {
+    fsMod.rmSync(dbPath, { force: true });
+  }
+});
+
+test('AD12 CLI 生产库写保护同样覆盖 open-adjudication', () => {
+  const r = runCli(['open-adjudication', '--project', 'project:x', '--subject-type', 'planning',
+    '--subject-ref', 'planning:x', '--reason', 'r', '--commit']);
+  assert.equal(r.status, 2);
+  assert.ok(r.stderr.includes('--allow-production'));
+});
+
 // ═══ 汇总 ═══════════════════════════════════════════════════════════════════
 
 console.log(`\n${passed} passed, ${failed} failed`);

@@ -27,6 +27,7 @@
   ],
   "data_slots": [
     "subject",
+    "open_adjudications",
     "kernel_full",
     "persona_full",
     "persona_gate",

@@ -1235,6 +1235,45 @@ function slotPrevChapterTail(db, projectId) {
     + `第 ${rows[0].ch_no} 章《${rows[0].title}》${note}）`, tail];
 }
 
+function slotOpenAdjudications(db, projectId) {
+  /** 未决裁决警示节（R8-T2，修正案 A5）：升级用户裁决物化为 adjudications open 行后，
+   *  下游注入可见——卡住的 subject + reason + 各轮 blocking 摘要，写作/审查/规划组装
+   *  都看得到「地基未定」。缺表（022 未应用）显式注明不静默；查询失败硬 fail（同
+   *  promise_ledger 规：未决状态禁止静默降级）。 */
+  if (projectId === null || projectId === undefined) fail('open_adjudications 槽位需要 --project');
+  let ready;
+  try {
+    ready = Boolean(db.prepare(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='adjudications'",
+    ).get());
+  } catch (exc) {
+    fail(`[open_adjudications] 表存在性检查失败：${exc.message}`);
+  }
+  if (!ready) {
+    return ['未决裁决（open_adjudications——升级用户裁决未决清单）',
+      '（adjudications 表未就位：migration 022 未应用——TBD 物化功能未启用）'];
+  }
+  let rows;
+  try {
+    rows = db.prepare(
+      "SELECT id, subject_type, subject_ref, reason, rounds_json, created_at "
+      + "FROM adjudications WHERE project_id = ? AND status = 'open' ORDER BY created_at",
+    ).all(projectId);
+  } catch (exc) {
+    fail(`[open_adjudications] 查询失败：${exc.message}——未决状态禁止静默降级`);
+  }
+  if (rows.length === 0) {
+    return ['未决裁决（open_adjudications——升级用户裁决未决清单）', '（无——无未决裁决，门互锁未触发）'];
+  }
+  const body = rows.map((r) => {
+    let rounds = [];
+    try { rounds = JSON.parse(r.rounds_json); } catch { rounds = []; }
+    return `${r.id} | ${r.subject_type}:${r.subject_ref} | ${r.reason} | 各轮 blocking ${rounds.length} 条 | 开单 ${r.created_at}`;
+  }).join('\n');
+  return [`未决裁决（open_adjudications——${rows.length} 条未决：下列 subject 卡在用户裁决，`
+    + '地基未定——禁止当作已定事实续写或审查放行；lock/accept 门互锁生效中）', body];
+}
+
 function slotCanonMinimal(db, projectId) {
   /** canon 最小集：六类账本近端条目 + 近期已接受章节摘要。查询失败显式降级打 stderr。 */
   if (projectId === null || projectId === undefined) fail('canon_minimal 槽位需要 --project');
@@ -1543,6 +1582,7 @@ export const SLOT_REGISTRY = {
   prev_volume_outline: slotPrevVolumeOutline,
   promise_ledger: slotPromiseLedger,
   prev_chapter_tail: slotPrevChapterTail,
+  open_adjudications: slotOpenAdjudications,
 };
 
 /** 按 manifest 的 data_slots 声明顺序解析注入槽位。未注册槽位即报错。

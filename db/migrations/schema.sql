@@ -1,8 +1,23 @@
--- NovelOS 权威库合并基线（schema v20 终态）。
+-- NovelOS 权威库合并基线（schema v22 终态）。
 -- 由 data/novelos-v2.db 的 sqlite_master DDL 只读导出重生成（R5 执行轮，2026-08-29）：
--- 019（chapters.review_id）与 020（creator_profiles ownership+style_seed）已应用后的生产结构。
+-- 019（chapters.review_id）、020（creator_profiles ownership+style_seed）、021（promise_events+
+-- narrative_promises.resolved_chapter_id）、022（adjudications，R8-T2）已应用后的生产结构。
 -- 用法：node:sqlite / sqlite3 直接执行本文件即得与生产结构一致的空库（测试夹具基线）。
--- 增量演进仍走 migrations/002..020；下次 schema 变更后仍须从生产库重新导出本文件。
+-- 增量演进仍走 migrations/002..022；下次 schema 变更后仍须从生产库重新导出本文件。
+
+CREATE TABLE adjudications (
+    id TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL,
+    subject_type TEXT NOT NULL,
+    subject_ref TEXT NOT NULL,
+    reason TEXT NOT NULL,
+    rounds_json TEXT NOT NULL DEFAULT '[]',
+    status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'resolved')),
+    resolution TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    resolved_at TEXT,
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+);
 
 CREATE TABLE arc_states (
     id TEXT PRIMARY KEY,
@@ -412,6 +427,11 @@ CREATE INDEX idx_continuity_sets_chapter ON continuity_candidate_sets(chapter_id
 
 CREATE INDEX idx_creator_profile_versions_profile
 ON creator_profile_versions(profile_id, revision DESC);
+
+CREATE UNIQUE INDEX idx_adjudications_open_subject
+ON adjudications(project_id, subject_type, subject_ref) WHERE status = 'open';
+
+CREATE INDEX idx_adjudications_project ON adjudications(project_id, status);
 
 CREATE INDEX idx_creator_profiles_ownership ON creator_profiles(ownership);
 

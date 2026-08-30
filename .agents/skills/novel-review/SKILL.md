@@ -46,6 +46,7 @@ description: 独立审查不可变小说资产并生成 Review Receipt。规划�
 ### 循环边界（防无限打转，必须执行）
 
 - **轮次上限**：同一 subject 默认 **3 轮**未收敛 → 停止循环，升级用户裁决（附各轮 blocking 摘要）。禁止无限重试。
+- **升级即物化（R8-A5）**：升级用户裁决必须经门落裁决单——`node scripts/novelos-gate.mjs open-adjudication --project <id> --subject-type <planning|chapter> --subject-ref <id> --reason <升级原因> --rounds '<各轮 blocking 摘要 JSON>' --commit`；open 期间该 subject 的 lock/accept 被门互锁阻断，下游组装经 `open_adjudications` 槽可见未决状态。用户裁决后 `resolve-adjudication --adjudication <id> --resolution <结论> --commit` 解除。禁止只口头挂起不落单。
 - **同因复发检测**：本轮 blocking 与上一轮同因（同一问题未解决或换个说法复发）→ **直接升级**，不再重试——修复手段无效的信号，换手段或人工介入。
 - 主控在每次重审前查上轮回执做同因判定；`--round` ≥ 3 时组装器日志已标记轮次，主控须核对升级条件后再组装。
 

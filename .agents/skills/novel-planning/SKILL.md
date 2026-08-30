@@ -22,6 +22,8 @@ description: 识别小说规划层级并准备对应权威资产的最小输入�
 
 依赖顺序：direction → architecture → strategy → world → character → story_arc → volume_outline → chapter_plan（T36 起世界先行：world 设岗位不造人，character 认领席位——sibling 并行与交叉假设清单退役，world 修订沿依赖边标 character stale）。
 
+升级裁决可见性（R8-A5）：任一上游资产处于升级用户裁决状态（adjudications open 行）时，其 lock/accept 被门互锁阻断，且章纲/规划组装经 `open_adjudications` 槽显式可见该未决清单——地基未定的 subject 禁止当作已定事实消费，规划侧须在候选中显式声明对未决资产的假设或等待裁决。
+
 ## 工作流
 
 1. 从用户目标判断唯一目标 `asset_type` 和 `scope_ref`。

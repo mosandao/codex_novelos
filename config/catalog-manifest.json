@@ -1,6 +1,6 @@
 {
   "schema": "novelos.catalog-manifest.v1",
-  "generated_at": "2026-08-29T16:21:33Z",
+  "generated_at": "2026-08-30T06:55:30Z",
   "file_count": 351,
   "files": {
     "catalog/skills/continuity/continuity-candidate-extraction/input_schema.json": {
@@ -588,8 +588,8 @@
       "bytes": 206
     },
     "catalog/skills/planning/chapter-plan-execution-card/modules/manifest.json": {
-      "sha256": "cf271cfddd2000f89e2519ec423eaeec61b8d24658ce9852e2a048324f893ffc",
-      "bytes": 1000
+      "sha256": "5cfa99279ecc67875b87b15358a8388364046f0b1238e22ae9a4b98d042cb159",
+      "bytes": 1026
     },
     "catalog/skills/planning/chapter-plan-execution-card/modules/reference-scene-dialogue-blueprints.md": {
       "sha256": "759ad175dfc7728908251739537bc2196dfbde1b4d75c1d4c8475e453d527444",
@@ -1336,8 +1336,8 @@
       "bytes": 114
     },
     "catalog/skills/review/prose-quality-review/modules/manifest.json": {
-      "sha256": "0d35f507fe5530eecca1c20699b87b6402dbbca566e756b8455b31b048294c86",
-      "bytes": 999
+      "sha256": "721d06d6e5827d99b32230d08721418d1eaaf7b23fe10d00dc83f02f013cffe1",
+      "bytes": 1025
     },
     "catalog/skills/review/prose-quality-review/prompt.md": {
       "sha256": "5b822e05be4069ad81dbd8185371088940ba84361537d65b6cdd0c7f2e0187d8",
@@ -1372,8 +1372,8 @@
       "bytes": 1238
     },
     "catalog/skills/writing/chapter-draft-generation/modules/manifest.json": {
-      "sha256": "c23eadd28998b9e9114bae767d7d0d84f06289bef3b330a4c5ba9821726416ef",
-      "bytes": 1191
+      "sha256": "a457424b09d88b836374f67b93907c608858490b38ca0fdab2a4783f54e1962d",
+      "bytes": 1217
     },
     "catalog/skills/writing/chapter-draft-generation/prompt.md": {
       "sha256": "18e2da3d7c0f97e07139eb1daf4f23c65f24081669891409ee259274cdfa3ac7",

@@ -28,6 +28,10 @@
  *   propagate-stale --asset <planning:id> [--fine] [--commit]
  *   validate-asset  (--asset <planning:id> | --asset-type <t> --project <id> [--scope-ref <r>]) [--scale <s>]
  *   register-characters --project <id> [--roster <json>] [--entry <json>] [--status-update <json>] [--world <json>] [--commit]
+ *   open-adjudication   --project <id> --subject-type <planning|chapter> --subject-ref <id> --reason <文本> [--rounds <json>] [--commit]
+ *   resolve-adjudication --adjudication <adjudication:id> --resolution <文本> [--commit]
+ *   （R8-T2，A5：升级用户裁决物化为 adjudications 行；open 期间 lock/accept 被门互锁阻断，
+ *    commit-review 不拦——裁决期间补审查是合法输入。缺 022 表时互锁静默放行。）
  *   通用：[--db <路径>]（默认 data/novelos-v2.db）[--json]
  * exit：0 = 通过；1 = GateFail（阻断，零写入）；2 = 用法/输入错误。
  */
@@ -42,7 +46,7 @@ import { loadReceipt, checkFindings, normalizeForMatch } from './novelos-verify-
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PROG = 'novelos-gate';
-const VERSION = '1.0.0';
+const VERSION = '1.1.0'; // 1.1.0 = R8-T2 增 open/resolve-adjudication + 门互锁（A5）
 const DEFAULT_DB = path.join(ROOT, 'data/novelos-v2.db');
 
 export class GateFail extends Error {}
@@ -611,6 +615,7 @@ export function lockAsset(conn, { assetId, reviewId, dryRun = true }) {
     + 'FROM planning_assets pa JOIN resources r ON r.id = pa.content_resource_id WHERE pa.id = ?',
   ).get(assetId);
   if (!asset) throw new GateFail(`资产不存在: ${assetId}`);
+  assertNoOpenAdjudication(conn, asset.id);
   bindReviewGuard(conn, reviewId, asset.id, asset.content_hash);
 
   if (asset.status === 'locked') {
@@ -660,6 +665,7 @@ export function acceptChapter(conn, { chapterId, reviewId, dryRun = true }) {
     + 'FROM chapters c JOIN resources r ON r.id = c.content_resource_id WHERE c.id = ?',
   ).get(chapterId);
   if (!chapter) throw new GateFail(`章节不存在: ${chapterId}`);
+  assertNoOpenAdjudication(conn, chapter.id);
   const projectRow = conn.prepare(
     'SELECT b.project_id AS project_id FROM volumes v JOIN books b ON b.id = v.book_id WHERE v.id = ?',
   ).get(chapter.volume_id);
@@ -699,6 +705,100 @@ export function acceptChapter(conn, { chapterId, reviewId, dryRun = true }) {
     out.results.push(`WARN Claremont 收口：未收伏笔 ${claremont.open} 条（>2）——评估本卷回收排期（不阻断）`);
   }
   return out;
+}
+
+// ── 子命令 7/8：open-adjudication / resolve-adjudication（A5 TBD 物化，R8-T2）──
+// 升级用户裁决落库为权威事实（022 adjudications）：open 行 = 未决状态的库内锚点。
+// 门互锁只封状态推进（lock-asset / accept-chapter），不封补审查（commit-review——
+// 裁决期间补审查是合法输入）与影响面标记（propagate-stale——标下游恰是裁决影响面）。
+
+function adjudicationsReady(conn) {
+  return Boolean(conn.prepare(
+    "SELECT name FROM sqlite_master WHERE type='table' AND name='adjudications'",
+  ).get());
+}
+
+/** 门互锁原语：subject 有 open adjudication → GateFail。缺表（022 未应用）放行——互锁随迁移生效。 */
+export function assertNoOpenAdjudication(conn, subjectRef) {
+  if (!adjudicationsReady(conn)) return;
+  const row = conn.prepare(
+    "SELECT id, reason FROM adjudications WHERE subject_ref = ? AND status = 'open' LIMIT 1",
+  ).get(subjectRef);
+  if (row) {
+    throw new GateFail(`未决裁决阻断：${subjectRef} 有 open adjudication ${row.id}（${row.reason}）——先 resolve-adjudication 再推进`);
+  }
+}
+
+const ADJUDICATION_SUBJECT_TYPES = new Set(['planning', 'chapter']);
+
+/** subject 归属反查：返回实际 project_id（不存在返回 null） */
+function adjudicationSubjectOwner(conn, subjectType, subjectRef) {
+  if (subjectType === 'planning') {
+    return conn.prepare('SELECT project_id FROM planning_assets WHERE id = ?').get(subjectRef)?.project_id ?? null;
+  }
+  return conn.prepare(
+    'SELECT b.project_id AS p FROM chapters c JOIN volumes v ON v.id = c.volume_id JOIN books b ON b.id = v.book_id WHERE c.id = ?',
+  ).get(subjectRef)?.p ?? null;
+}
+
+/** 开裁决单：升级用户裁决时物化 TBD（subject 标记 + 各轮 blocking 摘要 rounds_json）。
+ *  同 subject 已 open → GateFail（022 部分唯一索引兜底）；subject 错项目 → GateFail。 */
+export function openAdjudication(conn, { projectId, subjectType, subjectRef, reason, rounds = [], dryRun = true }) {
+  if (!adjudicationsReady(conn)) {
+    throw new GateFail('库未应用 migration 022（adjudications 表缺失）——先应用迁移再开单');
+  }
+  if (!ADJUDICATION_SUBJECT_TYPES.has(subjectType)) {
+    throw new GateFail(`subject_type 须为 ${[...ADJUDICATION_SUBJECT_TYPES].join('/')}，got ${JSON.stringify(subjectType ?? null)}`);
+  }
+  if (!reason || !String(reason).trim()) throw new GateFail('reason 必填（升级原因：3 轮未收敛/同因复发/mismatch）');
+  if (!Array.isArray(rounds)) throw new GateFail('rounds 须为数组（各轮 blocking 摘要，[{"round":1,"blocking":"…"}]）');
+  const owner = adjudicationSubjectOwner(conn, subjectType, subjectRef);
+  if (!owner) throw new GateFail(`subject 不存在: ${subjectRef}（${subjectType}）`);
+  if (owner !== projectId) {
+    throw new GateFail(`错项目开单：${subjectRef} 实际归属 ${owner} ≠ ${projectId}`);
+  }
+  const openRow = conn.prepare(
+    "SELECT id FROM adjudications WHERE project_id = ? AND subject_type = ? AND subject_ref = ? AND status = 'open'",
+  ).get(projectId, subjectType, subjectRef);
+  if (openRow) {
+    throw new GateFail(`重复开单：${subjectRef} 已有 open adjudication ${openRow.id}——先 resolve-adjudication 再开新单`);
+  }
+
+  const adjudicationId = newId('adjudication');
+  const insert = () => {
+    conn.prepare(
+      'INSERT INTO adjudications (id, project_id, subject_type, subject_ref, reason, rounds_json) VALUES (?, ?, ?, ?, ?, ?)',
+    ).run(adjudicationId, projectId, subjectType, subjectRef, String(reason), pyCompact(rounds));
+  };
+  if (dryRun) {
+    return {
+      adjudicationId, dryRun: true,
+      results: [`dry-run：将开裁决单 ${adjudicationId}（${subjectRef}，rounds ${rounds.length} 条）——期间 lock/accept 被门互锁阻断`],
+    };
+  }
+  withTransaction(conn, insert);
+  return {
+    adjudicationId, dryRun: false,
+    results: [`裁决单 ${adjudicationId} 已开（${subjectRef}）——lock/accept 自此被门互锁阻断；注入侧 open_adjudications 槽可见`],
+  };
+}
+
+/** 裁决落定：open→resolved 写 resolution（终态不可重裁决）。 */
+export function resolveAdjudication(conn, { adjudicationId, resolution, dryRun = true }) {
+  const row = conn.prepare('SELECT id, status, subject_ref FROM adjudications WHERE id = ?').get(adjudicationId);
+  if (!row) throw new GateFail(`裁决单不存在: ${adjudicationId}`);
+  if (row.status !== 'open') throw new GateFail(`裁决单 ${adjudicationId} 已 resolved——终态不可重裁决`);
+  if (!resolution || !String(resolution).trim()) throw new GateFail('resolution 必填（用户裁决结论）');
+  const run = () => {
+    conn.prepare(
+      "UPDATE adjudications SET status='resolved', resolution=?, resolved_at=CURRENT_TIMESTAMP WHERE id=?",
+    ).run(String(resolution), adjudicationId);
+  };
+  if (dryRun) {
+    return { dryRun: true, results: [`dry-run：将裁决 ${adjudicationId}（${row.subject_ref}）——写 resolution 并解除门互锁`] };
+  }
+  withTransaction(conn, run);
+  return { dryRun: false, results: [`裁决单 ${adjudicationId} 已 resolved——${row.subject_ref} 门互锁解除`] };
 }
 
 // ── 子命令 6：validate-asset（七件校验器语义移植；jsonschema→必需字段偏离声明） ─
@@ -1350,7 +1450,7 @@ function parseArgs(argv, spec) {
   return out;
 }
 
-const WRITE_SUBCOMMANDS = new Set(['lock-asset', 'accept-chapter', 'commit-review', 'propagate-stale', 'register-characters']);
+const WRITE_SUBCOMMANDS = new Set(['lock-asset', 'accept-chapter', 'commit-review', 'propagate-stale', 'register-characters', 'open-adjudication', 'resolve-adjudication']);
 
 function usage() {
   return [
@@ -1363,6 +1463,8 @@ function usage() {
     '  propagate-stale --asset <planning:id> [--fine]',
     '  validate-asset  (--asset <planning:id> | --asset-type <t> --project <id> [--scope-ref <r>]) [--scale <s>]',
     '  register-characters --project <id> [--roster <json>] [--entry <json>] [--status-update <json>] [--world <json>]',
+    '  open-adjudication   --project <id> --subject-type <planning|chapter> --subject-ref <id> --reason <文本> [--rounds <json>]',
+    '  resolve-adjudication --adjudication <adjudication:id> --resolution <文本>',
     '通用：[--db <路径>]（默认 data/novelos-v2.db）[--json]',
     '',
     '安全模型：dry-run 默认（零写入）；写库须 --commit；对生产库路径 --commit 还须 --allow-production。',
@@ -1379,7 +1481,8 @@ async function main() {
   const sub = argv[0];
   const flags = ['db', 'json', 'commit', 'fine', 'allow-production', 'allow-empty', 'no-check-hash',
     'asset', 'review', 'chapter', 'receipt', 'asset-type', 'project', 'scope-ref', 'scale',
-    'roster', 'entry', 'status-update', 'world'];
+    'roster', 'entry', 'status-update', 'world',
+    'subject-type', 'subject-ref', 'reason', 'rounds', 'adjudication', 'resolution'];
   const args = parseArgs(argv.slice(1), flags);
   const dbPath = path.resolve(args.db ?? DEFAULT_DB);
   const isProduction = path.resolve(dbPath) === path.resolve(DEFAULT_DB);
@@ -1436,6 +1539,23 @@ async function main() {
         assetId: args.asset, assetType: args['asset-type'], projectId: args.project,
         scopeRef: args['scope-ref'], scale: args.scale,
       });
+      break;
+    }
+    case 'open-adjudication': {
+      if (!args.project || !args['subject-type'] || !args['subject-ref'] || args.reason === undefined) {
+        throw new UsageError('open-adjudication 需要 --project <id> --subject-type <planning|chapter> --subject-ref <id> --reason <文本>');
+      }
+      report = openAdjudication(conn, {
+        projectId: args.project, subjectType: args['subject-type'], subjectRef: args['subject-ref'],
+        reason: args.reason, rounds: loadJsonInput(args.rounds) ?? [], dryRun,
+      });
+      break;
+    }
+    case 'resolve-adjudication': {
+      if (!args.adjudication || args.resolution === undefined) {
+        throw new UsageError('resolve-adjudication 需要 --adjudication <adjudication:id> --resolution <文本>');
+      }
+      report = resolveAdjudication(conn, { adjudicationId: args.adjudication, resolution: args.resolution, dryRun });
       break;
     }
     default:

@@ -320,8 +320,27 @@ console.log(`resource:${randomUUID()}`);  // resource:3bb695f0-...
 | stale 传播 | `propagate-stale --asset <id> [--fine]` | coarse 全量 / fine 内容未变不误伤（依赖边版本+content_hash 双比对） |
 | 人物登记/状态迁移 | `register-characters --project <id> --roster/--entry/--status-update` | 四规则校验 + 幂等合并不覆盖状态史 + 批内失败整体回滚 |
 | 资产语义校验 | `validate-asset --asset <id>` | 七件校验器（book_soul 档位门/世界代价两轴/roster 规模/弧数/卷纲高潮密度等常量逐字），只读自查 |
+| 升级用户裁决（开单） | `open-adjudication --project <id> --subject-type <planning\|chapter> --subject-ref <id> --reason <文本> [--rounds <json>]` | subject 存在性+归属反查；同 subject 已 open 拒绝（022 部分唯一索引兜底）；open 期间 lock/accept 门互锁阻断（R8-T2，A5） |
+| 用户裁决落定 | `resolve-adjudication --adjudication <id> --resolution <文本>` | open→resolved 终态；resolution 必填；解除互锁 |
 
 项目创建签名链（六表事务）与项目删除仍走上文受控事务模板（主控执行，未见 R7 门覆盖范围）。「连续性」流水查询见该节 promise_events 部分（migration 021）。
+
+## 升级裁决物化（adjudications——R8-T2，A5 TBD 物化）
+
+审查 3 轮未收敛/同因复发/mismatch 升级用户裁决时，**必须过门落一条裁决单**（不可只口头挂起）：
+
+```sql
+-- 开单（gate open-adjudication 落库语义；id 格式 adjudication:uuid）
+INSERT INTO adjudications (id, project_id, subject_type, subject_ref, reason, rounds_json)
+VALUES ('adjudication:uuid', 'project:xxx', 'planning', 'planning:xxx', '3 轮未收敛：<摘要>', '[{"round":1,"blocking":"…"},{"round":2,"blocking":"…"}]');
+-- 裁决落定（gate resolve-adjudication 语义；status open→resolved 终态）
+UPDATE adjudications SET status='resolved', resolution='<用户裁决结论>', resolved_at=CURRENT_TIMESTAMP WHERE id='adjudication:uuid';
+-- 下游可见性查询（composer open_adjudications 槽同口径）
+SELECT id, subject_type, subject_ref, reason, rounds_json, created_at
+FROM adjudications WHERE project_id = 'project:xxx' AND status = 'open' ORDER BY created_at;
+```
+
+互锁语义：subject 存在 open 行时 `lock-asset`/`accept-chapter` GateFail（先裁决后推进）；`commit-review`/`propagate-stale` 不拦。库未应用 022 时互锁静默放行（随迁移生效），open 显式报错。
 
 ## M7 对账查询（A8 · R8——per-model 依从性记账，一次性只读）
 
