@@ -1,6 +1,6 @@
 # R8 · 缓行修正案执行轮（A8/A5/A10/A9 + A6 裁决门）任务书 v1
 
-> 状态：**执行收口（2026-08-30）：T0-T4/T6 全部完成 + A6 已按用户批准执行（`3ac3295`）+ 022 生产库应用完毕（用户裁决「确认」2026-08-30——备份 `bak-r8-022-20260830180138`，单事务应用+版本登记 22，26→27 表零损失，验证全绿，与 schema.sql v22 逐列一致）——七套终值全绿（guardrails 409 / fingerprint 49 / verify 15 / render 48 / gate 70 / canary PASS / compose 17✓+11 环境性=基线一致）；执行记账见 `tasks/README.md` R8 条目。唯一未决门：T3 试点报告用户抽检 ≥10 段（抽检包 2026-08-30 已呈报，回执后 1.18% 转正）。**
+> 状态：**DONE（2026-08-30 R8 全部关闭）：T0-T4/T6 完成 + A6 按用户批准执行（`3ac3295`）+ 022 生产库应用完毕（用户裁决「确认」，`5d9c659` 记账）+ T3 抽检回执无异议（12 段包确认，M1b 1.18% 转正为可引用基线）——七套终值全绿（guardrails 409 / fingerprint 49 / verify 15 / render 48 / gate 70 / canary PASS / compose 17✓+11 环境性=基线一致）；执行记账见 `tasks/README.md` R8 条目。无未决门。**遗留可选项（待用户另行启动）：常设基线升格、A6 planning-* review 扩面、表外变体三类校准批次。**
 > 来源：`docs/novelos-adversarial-cross-exam.md` §5 缓行项 A8（M7 依从性记账）/A5（TBD 物化）/A10（漏报侧试点）/A9（蒸馏扩域）；A6（多视角审查）=文末裁决门，**不获批不执行**。2026-08-29 用户已认可执行顺序：A8+A5 → A10 → A9 → A6 单独裁决。
 > 纪律前提：零 Python（Node 22+，node:sqlite/node:crypto，零 npm）；生产库任何写入前先复制 `data/novelos-v2.db` 备份；金丝雀 rule_table 全程不动（canary `--compare` 必须零回归，A10 是「用尺子量」不是「改尺子」）；metrics 追加行不覆盖；单渲染器红线不动；不建 DB 指标表不上仪表盘（M 系过度工程红线维持）。
 
