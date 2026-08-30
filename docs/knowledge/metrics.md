@@ -19,6 +19,7 @@
 | 2026-08-29 | R7-T5 | M5 注入体积（语态槽增量） | chapter-draft 组装产物现值 **54,915B**（R7 基线端到端实测：T4 夹具库+prev_chapter_tail 槽；T0 基线 69,433B 为生产库口径不可直比——项目已清理，两值均为 fixture/现态参考值）；语态节=最近 accepted 章结尾 800 字（不足整段注入），渲染位于 craft 卡后自检节前 | 槽渲染 ≤ 组装 fail() 上限（R3 前置），现值远低于 | 无 | `scripts/novelos-compose-prompt.mjs`（slotPrevChapterTail+TAIL_SLOT 延迟渲染）+ `tasks/README.md` R7 条目 |
 | 2026-08-29 | R7-T1 | M2 引文验证口径更新（A1） | `novelos-verify-review-evidence.mjs` v1.1.0：空 findings+approved 从「--strict 才 FATAL」升为**默认 FATAL**（`--allow-empty` 显式豁免留痕）；M2 失败数口径自此含空查回执拦截 | 空回执 exit 1 → Receipt 不得落库（红方 F7 防线默认生效） | 无 | `scripts/novelos-verify-review-evidence.mjs` + `scripts/test-verify-review-evidence.mjs`（15/15） |
 | 2026-08-30 | R8-T1 | M7 模型依从性（建档，A8） | 生产库 reviews=0 / chapters=0，**无历史数据可采**——三指标（M7a FATAL 率 / M7b 审查轮次 / M7c deny 率）自首个真实项目章节流起采集，定义与判读纪律见下节 | 低于阈值**只呈报用户裁决，不自动从档位除名**（判读纪律①） | 无处置 | 本文件 M7 节 + `sql-reference.md`「M7 对账查询」（/tmp 夹具库 2-3 行假数据验证过） |
+| 2026-08-30 | R8-T3 | M1b 漏报试点（一次性，人工 ground truth，A10） | 试点组（标准管线产出 2 章）：screen 句层 12 规则 **6,334 叙述层汉字零命中**，段层 P01×7/章；人工初标残留 AI 味 **阳性 3/254 段=1.18%**（含边缘 3.15%）——残留全是**表外变体**（抒情点题收束/跨章工整回环/格言句）。参照组（R1 A 组合成段）：11/3/25 命中，表内特征全被抓住（A1 与 R1 登记逐规则一致） | **折扣声明：AI 自评初标+小样+用户抽检未做**——数字只作量级参考不作门禁依据；升格常设基线与否=用户裁决（报告 §6 建议：先抽检复核，表外变体走校准批次流程而非直接扩表） | 无处置 | `docs/knowledge/redteam/missrate-pilot.md`（语料 sha256/逐段标注/方法全录；语料全文在 /tmp 不入仓，rule_table 零接触 canary PASS 自证） |
 
 ## M7 模型依从性（A8 · R8 建档）
 
