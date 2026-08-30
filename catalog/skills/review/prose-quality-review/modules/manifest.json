@@ -47,7 +47,10 @@
     "prose-anti-ai-fingerprint",
     "prose-format-hardrules",
     "prose-webnovel-accessibility",
-    "worldview-lexicon"
+    "worldview-lexicon",
+    "perspective-structure",
+    "perspective-voice",
+    "perspective-reader"
   ],
   "decision_scope": "judge"
 }

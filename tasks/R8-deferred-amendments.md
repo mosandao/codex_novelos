@@ -64,6 +64,8 @@
 
 ## T5 · A6 多视角审查 —— 裁决门（**不获批不执行**）
 
+> **执行状态（2026-08-30）**：用户指令「T3 A6」批准 A6 按建议口径执行（reader-pull 先 warning、结构视角强制异构、成本 ×2-3 接受）——已落地：三视角简卡 `catalog/skills/craft/perspective-{structure,voice,reader}/`+prose-review craft_refs 接线（单审查者模式三卡全注入作维度自检清单，多视角模式 `--without-slot` 剥离其余两卡各得单卡注入，冒烟实测各恰 1 张）+`novel-review/SKILL.md`「多视角审查编排」节（fresh context 三 sub agent/≥2 家 provider/结构视角不得与写作者同 provider/统一 findings schema 零新协议/READER-* severity 上限 warning 观察一个项目周期/主控合并单回执走既有 commit-review 门+G2）+catalog manifest 360 文件。执行 commit 见 `tasks/README.md`。
+
 设计骨架留档（批准后扩入 R8 尾段或另立 R9）：review 场景并行 2-3 视角 sub agent（结构连续性 / 人物声音 / 读者冷读），各自 fresh context、统一 findings schema（沿用 `fpr:` 编号 + G2 引文验证，零新协议），主控合并去重后走既有 commit-review 门；review 维度新增 reader-pull（翻页欲/认知负荷/继续率）。
 
 **决策点三问**（批准前须用户逐条裁决）：

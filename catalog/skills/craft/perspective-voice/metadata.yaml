@@ -1,0 +1,16 @@
+name: perspective-voice
+description: 多视角审查(A6)的视角简卡
+stage: review
+asset: prose-review
+capability: analyze
+lifecycle: active
+version: 1.0.0
+genres: []
+risk: P2
+output_contract: findings
+tags: [review, perspective, a6]
+use_when:
+- 多视角审查编排下作为对应视角 sub agent 的注入简卡
+- 单审查者模式下作为该维度的自检清单
+avoid_when:
+- 非审查场景

@@ -1,7 +1,7 @@
 {
   "schema": "novelos.catalog-manifest.v1",
-  "generated_at": "2026-08-30T09:41:41Z",
-  "file_count": 351,
+  "generated_at": "2026-08-30T09:56:32Z",
+  "file_count": 360,
   "files": {
     "catalog/skills/continuity/continuity-candidate-extraction/input_schema.json": {
       "sha256": "716badb9161463e708bfcb584b4ebe1c68cdadb6055e111fa67b7aec83ed1adc",
@@ -74,6 +74,42 @@
     "catalog/skills/craft/mobile-formatting/provenance.yaml": {
       "sha256": "069f32fc9e22cb1c40c7d00ee2e1bd584439ca85e0a9264a604631657650fd85",
       "bytes": 427
+    },
+    "catalog/skills/craft/perspective-reader/metadata.yaml": {
+      "sha256": "1b5d3393876dc3c31943f3a6d58eccf2f8328768d8766e52e68dcbb93cdb9889",
+      "bytes": 403
+    },
+    "catalog/skills/craft/perspective-reader/prompt.md": {
+      "sha256": "75be2473e3518a6313bd92146c749b426167fdb3cb4ff8ad1887fc6fa4f4a939",
+      "bytes": 1874
+    },
+    "catalog/skills/craft/perspective-reader/provenance.yaml": {
+      "sha256": "d5f7f19e070d063bc4213476360e358232defd72647e74a441c653ee71417022",
+      "bytes": 210
+    },
+    "catalog/skills/craft/perspective-structure/metadata.yaml": {
+      "sha256": "ea2f52e8313ac1955aae1abc29e0ffd3e6436dce858a2abf55f35c1767f8e68b",
+      "bytes": 406
+    },
+    "catalog/skills/craft/perspective-structure/prompt.md": {
+      "sha256": "0e81d3718cc749cc58acd9bf587bd1ef5a8b24f198104dcb16639de7bf1bbc1d",
+      "bytes": 1593
+    },
+    "catalog/skills/craft/perspective-structure/provenance.yaml": {
+      "sha256": "d5f7f19e070d063bc4213476360e358232defd72647e74a441c653ee71417022",
+      "bytes": 210
+    },
+    "catalog/skills/craft/perspective-voice/metadata.yaml": {
+      "sha256": "c611e26bd115683b5c66c7b5c0f58616ea799190268a1873931639806eae95b6",
+      "bytes": 402
+    },
+    "catalog/skills/craft/perspective-voice/prompt.md": {
+      "sha256": "44bcb08dcd2ec88f27dd83aa71ece3875b937fccdce9d1b7fb0d537a28144d09",
+      "bytes": 1750
+    },
+    "catalog/skills/craft/perspective-voice/provenance.yaml": {
+      "sha256": "d5f7f19e070d063bc4213476360e358232defd72647e74a441c653ee71417022",
+      "bytes": 210
     },
     "catalog/skills/craft/prose-anti-ai-fingerprint/metadata.yaml": {
       "sha256": "c2f4f94dd2f06b2d90fb12d7eb6a7f51bc7fb2347f800a14f1badfa9daf02930",
@@ -1336,8 +1372,8 @@
       "bytes": 114
     },
     "catalog/skills/review/prose-quality-review/modules/manifest.json": {
-      "sha256": "d2d2526d971d17f89579bee63fa131e3bd66b915c254853d45dbb5003b66bf28",
-      "bytes": 1107
+      "sha256": "3858aa7d76b1c43e88ea69ab47c1964e939b0f8d3e923e2849617e751005aff7",
+      "bytes": 1187
     },
     "catalog/skills/review/prose-quality-review/prompt.md": {
       "sha256": "5b822e05be4069ad81dbd8185371088940ba84361537d65b6cdd0c7f2e0187d8",

@@ -23,11 +23,23 @@ description: 独立审查不可变小说资产并生成 Review Receipt。规划�
    - `subject_hash` 取被审对象库内资源的 content_hash 溯源锚点；落库后把 `reviewId` 交给锁定/接受步骤引用
    - 回执落库前主控先跑 G2 引文验证：`node scripts/novelos-verify-review-evidence.mjs --receipt <回执JSON> --draft <该版草稿>`，FATAL（excerpt 无命中/缺失/subject_hash 错配/空 findings+approved 空查回执——R7-A1 起默认拦截，确需放行空回执加 `--allow-empty`，输出留痕豁免字样）即打回重审、不得落库；该验证只管证据存在性与版本绑定，不验证相关性（归主控/红方抽查）
 
+## 多视角审查编排（A6 · R8 起正文审查默认形态）
+
+正文/章节审查（prose-review 场景）**默认并行三视角 sub agent**（对抗「同分布宽容」：单审查者与写作者同分布，天然偏向同样盲区——oh-story/creative-writing 双实证，裁决记录见 `docs/novelos-adversarial-cross-exam.md` P4-7）：
+
+1. **三视角与注入**：主控组装三份视角注入——`node scripts/novelos-compose-prompt.mjs --asset prose-review --subject <id> --project <id> --without-slot <另外两张视角卡名>`，各得一张视角简卡（`perspective-structure` 结构连续性 / `perspective-voice` 人物声音 / `perspective-reader` 读者冷读，卡在 `catalog/skills/craft/perspective-*/`）；三份注入其余内容全同（同一 subject、同一上游）。
+2. **fresh context 隔离**：三个 sub agent 各自独立会话，互不见对方输出；主控只递注入文件路径，不转述。
+3. **防共谋模型分工**：三视角须 **≥2 家不同 provider**；`perspective-structure`（结构视角，blocking 权限最重）**不得与写作者同 provider**。三视角模型身份记入回执 metadata_json.perspectives（各自 `provider:model`）。
+4. **统一 findings schema，零新协议**：三视角各自返回 findings 数组（`severity/code/message/excerpt/evidence_refs`；code 前缀 STRUCT-/VOICE-/READER- 区分来源）；**reader-pull 维度（READER-*）severity 上限=warning**（A6 观察期裁决：先 warning 观察一个项目周期，升 blocking 与否据实另行呈报）。
+5. **主控合并**：去重（同 issue 同 excerpt 重叠取最高 severity 并保留双视角 code）、逐条核对 excerpt 后组成**一份合并回执**（reviewer_profile=`agent:prose-review-perspectives@<合并模型>`；metadata_json 记 perspectives 三身份与合并规则），走既有 commit-review 门 + G2 引文验证——空回执/错绑/错版语义全部不变。
+6. **单审查者降级模式**：修复轮微审或用户明示省成本时，可单 sub agent 全维度审（组装产物含全部三张视角卡作维度自检清单）；`blocking`/`warning` 必修循环、升级裁决物化等纪律不变。
+7. 规划资产审查（planning-*-review）暂维持单审查者（A6 范围=prose-review；扩面另行呈报）。
+
 ## 审查标准来源
 
 | 场景 | Review skill | Craft skill（方法素材） |
 |---|---|---|
-| 章节接受 | `catalog/skills/review/prose-quality-review/prompt.md` | prose-anti-ai-fingerprint、prose-format-hardrules |
+| 章节接受 | `catalog/skills/review/prose-quality-review/prompt.md` | prose-anti-ai-fingerprint、prose-format-hardrules + 多视角三卡（perspective-structure / perspective-voice / perspective-reader，A6） |
 | 规划资产 | `catalog/skills/review/planning-<asset>-review/prompt.md` | — |
 | 连续性 | `catalog/skills/review/continuity-quality-review/prompt.md` | — |
 | 交叉一致性 | `catalog/skills/review/planning-cross-consistency-review/prompt.md` | — |

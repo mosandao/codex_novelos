@@ -70,13 +70,14 @@
 
 > **执行状态（2026-08-29 R7 收口）**：A1 ✅ / A2 ✅ / A3 ✅（021 生产库应用=独立裁决门待批）/ A4 ✅ / A7 ✅——执行详情见 `tasks/README.md` R7 条目；A5/A6/A8/A9/A10 缓行呈报中。
 > **执行状态（2026-08-30 R8 收口）**：A8 ✅（`25135ee` M7 建档）/ A5 ✅（`2e90051` 022+门互锁+注入槽；**022 生产库应用=独立裁决门待批**）/ A10 ✅（`fd24ecb` 漏报试点阳性 1.18%，**用户抽检待做**，报告 `docs/knowledge/redteam/missrate-pilot.md`）/ A9 ✅（`cf1f391` platform/commercial/compliance 三卡+接线）——执行详情见 `tasks/README.md` R8 条目；**A6=裁决门**（设计骨架+三决策问见 `tasks/R8-deferred-amendments.md` T5，未获批不执行）。
+> **执行状态（2026-08-30 A6 补记）**：A6 ✅——用户指令「T3 A6」批准按建议口径执行：三视角简卡+prose-review 接线（多视角 `--without-slot` 单卡注入/单审查者三卡自检）+SKILL.md 多视角编排节（fresh context 三 sub agent、≥2 家 provider、结构视角不得与写作者同 provider、READER-* severity 上限 warning 观察一个项目周期、合并单回执走既有 commit-review 门+G2 零新协议）。关闭 P4-7/P4-6（观察期条目：reader-pull 升 blocking 与否据实后议）。
 
 - **A1｜一行堵最大洞**：`novelos-verify-review-evidence.mjs` 把 `empty_findings_approved` 从 --strict-only 升为默认 FATAL（或 SKILL.md:24 标准命令加 `--strict` 并在 AGENTS.md 固化），留 `--allow-empty` 显式豁免。成本一行，直接关闭 P4-1。
 - **A2｜复活机器门（harness 中立 CLI 形态）**：`scripts/novelos-gate.mjs`（lock-asset/accept-chapter/commit-review/propagate-stale/validate-asset），语义规格直接考古 `docs/r2-js-gate-spec.md` 与 gate/*.ts 移植成品（159 用例可当移植验收集）；reviewer_profile 加 `^(model|agent):` pattern 校验一并收进门内。关闭 P1-5/P3-7/P4-2。
 - **A3｜账本补流水**：`promise_events` 追加表（promise_key/chapter_id/event_type/anchor+hash）+每章收口算 Claremont 收支门禁；relationship/arc 状态保留版本历史。关闭 P3-3。
 - **A4｜语态槽+加权**：SLOT_REGISTRY 增「上章定稿结尾 500-800 字」槽置于自检节前；promise_ledger/canon_minimal 按本章出场人物与活跃弧线加权排序。关闭 P2-4。
 - **A5｜TBD 物化**：升级用户裁决时落盘 TBD 产物（subject 标记+各轮 blocking 摘要），下游注入可见。关闭 P4-5。〔R8-T2 ✅ `2e90051`：022 adjudications+gate open/resolve-adjudication+lock/accept 门互锁+open_adjudications 注入槽；022 生产应用=独立裁决门待批〕
-- **A6｜多视角审查**：review 场景并行 2-3 个视角 sub agent（结构/人物声音/读者冷读），统一 findings schema 后主控合并；review 维度新增 reader-pull。关闭 P4-7/P4-6。〔**裁决门**：设计骨架+三决策问（成本×2-3/reader-pull 先 warning/异构强制）见 R8 任务书 T5，未获批不执行〕
+- **A6｜多视角审查**：review 场景并行 2-3 个视角 sub agent（结构/人物声音/读者冷读），统一 findings schema 后主控合并；review 维度新增 reader-pull。关闭 P4-7/P4-6。〔R8-T5 ✅ 2026-08-30 用户批准按建议口径执行：三视角简卡+编排协议落地（SKILL.md 多视角节+craft 三卡），READER-* 先 warning 观察；详见 tasks/README.md A6 条目〕
 - **A7｜防漂移三小件**：修 chapter-draft prompt.md:37 指针（craft/→writing/）；agent-recipes.json:3 引用改口径；catalog/skills+config 建 sha256 manifest lint（参照 oh-story manifest v2）。关闭 P2-5。〔R7-T2 ✅〕
 - **A8｜依从性记账**：per-model FATAL 率/审查轮次/deny 率进 metrics M 系（M7）。关闭 P1-3/P2-7。〔R8-T1 ✅ `25135ee`：M7 三指标建档+判读纪律（只呈报不自动除名）+对账 SQL；数据自首个真实项目章节流起采〕
 - **A9｜蒸馏扩域**：platform/commercial/compliance 三张蒸馏卡（P3 已列，本轮由 P3 升格为成立项）。缓解 P3-1/P3-4。〔R8-T4 ✅ `cf1f391`：platform/commercial 各 14 条（kb 源蒸馏+溯源）+compliance 10 条（自著，无源如实声明）；双 manifest 接线；genre-packs 生成管道不在本条范围〕
