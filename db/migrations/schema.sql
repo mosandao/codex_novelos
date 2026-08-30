@@ -207,11 +207,24 @@ CREATE TABLE narrative_promises (
     source_content_hash TEXT NOT NULL,
     version INTEGER NOT NULL DEFAULT 1 CHECK (version > 0),
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, resolved_chapter_id TEXT REFERENCES chapters(id),
     UNIQUE (project_id, promise_key),
     FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
     FOREIGN KEY (source_chapter_id) REFERENCES chapters(id) ON DELETE RESTRICT,
     FOREIGN KEY (description_resource_id) REFERENCES resources(id) ON DELETE RESTRICT
+);
+
+CREATE TABLE promise_events (
+    id TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL,
+    promise_key TEXT NOT NULL,
+    chapter_id TEXT,
+    event_type TEXT NOT NULL CHECK (event_type IN ('plant', 'progress', 'twist', 'resolve', 'break')),
+    note TEXT NOT NULL DEFAULT '',
+    source_content_hash TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+    FOREIGN KEY (chapter_id) REFERENCES chapters(id) ON DELETE SET NULL
 );
 
 CREATE TABLE planning_asset_dependencies (
@@ -420,6 +433,8 @@ CREATE INDEX idx_project_creator_bindings_profile
 ON project_creator_bindings(profile_id, profile_version_id);
 
 CREATE INDEX idx_promises_project ON narrative_promises(project_id, status);
+
+CREATE INDEX idx_promise_events_key ON promise_events(project_id, promise_key);
 
 CREATE INDEX idx_relationships_project ON relationship_states(project_id, subject_ref, object_ref);
 
