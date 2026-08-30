@@ -1,6 +1,6 @@
 # R7 · 机器强制层复活与对抗审查修正（任务书 v1）
 
-> 状态：**DONE（2026-08-29 执行收口）**——T0-T6 全部完成；执行记账见 `tasks/README.md` R7 条目，指标见 `docs/knowledge/metrics.md` 追加行。遗留裁决门一项：**021 迁移落生产库**（T4 裁决门，未执行——已呈报待批）。
+> 状态：**DONE（2026-08-29 执行收口；021 生产库应用 2026-08-30 用户裁决「确认」后执行完毕——R7 全部关闭）**——执行记账见 `tasks/README.md` R7 条目，指标见 `docs/knowledge/metrics.md` 追加行。
 > 来源：`docs/novelos-adversarial-cross-exam.md`（对抗审查裁决：成立 12 项）修正案 A1/A2/A3/A4/A7；2026-08-29 用户已裁决：R6 关闭、三待定项关闭（lite 快档/FTS5/运行时拉取均不做，本任务书不再含）。
 > 缓行项 A5（TBD 物化）/A6（多视角审查）/A8（M7 依从性记账）/A9（蒸馏扩域）/A10（漏报试点）**不在本任务范围**，另行呈报。
 > 纪律前提：零 Python（一切 node:sqlite/node:crypto，Node 22+）；生产库任何写入前先复制 `data/novelos-v2.db` 备份；金丝雀 rule_table 不动（A1-A4/A7 均不触碰 fingerprint 规则表，canary `--compare` 必须零回归）；单渲染器红线不动。
