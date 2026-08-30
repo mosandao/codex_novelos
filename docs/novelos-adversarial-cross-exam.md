@@ -69,7 +69,7 @@
 ## 5. 修正案清单（按性价比排序）
 
 > **执行状态（2026-08-29 R7 收口）**：A1 ✅ / A2 ✅ / A3 ✅（021 生产库应用=独立裁决门待批）/ A4 ✅ / A7 ✅——执行详情见 `tasks/README.md` R7 条目；A5/A6/A8/A9/A10 缓行呈报中。
-> **执行状态（2026-08-30 R8 收口）**：A8 ✅（`25135ee` M7 建档）/ A5 ✅（`2e90051` 022+门互锁+注入槽；**022 生产库应用=独立裁决门待批**）/ A10 ✅（`fd24ecb` 漏报试点阳性 1.18%，**用户抽检待做**，报告 `docs/knowledge/redteam/missrate-pilot.md`）/ A9 ✅（`cf1f391` platform/commercial/compliance 三卡+接线）——执行详情见 `tasks/README.md` R8 条目；**A6=裁决门**（设计骨架+三决策问见 `tasks/R8-deferred-amendments.md` T5，未获批不执行）。
+> **执行状态（2026-08-30 R8 收口）**：A8 ✅（`25135ee` M7 建档）/ A5 ✅（`2e90051` 022+门互锁+注入槽；**022 生产库应用 2026-08-30 用户裁决「确认」后执行完毕**——备份 `bak-r8-022-20260830180138`，单事务 022+版本登记 22，26→27 表零损失，integrity ok/FK 违例 0，与 schema.sql v22 逐列一致）/ A10 ✅（`fd24ecb` 漏报试点阳性 1.18%，**用户抽检待做**，报告 `docs/knowledge/redteam/missrate-pilot.md`）/ A9 ✅（`cf1f391` platform/commercial/compliance 三卡+接线）——执行详情见 `tasks/README.md` R8 条目；**A6=裁决门**（设计骨架+三决策问见 `tasks/R8-deferred-amendments.md` T5，未获批不执行）。
 > **执行状态（2026-08-30 A6 补记）**：A6 ✅——用户指令「T3 A6」批准按建议口径执行：三视角简卡+prose-review 接线（多视角 `--without-slot` 单卡注入/单审查者三卡自检）+SKILL.md 多视角编排节（fresh context 三 sub agent、≥2 家 provider、结构视角不得与写作者同 provider、READER-* severity 上限 warning 观察一个项目周期、合并单回执走既有 commit-review 门+G2 零新协议）。关闭 P4-7/P4-6（观察期条目：reader-pull 升 blocking 与否据实后议）。
 
 - **A1｜一行堵最大洞**：`novelos-verify-review-evidence.mjs` 把 `empty_findings_approved` 从 --strict-only 升为默认 FATAL（或 SKILL.md:24 标准命令加 `--strict` 并在 AGENTS.md 固化），留 `--allow-empty` 显式豁免。成本一行，直接关闭 P4-1。
