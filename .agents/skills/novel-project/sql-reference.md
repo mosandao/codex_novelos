@@ -322,3 +322,54 @@ console.log(`resource:${randomUUID()}`);  // resource:3bb695f0-...
 | 资产语义校验 | `validate-asset --asset <id>` | 七件校验器（book_soul 档位门/世界代价两轴/roster 规模/弧数/卷纲高潮密度等常量逐字），只读自查 |
 
 项目创建签名链（六表事务）与项目删除仍走上文受控事务模板（主控执行，未见 R7 门覆盖范围）。「连续性」流水查询见该节 promise_events 部分（migration 021）。
+
+## M7 对账查询（A8 · R8——per-model 依从性记账，一次性只读）
+
+三指标定义与判读纪律见 `docs/knowledge/metrics.md` M7 节（低于阈值只呈报用户裁决，不自动除名）。模型身份权威=`reviewer_profile` 的 `model:`/`agent:` 前缀（P4-2 机器强制）；无前缀行进「未标记」桶并视为口径违规呈报。
+
+**M7a · per-model FATAL 率（落库成功侧；被门拦未落库者自门输出/组装日志人工归集）**：
+
+```sql
+-- 回执落库尝试的成功侧聚合：各模型 verdict 分布与被 G2 复核作废数（findings_json 含 fatal 痕迹时人工复核）
+SELECT reviewer_profile,
+       COUNT(*)                                        AS receipt_total,
+       SUM(CASE WHEN verdict='approved' THEN 1 ELSE 0 END) AS approved_n,
+       SUM(CASE WHEN verdict='rejected' THEN 1 ELSE 0 END) AS rejected_n
+FROM reviews
+WHERE reviewer_profile LIKE 'model:%' OR reviewer_profile LIKE 'agent:%'
+GROUP BY reviewer_profile ORDER BY receipt_total DESC;
+-- 无前缀行（口径违规桶）：SELECT COUNT(*) FROM reviews WHERE reviewer_profile NOT LIKE 'model:%' AND reviewer_profile NOT LIKE 'agent:%';
+```
+
+**M7b · per-model 平均审查轮次（同 subject 收敛所需 review 数）**：
+
+```sql
+-- subject 级轮次：approved 前的 review 计数即该轮收敛成本；按模型前缀分列
+WITH rounds AS (
+  SELECT subject_ref,
+         (SELECT COUNT(*) FROM reviews r2
+           WHERE r2.subject_ref = r1.subject_ref
+             AND (r2.created_at < r1.created_at
+                  OR (r2.created_at = r1.created_at AND r2.id <= r1.id))) AS rounds_to_approve,
+         r1.reviewer_profile AS approving_model
+  FROM reviews r1 WHERE r1.verdict='approved'
+)
+SELECT approving_model, AVG(rounds_to_approve) AS avg_rounds, COUNT(*) AS subjects
+FROM rounds
+WHERE approving_model LIKE 'model:%' OR approving_model LIKE 'agent:%'
+GROUP BY approving_model;
+```
+
+**M7c · per-model deny 率（prescreen 候选证伪，分母口径=M3：候选数不是 finding 数）**：
+
+```sql
+-- 逐章 prescreen 候选聚合（json_each 条数级）；deny 以 code 前缀 fpr-deny: 判定（裁-2 过滤 note 二义性）
+SELECT c.id AS chapter_id,
+       json_extract(je.value, '$.code')          AS code,
+       COUNT(*) OVER (PARTITION BY c.id)         AS candidates_per_chapter
+FROM chapters c, json_each(COALESCE(json_extract(c.metadata_json, '$.prescreen'), '[]')) je
+WHERE json_valid(COALESCE(c.metadata_json, '{}'))
+  AND json_extract(je.value, '$.code') IS NOT NULL;
+-- 汇总口径：deny 率 = COUNT(code LIKE 'fpr-deny:%') / COUNT(*)（同上结果集二次聚合；confirm=fpr:<ID>）。
+-- 写作模型归属：chapters 无模型列时以 metadata_json.model（如有）或组装日志回查，未标记进「未标记」桶。
+```
