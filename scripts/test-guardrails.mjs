@@ -86,7 +86,40 @@ for (const entry of recipes.assets) {
     deepEqual(rs, ms),
     `仅recipe:[${rs.filter((s) => !ms.includes(s))}] 仅manifest:[${ms.filter((s) => !rs.includes(s))}]`
   );
+
+  // d/e/f) divergence/decision_scope 全等 + 词表合法（R7-T2 复活被删的 test_recipe_matrix
+  // 守护——config/agent-recipes.json description 声称此校验存在而原 .py 已随零 Python 退役；
+  // 对抗审查 P2-5 行为证据之一）。absent/空串/null 归一为 null 再比。
+  const norm = (v) => (v === undefined || v === null || v === '' ? null : v);
+  check(
+    `G2d divergence 全等 ${label}`,
+    deepEqual(norm(entry.divergence), norm(manifest.divergence)),
+    `matrix=${JSON.stringify(norm(entry.divergence))} manifest=${JSON.stringify(norm(manifest.divergence))}`
+  );
+  check(
+    `G2e decision_scope 全等 ${label}`,
+    deepEqual(norm(entry.decision_scope), norm(manifest.decision_scope)),
+    `matrix=${JSON.stringify(norm(entry.decision_scope))} manifest=${JSON.stringify(norm(manifest.decision_scope))}`
+  );
+  check(
+    `G2f 档位词表合法 ${label}`,
+    (entry.divergence == null || entry.divergence === '' || entry.divergence in recipes.divergence_tiers)
+      && entry.decision_scope in recipes.decision_scopes,
+    `divergence=${JSON.stringify(entry.divergence)} decision_scope=${JSON.stringify(entry.decision_scope)}`
+  );
 }
+
+// ── 守卫 2.5：catalog 方法层资产漂移复核（G3，R7-T2） ──────────────────────
+// catalog/skills/** 351 文件的 sha256 全量登记在 config/catalog-manifest.json，
+// 改动方法层须跑 `node scripts/novelos-catalog-manifest.mjs` 刷新并随提交入库；
+// 此处常驻复核一致性，漂移明细用 `novelos-catalog-manifest.mjs --check` 看。
+const { checkManifest } = await import('./novelos-catalog-manifest.mjs');
+const manifestDrifts = checkManifest();
+check(
+  'G3 catalog manifest 与工作树一致（catalog/skills/** 逐文件 sha256）',
+  manifestDrifts.length === 0,
+  manifestDrifts.slice(0, 3).map((d) => `[${d.kind}] ${d.path}`).join(' | ') + '（明细：--check）'
+);
 
 // ── 守卫三：knowledge 蒸馏域文件 schema（KG1，R3） ────────────────────────
 // 校验 config/knowledge/distilled.<domain>.json（蒸馏产物，入 git）的结构契约：

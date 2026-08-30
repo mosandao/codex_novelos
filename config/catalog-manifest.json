@@ -1,0 +1,1411 @@
+{
+  "schema": "novelos.catalog-manifest.v1",
+  "generated_at": "2026-08-29T16:21:33Z",
+  "file_count": 351,
+  "files": {
+    "catalog/skills/continuity/continuity-candidate-extraction/input_schema.json": {
+      "sha256": "716badb9161463e708bfcb584b4ebe1c68cdadb6055e111fa67b7aec83ed1adc",
+      "bytes": 826
+    },
+    "catalog/skills/continuity/continuity-candidate-extraction/metadata.yaml": {
+      "sha256": "46066988c62041ada2a27afb2508c7099895234faae13af30117875c50873a6d",
+      "bytes": 320
+    },
+    "catalog/skills/continuity/continuity-candidate-extraction/modules/manifest.json": {
+      "sha256": "a609763ce99041a3504db90da4fcb90a15a80b0ce1290fc7bc593d35318183e6",
+      "bytes": 140
+    },
+    "catalog/skills/continuity/continuity-candidate-extraction/prompt.md": {
+      "sha256": "fd15cf12e85d1daaf257aa9e00bdab5f1f43357b9a9dbc7d1e7dd1773e8b3f98",
+      "bytes": 3544
+    },
+    "catalog/skills/continuity/continuity-candidate-extraction/provenance.yaml": {
+      "sha256": "9a20d7ad8ca88fdfe4276ee2ab96d8a782d0f5803d6e292ea7cc8b125c37100c",
+      "bytes": 252
+    },
+    "catalog/skills/continuity/continuity-candidate-extraction/schema.json": {
+      "sha256": "4d0aceaf0f1dcefeaf8f213152c48b07bebc8678deb22925fdb5dff7463984f2",
+      "bytes": 5136
+    },
+    "catalog/skills/craft/compliance-place-guard/metadata.yaml": {
+      "sha256": "07cf9ae9936de0da5d9d2e4a89257d1ad443d5a2e17e7a95c68bab45acf78878",
+      "bytes": 864
+    },
+    "catalog/skills/craft/compliance-place-guard/prompt.md": {
+      "sha256": "75889f63baaaf4f8dda06ec9e345d70c2c283cc296d37136162c6b8e085b4cb8",
+      "bytes": 2586
+    },
+    "catalog/skills/craft/compliance-place-guard/provenance.yaml": {
+      "sha256": "dc6131ece721c3031ac42c9dfb03d5253042eaa620bc3cb404105a305962e94e",
+      "bytes": 992
+    },
+    "catalog/skills/craft/compliance-place-guard/真实地名.txt": {
+      "sha256": "c777b51140151eba9ab139c8845fd7a0a07fd246f9e250dc9520ea93576d2932",
+      "bytes": 1754
+    },
+    "catalog/skills/craft/dash-ellipsis-guide/metadata.yaml": {
+      "sha256": "4e8097b1c7d31c3fd3bf28b50c204944e6645f8f847784a05e5f56f96e22d47f",
+      "bytes": 584
+    },
+    "catalog/skills/craft/dash-ellipsis-guide/prompt.md": {
+      "sha256": "ccfcb017b29332d512489a82ec5b12f0e6b183cd164c6d0ad8e1f38b73340626",
+      "bytes": 477
+    },
+    "catalog/skills/craft/dash-ellipsis-guide/provenance.yaml": {
+      "sha256": "a2333351c21ae9e69a12ddafe4288f65b82f09cb7d8bee8ea838bd749bff5fe3",
+      "bytes": 435
+    },
+    "catalog/skills/craft/dialogue-techniques/metadata.yaml": {
+      "sha256": "a2b0711011d9993d8627a4237e89ad32014511abfecdb318365bb87ff16f1c0b",
+      "bytes": 571
+    },
+    "catalog/skills/craft/dialogue-techniques/prompt.md": {
+      "sha256": "06f8c33d41c82f4b8d8737ee8030270882ddb0fea2c40630378e79dc5930de94",
+      "bytes": 1759
+    },
+    "catalog/skills/craft/mobile-formatting/metadata.yaml": {
+      "sha256": "1ac7a2715d42535515755c2ae447d022604b3f9c199ccfdcac0019ea72db2b69",
+      "bytes": 564
+    },
+    "catalog/skills/craft/mobile-formatting/prompt.md": {
+      "sha256": "65a99ae7b125db2c2eb47dfca862d71d0def1b5d48354598385eae16e90bc07b",
+      "bytes": 411
+    },
+    "catalog/skills/craft/mobile-formatting/provenance.yaml": {
+      "sha256": "069f32fc9e22cb1c40c7d00ee2e1bd584439ca85e0a9264a604631657650fd85",
+      "bytes": 427
+    },
+    "catalog/skills/craft/prose-anti-ai-fingerprint/metadata.yaml": {
+      "sha256": "c2f4f94dd2f06b2d90fb12d7eb6a7f51bc7fb2347f800a14f1badfa9daf02930",
+      "bytes": 635
+    },
+    "catalog/skills/craft/prose-anti-ai-fingerprint/prompt.md": {
+      "sha256": "edb29c489bef54b5627289f922ce3a3b05b6e983f6f8dd1027914585ed46f33d",
+      "bytes": 26720
+    },
+    "catalog/skills/craft/prose-anti-ai-fingerprint/provenance.yaml": {
+      "sha256": "8b09c82b368a95b2bedd0eaee4362860979fd4089a5b627c77ada19c20a3bd6f",
+      "bytes": 531
+    },
+    "catalog/skills/craft/prose-format-hardrules/metadata.yaml": {
+      "sha256": "3294e8a25de7bba967e986fbad935bf2700d2956e656bdb14cb53723702fb40a",
+      "bytes": 584
+    },
+    "catalog/skills/craft/prose-format-hardrules/prompt.md": {
+      "sha256": "1804935130abbfb39bc5e6f83b05d06e76ce13e83df38a588d4f77034f7e24c3",
+      "bytes": 8090
+    },
+    "catalog/skills/craft/prose-format-hardrules/provenance.yaml": {
+      "sha256": "e33f4f0dbf047a88afe2c1020ea962cdef2deccbd347a300fd94628783ea5ea2",
+      "bytes": 587
+    },
+    "catalog/skills/craft/prose-webnovel-accessibility/metadata.yaml": {
+      "sha256": "653f1dd67525ca59892dd582ae040fd6370b2ede63ae39d4d0e6b90225f1e718",
+      "bytes": 489
+    },
+    "catalog/skills/craft/prose-webnovel-accessibility/prompt.md": {
+      "sha256": "cbe2547a842fda9a56c4daa73fe8abdcbdd1238a3a17bfc554f6c97a39b19778",
+      "bytes": 5537
+    },
+    "catalog/skills/craft/prose-webnovel-accessibility/provenance.yaml": {
+      "sha256": "7024b59958861823d33753bec226569d37165de4a0dc6225294ed391b9234f67",
+      "bytes": 439
+    },
+    "catalog/skills/craft/scene-pacing/metadata.yaml": {
+      "sha256": "a7b723e2fad0cf709b718724ffed52103f00b202f6f8e0849db655e6ee225289",
+      "bytes": 537
+    },
+    "catalog/skills/craft/scene-pacing/prompt.md": {
+      "sha256": "83e3296756eb7326cf53d5ec4878d77d83be89d4db9a2ac166e1cc88ce785630",
+      "bytes": 1993
+    },
+    "catalog/skills/craft/scene-pacing/provenance.yaml": {
+      "sha256": "090a1df34fd6c5076e68b605b29a1ff00888eda19ff8897e6de61cb3b1129f8d",
+      "bytes": 215
+    },
+    "catalog/skills/craft/shuangwen-techniques/metadata.yaml": {
+      "sha256": "2fa5bf0eabc46d5f273c6864c86aae0df50e1464a6b5fff9fbd27c1a2662d6be",
+      "bytes": 650
+    },
+    "catalog/skills/craft/shuangwen-techniques/prompt.md": {
+      "sha256": "ffc4c0da51fe111ce9e2d1be90619a80e06af1ab653aa40dd87fed2797f7c1fd",
+      "bytes": 1007
+    },
+    "catalog/skills/craft/shuangwen-techniques/provenance.yaml": {
+      "sha256": "15cb00681b3f773d5dde667eeff7c1206f101e07b98e8a2ee42df277b01e49b6",
+      "bytes": 442
+    },
+    "catalog/skills/craft/worldview-lexicon/metadata.yaml": {
+      "sha256": "c9568fa7282e8d21e387886a4f7f8de3c821c87defbdf053867c5fbe8a50bcca",
+      "bytes": 644
+    },
+    "catalog/skills/craft/worldview-lexicon/prompt.md": {
+      "sha256": "425d93ca3cc3af94810dbaa7d1fa224b4151748f505aeb33850f529e59924562",
+      "bytes": 1730
+    },
+    "catalog/skills/craft/worldview-lexicon/provenance.yaml": {
+      "sha256": "cc44cfb8e5a4116a57b523b9a6c60e5ba6d7c12fb0448ad1a4f625addae605f5",
+      "bytes": 208
+    },
+    "catalog/skills/expansions/power-ecology/contract.yaml": {
+      "sha256": "e94f763540402bcb323424e3f093657d3ac123af4cdaf74008a5424b6fd04228",
+      "bytes": 468
+    },
+    "catalog/skills/expansions/power-ecology/metadata.yaml": {
+      "sha256": "fe82e852c04aaa4723634b831647220b5879709de0a8438c37b79bd5a4476deb",
+      "bytes": 639
+    },
+    "catalog/skills/expansions/power-ecology/prompt.md": {
+      "sha256": "2e7a49fe6bdbc591864bf5d2e48a508965fe0e966ba40a2be18c8d1689103ab1",
+      "bytes": 3455
+    },
+    "catalog/skills/expansions/power-ecology/provenance.yaml": {
+      "sha256": "7f411d0a7d48cdb5c2ce8732251f490754b506d1c28dda0f31ffdf128535828e",
+      "bytes": 562
+    },
+    "catalog/skills/expansions/prose-revision/contract.yaml": {
+      "sha256": "cce1ec81fa4a60c8bc457aa315ec2a777b03644c5fb5a6be9632161d220beb30",
+      "bytes": 307
+    },
+    "catalog/skills/expansions/prose-revision/metadata.yaml": {
+      "sha256": "b1f5d278a5883422c942f903035b236cbc79cd7956ec9591e8a670f3fcd3f810",
+      "bytes": 442
+    },
+    "catalog/skills/expansions/prose-revision/modules/manifest.json": {
+      "sha256": "146b55f373f78e1d77a5a080e4cd3cd33ce675cf31c26847f0753af64b931d58",
+      "bytes": 142
+    },
+    "catalog/skills/expansions/prose-revision/prompt.md": {
+      "sha256": "a1e4db8c7b21502b68dca0f1590c51c2fde79a46dbdf30e69a2935edadf4cb08",
+      "bytes": 8167
+    },
+    "catalog/skills/expansions/prose-revision/provenance.yaml": {
+      "sha256": "b66b4e2cb2d2686a4bc79403fe7f18054f4a4b051b6dcdb37dac144fe6af7706",
+      "bytes": 956
+    },
+    "catalog/skills/expansions/scenario-atlas/clusters/alternate-history.md": {
+      "sha256": "1d31a1114b44722a8b2b9be22aae54efc43e01de0f9136e192de436d9148332b",
+      "bytes": 14592
+    },
+    "catalog/skills/expansions/scenario-atlas/clusters/apocalypse.md": {
+      "sha256": "640b654d439ab2a8231df0ffd3e7d62a69707616ab3ce60b011f5a5b3a93be87",
+      "bytes": 15991
+    },
+    "catalog/skills/expansions/scenario-atlas/clusters/beast-taming.md": {
+      "sha256": "b32ad18b755c6d7012d05451a1069e94de4242c4a8558fbfce58838043bf2289",
+      "bytes": 12779
+    },
+    "catalog/skills/expansions/scenario-atlas/clusters/cthulhu.md": {
+      "sha256": "e45069b7e62335547139d3b900ea84b77beb13a5e71e38b8c2f12cf3a93a8ab1",
+      "bytes": 15337
+    },
+    "catalog/skills/expansions/scenario-atlas/clusters/cyberpunk.md": {
+      "sha256": "0fc6f10ca457899dcd86fd1c6c0a9aae1cc193de77e96049702335aa3be21161",
+      "bytes": 12577
+    },
+    "catalog/skills/expansions/scenario-atlas/clusters/fanfic.md": {
+      "sha256": "3078de4301a76dc76dd6b7ab2d7ac2b45a07148cd293d3be5984d2170c15ddc7",
+      "bytes": 20959
+    },
+    "catalog/skills/expansions/scenario-atlas/clusters/female-ancient.md": {
+      "sha256": "ed1352c7df85bd8b65c6e37340e9a2da9cfa4d7fa30e70f2728cdfb2f798649f",
+      "bytes": 19204
+    },
+    "catalog/skills/expansions/scenario-atlas/clusters/female-modern.md": {
+      "sha256": "fcf39133c4901eaf5117ac3894c97098e182a828a53724d81e3f77d3b827abf6",
+      "bytes": 20746
+    },
+    "catalog/skills/expansions/scenario-atlas/clusters/game-esports.md": {
+      "sha256": "a7a11f377b180568173279b84bdaf35b665487d9cecf0b8148daa89f8b10b2ed",
+      "bytes": 12285
+    },
+    "catalog/skills/expansions/scenario-atlas/clusters/horror-rules.md": {
+      "sha256": "48504dc4006db4bc36803b2c77065b8210edc3fe71e13ee17361447c07795f79",
+      "bytes": 14904
+    },
+    "catalog/skills/expansions/scenario-atlas/clusters/infinite.md": {
+      "sha256": "f5a5d3e811d5ef3112738e6ff0ec0560e0cdc53761a8c33a36849d6d85866776",
+      "bytes": 14614
+    },
+    "catalog/skills/expansions/scenario-atlas/clusters/interstellar.md": {
+      "sha256": "69edbaff3aa1e6c3a10a7c20a208dab5490acd4d4cd4163cd13d453d1e115148",
+      "bytes": 12405
+    },
+    "catalog/skills/expansions/scenario-atlas/clusters/isekai-build.md": {
+      "sha256": "b87d7cd7972966068dee92d0fc130ffdd18c9ee07eb457ffb5c25012399c5596",
+      "bytes": 13335
+    },
+    "catalog/skills/expansions/scenario-atlas/clusters/military.md": {
+      "sha256": "1ac21ca7ad466f5986d44c6fd5c2d3c7e10540885ed3db7bffea1933167403fb",
+      "bytes": 28246
+    },
+    "catalog/skills/expansions/scenario-atlas/clusters/mystery.md": {
+      "sha256": "966e583d2409e44e9c9914473b9a0bd8a33145b210673887478397ae700322f0",
+      "bytes": 14017
+    },
+    "catalog/skills/expansions/scenario-atlas/clusters/officialdom.md": {
+      "sha256": "eef2803ac6976f4fb90c85b330ee2ecef2c707a966aca8763f9b5d95bf1c9646",
+      "bytes": 14413
+    },
+    "catalog/skills/expansions/scenario-atlas/clusters/quick-transmigration.md": {
+      "sha256": "465b07e6f9fa66099599d1287b6f0c25f700224bbb4580c02f4cb51ffce7448d",
+      "bytes": 14029
+    },
+    "catalog/skills/expansions/scenario-atlas/clusters/README.md": {
+      "sha256": "c862b3af97a72e4664e4f06f18140ec69087bb507367994c49e6d02d4f7fbf4c",
+      "bytes": 4892
+    },
+    "catalog/skills/expansions/scenario-atlas/clusters/rebirth-urban.md": {
+      "sha256": "3ce9874861a029321ccfc7e628f22e43785b4edff104bf3b10ebef8c6bb61aab",
+      "bytes": 13602
+    },
+    "catalog/skills/expansions/scenario-atlas/clusters/sports.md": {
+      "sha256": "70f8f2d125114b48e280cf0666ac88f1cb9a139cf3b13f5face7c94b99b728c6",
+      "bytes": 19362
+    },
+    "catalog/skills/expansions/scenario-atlas/clusters/system.md": {
+      "sha256": "3e11c8327b74c1391836e27ee01f57e48bfa678912b3db6f14c04c30fdbae1b7",
+      "bytes": 12697
+    },
+    "catalog/skills/expansions/scenario-atlas/clusters/tomb-exploration.md": {
+      "sha256": "bfd04a4c3b37c6b86a600f5f98318021e06c5c25f7e8365c0770bbdb3eb7f921",
+      "bytes": 12527
+    },
+    "catalog/skills/expansions/scenario-atlas/clusters/urban-qi.md": {
+      "sha256": "a7aaaf138d65f3f696d0af0807eed7a3a78566931b5bce44769c3f07dfb8c57a",
+      "bytes": 15989
+    },
+    "catalog/skills/expansions/scenario-atlas/clusters/western-lord.md": {
+      "sha256": "c16cf3b2ff4743cf6f7e68e966b925e9162653083c130b56ba47abdf83e681fc",
+      "bytes": 15049
+    },
+    "catalog/skills/expansions/scenario-atlas/clusters/wuxia.md": {
+      "sha256": "df0211ed71a5d8b843ba03744a90dfc2aa3702f487af6f9cd48d0b9b1e807710",
+      "bytes": 13694
+    },
+    "catalog/skills/expansions/scenario-atlas/clusters/xianxia.md": {
+      "sha256": "7029572a59ad7b039bdbb5e7c42018e8be2aacb616502176b2dee336e1380c03",
+      "bytes": 14506
+    },
+    "catalog/skills/expansions/scenario-atlas/clusters/xuanhuan.md": {
+      "sha256": "0e75773f8d2ab740b6c1acf2f25715baf6516b95ac9d89e23314df8438f7a785",
+      "bytes": 13223
+    },
+    "catalog/skills/expansions/scenario-atlas/contract.yaml": {
+      "sha256": "b4bcd767acfa597874d199e4c36b8659e40e94fae16cb5463e5fb23f81adc641",
+      "bytes": 806
+    },
+    "catalog/skills/expansions/scenario-atlas/metadata.yaml": {
+      "sha256": "5e8556f67abc3cd284b61acc42ea79a8bf148c50c5fc522bc16b18419dd07504",
+      "bytes": 1208
+    },
+    "catalog/skills/expansions/scenario-atlas/prompt.md": {
+      "sha256": "fc4b6a343a0e6ff58482e6d20f8de5630223732a6ef739f06dc1bce7ab9e4079",
+      "bytes": 10851
+    },
+    "catalog/skills/expansions/scenario-atlas/provenance.yaml": {
+      "sha256": "478406d767701ca08911670bf6f9e3c2b0dc2802ea8ba4fb1063d5485418ff04",
+      "bytes": 3043
+    },
+    "catalog/skills/expansions/story-causal-structure/contract.yaml": {
+      "sha256": "84522cec06a1875a12d706e52696168296b2c68f958bc9d2c854352023a2c6ab",
+      "bytes": 235
+    },
+    "catalog/skills/expansions/story-causal-structure/metadata.yaml": {
+      "sha256": "73343265999b507edcc8233f21f1ee914672c0b891d336741b4bbd1676cbf9ec",
+      "bytes": 446
+    },
+    "catalog/skills/expansions/story-causal-structure/prompt.md": {
+      "sha256": "8466d784cbabac775cf7df2b7764485dcf5215b93bd49e041cee585fb24ea7d8",
+      "bytes": 1821
+    },
+    "catalog/skills/expansions/story-causal-structure/provenance.yaml": {
+      "sha256": "f41b29f1f1fdb16af6df6ed92d8a6346997704bd5cbe2a75e67d345c7284275e",
+      "bytes": 624
+    },
+    "catalog/skills/expansions/story-expectation-design/contract.yaml": {
+      "sha256": "29d43a340d49780a536f71cc52f8fa34842356d3a7986267bb15c8a2acbb15e1",
+      "bytes": 237
+    },
+    "catalog/skills/expansions/story-expectation-design/metadata.yaml": {
+      "sha256": "482895c0ecef1753c3e95d206294a7cea78ada3855bdad054b6839e9ded17ff9",
+      "bytes": 446
+    },
+    "catalog/skills/expansions/story-expectation-design/prompt.md": {
+      "sha256": "92ffe9d4ac3425e9eeab6f0887ea3de3a6657e0a7cdc242bf13becae3849b238",
+      "bytes": 1877
+    },
+    "catalog/skills/expansions/story-expectation-design/provenance.yaml": {
+      "sha256": "3d16a150fe7babfce738a00a99799c0fd1fbb40a0dce573040f73923fc87a115",
+      "bytes": 969
+    },
+    "catalog/skills/expansions/story-pov-tone-contract/contract.yaml": {
+      "sha256": "b8e4de416ec284708740ad84fba835c379567cd1337a23659feb21741a4e4a40",
+      "bytes": 236
+    },
+    "catalog/skills/expansions/story-pov-tone-contract/metadata.yaml": {
+      "sha256": "dbd9dcaaa925024e29beca8d8d4b0ea8ba5d55744965a30a29b199899fd7d93e",
+      "bytes": 446
+    },
+    "catalog/skills/expansions/story-pov-tone-contract/prompt.md": {
+      "sha256": "9b0a257400373ed61df63b02d38e0a97be337caaab5de9ab912993ff6eab1e92",
+      "bytes": 1709
+    },
+    "catalog/skills/expansions/story-pov-tone-contract/provenance.yaml": {
+      "sha256": "cf7cc7b387f7738eef665eafb05d9f759d6f53ee08f565bb73c03da29532649a",
+      "bytes": 962
+    },
+    "catalog/skills/expansions/universe-atlas/clusters/alternate-history.md": {
+      "sha256": "7428d27631bed33bfba4ccad992cf384a6babe28db64638ba28eda60c09498ca",
+      "bytes": 10650
+    },
+    "catalog/skills/expansions/universe-atlas/clusters/apocalypse.md": {
+      "sha256": "82977aebcf30316bc0eed7dd0524ecfc1cf4816cbe74d65e06d692d691e3e8a8",
+      "bytes": 8668
+    },
+    "catalog/skills/expansions/universe-atlas/clusters/cthulhu.md": {
+      "sha256": "b4d8bf53cd9c2ce655491e5814cf40d6e8fa64c2be28fb3e9a13cde1cdfa8750",
+      "bytes": 11525
+    },
+    "catalog/skills/expansions/universe-atlas/clusters/cyberpunk.md": {
+      "sha256": "1d50b79f043cc71230aa780badb1527edfa4e205abef7dd170c4cd116860b70c",
+      "bytes": 9996
+    },
+    "catalog/skills/expansions/universe-atlas/clusters/framework.md": {
+      "sha256": "0da81f67e95b145061e08c2a54879bb3f84102173b5b4be6bf5ecb6659eadb0e",
+      "bytes": 12722
+    },
+    "catalog/skills/expansions/universe-atlas/clusters/interstellar.md": {
+      "sha256": "79dbf5e967fd075cc6b4bc69d583e7a4f83f340b846be543ef1ea3ed98d58534",
+      "bytes": 12871
+    },
+    "catalog/skills/expansions/universe-atlas/clusters/multiverse.md": {
+      "sha256": "f26594ece1f7363d037fc65132b29f9f6161e47f5cc8ca10c7eba796f6373aad",
+      "bytes": 10378
+    },
+    "catalog/skills/expansions/universe-atlas/clusters/myth.md": {
+      "sha256": "4b4df56e2e889dc4cabcbd9d9561e840d78a1bb616ddbfedb19e2640a415e521",
+      "bytes": 14986
+    },
+    "catalog/skills/expansions/universe-atlas/clusters/README.md": {
+      "sha256": "f42023125a800d9aaa3a8a782945e7aa52052e2ac35e54cddba720cee70813bb",
+      "bytes": 3287
+    },
+    "catalog/skills/expansions/universe-atlas/clusters/scifi.md": {
+      "sha256": "76b6e0fe39317b00d1bea5ea7e4e850f344635415008c0a72561ab0e48c9612a",
+      "bytes": 12877
+    },
+    "catalog/skills/expansions/universe-atlas/clusters/supernatural.md": {
+      "sha256": "0a728c055581a5f2946d8b53ff2a24bcae2fbc5a6baf5922942d67ef29282509",
+      "bytes": 9027
+    },
+    "catalog/skills/expansions/universe-atlas/clusters/western-magic.md": {
+      "sha256": "e44a91f686532d57380c3f346c36b05843ff6c79c8daa728f1beab0091fd18d7",
+      "bytes": 9569
+    },
+    "catalog/skills/expansions/universe-atlas/clusters/wuxia.md": {
+      "sha256": "370ab660bd6a0cea31fccad09063a0ce96897bb3f381f9852fe93d72d6d77aae",
+      "bytes": 9084
+    },
+    "catalog/skills/expansions/universe-atlas/clusters/xianxia.md": {
+      "sha256": "99b683ec76c71543414d860420b206d0dc437158b9af288f3aebf89618086e2e",
+      "bytes": 10543
+    },
+    "catalog/skills/expansions/universe-atlas/clusters/xuanhuan.md": {
+      "sha256": "3631f1d0faf303c2dcf4b57cf6db27b6fac2bf1a7369d3250f216157f900152d",
+      "bytes": 9707
+    },
+    "catalog/skills/expansions/universe-atlas/contract.yaml": {
+      "sha256": "adf69249787d16796004264fe5dfeda5e6453590197b60d0f0b7a6dc2b126613",
+      "bytes": 894
+    },
+    "catalog/skills/expansions/universe-atlas/metadata.yaml": {
+      "sha256": "78629ae394e6256f018d6604f8551cef2402b84be2326e58b3687cf064af93c0",
+      "bytes": 1186
+    },
+    "catalog/skills/expansions/universe-atlas/prompt.md": {
+      "sha256": "aee842f61f5b185f14a530efcf5f4d65c873e21836def11253ca4003b16bf092",
+      "bytes": 8890
+    },
+    "catalog/skills/expansions/universe-atlas/provenance.yaml": {
+      "sha256": "3a183c5e1ee46147ab1b8fd650c1d61b67aa3ecad0ad4fc1bf88f704a937c073",
+      "bytes": 1668
+    },
+    "catalog/skills/expansions/world-growth-resource/contract.yaml": {
+      "sha256": "fa96ade4589339e9b98592b4abeec284ec0b37cc58d884be8e726ba414d01e87",
+      "bytes": 247
+    },
+    "catalog/skills/expansions/world-growth-resource/metadata.yaml": {
+      "sha256": "a5d12f3d53e6222697c1567949a415fda576c4e457cafb1b56c04aa87fbe040c",
+      "bytes": 454
+    },
+    "catalog/skills/expansions/world-growth-resource/prompt.md": {
+      "sha256": "e98c4f26a2fb1bd9f0f4cc308a9b2387a97daca6a34657984a2d1dff9d4bbc3a",
+      "bytes": 353
+    },
+    "catalog/skills/expansions/world-growth-resource/provenance.yaml": {
+      "sha256": "a5b69f28d9ef6c29e41e9bc41a8712b6058e4db8cb2f2efe26520e302e57837c",
+      "bytes": 623
+    },
+    "catalog/skills/expansions/world-rule-system/contract.yaml": {
+      "sha256": "7082edd79927be65114cd2481dbf72cd154d5b33df0021a1a86e00fe46825c2c",
+      "bytes": 259
+    },
+    "catalog/skills/expansions/world-rule-system/metadata.yaml": {
+      "sha256": "1b5a2475e4d37015b83e1b6c49742c22032ba294c0f1064c1fbea62c784dd07d",
+      "bytes": 452
+    },
+    "catalog/skills/expansions/world-rule-system/prompt.md": {
+      "sha256": "d187c24835b6f109f2bcdd281033fbdc5a884d7d02b1935c99cae9c2a9a4d58d",
+      "bytes": 644
+    },
+    "catalog/skills/expansions/world-rule-system/provenance.yaml": {
+      "sha256": "db4b2b6aec62b6413b8455f886d693daf2e73d8a6f865dc1b718b74780ae26d6",
+      "bytes": 665
+    },
+    "catalog/skills/expansions/world-social-power/contract.yaml": {
+      "sha256": "535ff187f26012600d095935a507b77b8d2fdd5fb5a649cb9e93b59fa4217110",
+      "bytes": 257
+    },
+    "catalog/skills/expansions/world-social-power/metadata.yaml": {
+      "sha256": "33728d3eecd9980a8c7314a2babe719eede8e04719f16334c6446807182c4765",
+      "bytes": 441
+    },
+    "catalog/skills/expansions/world-social-power/prompt.md": {
+      "sha256": "d15af10f72862eece41e870e1c797a6443a3d1bdbcc9abe5ea980ce57fb945aa",
+      "bytes": 361
+    },
+    "catalog/skills/expansions/world-social-power/provenance.yaml": {
+      "sha256": "4e27bd6ef196d94a087f6514fedfd45e9ca5c1450cbb7542d1dd39115f5a40e2",
+      "bytes": 623
+    },
+    "catalog/skills/expansions/world-system-interaction/contract.yaml": {
+      "sha256": "aaddf48a7c072880c1a5fededf4196956fc6b10a30bfcb3fd7f816fcff9154ef",
+      "bytes": 284
+    },
+    "catalog/skills/expansions/world-system-interaction/metadata.yaml": {
+      "sha256": "58ee7404a0eef42df40d60a27c688d7d06d2fcd4846257e15db39debf5e6feee",
+      "bytes": 479
+    },
+    "catalog/skills/expansions/world-system-interaction/prompt.md": {
+      "sha256": "a0f431f1a7c71ca0fc3ea292bb034df421c2b6774196f9ef0ad18dd1c99ace17",
+      "bytes": 439
+    },
+    "catalog/skills/expansions/world-system-interaction/provenance.yaml": {
+      "sha256": "6754e3aa1519130b2b418f2cde974bb907eb36a8c086c8e63fb11bbfd4e6ba4b",
+      "bytes": 1307
+    },
+    "catalog/skills/onboarding/author-kernel-fusion/metadata.yaml": {
+      "sha256": "69b840a882adb98fc0eae83fe32e116bae0f809b71276dc573a634ee1aa2b1ae",
+      "bytes": 716
+    },
+    "catalog/skills/onboarding/author-kernel-fusion/modules/manifest.json": {
+      "sha256": "fcd49fd09e81e9890f5b7ce409b6e321782cb221755a2abe67cc1c096f5d6825",
+      "bytes": 464
+    },
+    "catalog/skills/onboarding/author-kernel-fusion/modules/mode-create.md": {
+      "sha256": "a9f18766f59890cb8511e53a0a50836b1c2250f616d47714f91d192a69cd4bac",
+      "bytes": 969
+    },
+    "catalog/skills/onboarding/author-kernel-fusion/modules/mode-revise.md": {
+      "sha256": "0fc7a73d3aa7b1f3a1e424a870ae72258d0dabfbe0103811944f7add612f95ec",
+      "bytes": 997
+    },
+    "catalog/skills/onboarding/author-kernel-fusion/prompt.md": {
+      "sha256": "cafca0bd91915b541974a08aa21197e03a66afbf925f5a64fc0667520855a70b",
+      "bytes": 8819
+    },
+    "catalog/skills/onboarding/author-kernel-fusion/provenance.yaml": {
+      "sha256": "f3cbb7e8f9a96b70b1f9256bb15de9d5423247201bd61ec12351c1af2b5adfb5",
+      "bytes": 600
+    },
+    "catalog/skills/onboarding/creator-signature-fusion/metadata.yaml": {
+      "sha256": "0284fee30c02f8b67418d7c682ed38b6645e793a9b95c009328736acc6b4aee9",
+      "bytes": 644
+    },
+    "catalog/skills/onboarding/creator-signature-fusion/modules/channel-female.md": {
+      "sha256": "0489002d84b783c170b5149e5d7a0aab426fc892523a2d4255c4988c9a3414f6",
+      "bytes": 1217
+    },
+    "catalog/skills/onboarding/creator-signature-fusion/modules/channel-male.md": {
+      "sha256": "0a1af827c918918e7f182ab441483607be43a86c1ac95efb81e6655adcd3ac9a",
+      "bytes": 2625
+    },
+    "catalog/skills/onboarding/creator-signature-fusion/modules/channel-omni.md": {
+      "sha256": "74b7724832a335015579ecc55e03bd11d94aa24ff45b2cb5d857d086fd74e198",
+      "bytes": 719
+    },
+    "catalog/skills/onboarding/creator-signature-fusion/modules/genre-null.md": {
+      "sha256": "b4ed456d5f6a142769911f4632b073174634c31022a5bf70e727ec255d8547e4",
+      "bytes": 598
+    },
+    "catalog/skills/onboarding/creator-signature-fusion/modules/genre-present.md": {
+      "sha256": "d6e1dec2a89096a7514ed4988341fdb0149d04147c1951a0f13b049baac14c97",
+      "bytes": 672
+    },
+    "catalog/skills/onboarding/creator-signature-fusion/modules/kernel-derive.md": {
+      "sha256": "9f2e8578dfd85ce02a88122f498b878b532ce5fd88c49422a18a30b1664fed40",
+      "bytes": 1963
+    },
+    "catalog/skills/onboarding/creator-signature-fusion/modules/library-empty.md": {
+      "sha256": "57bf38a9bbd916366df8a2d7af4cc53e16dfc24e5492f9aa6b59fa96dcb7bfd1",
+      "bytes": 1148
+    },
+    "catalog/skills/onboarding/creator-signature-fusion/modules/library-established.md": {
+      "sha256": "02dbe8318c04adb1497e51da9e388bdaaed8006b0d40f388ec729d1d380afe00",
+      "bytes": 4222
+    },
+    "catalog/skills/onboarding/creator-signature-fusion/modules/library-small.md": {
+      "sha256": "5a206addfdb05f9760082394cbbb1ddbc9219949e4a750e8248d0e46b02132e8",
+      "bytes": 3728
+    },
+    "catalog/skills/onboarding/creator-signature-fusion/modules/manifest.json": {
+      "sha256": "4fb38b233878ebfeda3dc77b7fafcf7c5b2ee50e05a72e3e339c0df50a7b8dd7",
+      "bytes": 1896
+    },
+    "catalog/skills/onboarding/creator-signature-fusion/prompt.md": {
+      "sha256": "472fe8e82d0bbca3166ad87b36edf7c58fb1ca0acf6d911e3d4318120966ae73",
+      "bytes": 23982
+    },
+    "catalog/skills/onboarding/creator-signature-fusion/provenance.yaml": {
+      "sha256": "236604e0c647226cdbb2c56e3176e915a735d68f56a07f1db2f6250dc6493a76",
+      "bytes": 524
+    },
+    "catalog/skills/planning/chapter-plan-execution-card/metadata.yaml": {
+      "sha256": "d0568fc95444b821105fc81f8cb3dffc833229e20eda0dabd7e91ff36b1fe9bf",
+      "bytes": 308
+    },
+    "catalog/skills/planning/chapter-plan-execution-card/modules/channel-female.md": {
+      "sha256": "a31650d2447a9455afea1c8353ba95eb1fc2da2269bddec25b0aa73d16d8dd74",
+      "bytes": 518
+    },
+    "catalog/skills/planning/chapter-plan-execution-card/modules/channel-male.md": {
+      "sha256": "daa2198d6ea45ad75de5094fb570f67b0b9fd366bb6e612281330e6301ea980e",
+      "bytes": 288
+    },
+    "catalog/skills/planning/chapter-plan-execution-card/modules/channel-omni.md": {
+      "sha256": "b45407421d31d20cc06a1c275ef2dea82e1019261f41066200d403cd5e7ac83a",
+      "bytes": 206
+    },
+    "catalog/skills/planning/chapter-plan-execution-card/modules/manifest.json": {
+      "sha256": "cf271cfddd2000f89e2519ec423eaeec61b8d24658ce9852e2a048324f893ffc",
+      "bytes": 1000
+    },
+    "catalog/skills/planning/chapter-plan-execution-card/modules/reference-scene-dialogue-blueprints.md": {
+      "sha256": "759ad175dfc7728908251739537bc2196dfbde1b4d75c1d4c8475e453d527444",
+      "bytes": 2318
+    },
+    "catalog/skills/planning/chapter-plan-execution-card/prompt.md": {
+      "sha256": "9afe72e083c4ff5cac038ff44c8e40830ba1aada51216ceb1cda5903bbafd90a",
+      "bytes": 5726
+    },
+    "catalog/skills/planning/chapter-plan-execution-card/provenance.yaml": {
+      "sha256": "531d8c7281383597efcda1ffa11b7b98a935ed0717743639cd100c8427ff7229",
+      "bytes": 1114
+    },
+    "catalog/skills/planning/character-contract/metadata.yaml": {
+      "sha256": "fc3a68ccaffb045937800c23838f25fd132fe11b4d4778400d72e1270c35b908",
+      "bytes": 296
+    },
+    "catalog/skills/planning/character-contract/modules/channel-female.md": {
+      "sha256": "84ab6174093ea23a7c6d4612554c51113dc33e7983f0a12f18797d74f35dffcb",
+      "bytes": 760
+    },
+    "catalog/skills/planning/character-contract/modules/channel-male.md": {
+      "sha256": "5170ba6ec9f993cbda169b25fa6442bed23dc561d9b7f1b64af2432442384b4f",
+      "bytes": 1302
+    },
+    "catalog/skills/planning/character-contract/modules/channel-omni.md": {
+      "sha256": "f6e7afecb93e725eeb820670e38bc42fb818625677ee85896829bc1694df466c",
+      "bytes": 713
+    },
+    "catalog/skills/planning/character-contract/modules/genre-present.md": {
+      "sha256": "f3a5dffa428de7cae39df2a7c486eb055f061c5aa0ac163b0cb97e2bbfaf3518",
+      "bytes": 1098
+    },
+    "catalog/skills/planning/character-contract/modules/manifest.json": {
+      "sha256": "72e7ef039ed1a8e7d26c97519945b8a90d38666bba4656511a81e42b39cfec81",
+      "bytes": 1113
+    },
+    "catalog/skills/planning/character-contract/modules/reference-archetype-spectrum.md": {
+      "sha256": "397573cdcdf1d121b566cde1c75cf4826bf6bf798c06680ebc638d1568ec86d6",
+      "bytes": 2375
+    },
+    "catalog/skills/planning/character-contract/prompt.md": {
+      "sha256": "8b5a6a58e5fdf582f80841376b1bd7bf39b4d3ab87857c24df1be10016d9570d",
+      "bytes": 18104
+    },
+    "catalog/skills/planning/character-contract/provenance.yaml": {
+      "sha256": "e78bc0f22a6fe9dec2d056ceb00c2fafb2e9195be0edaa9208410dd00f4655b9",
+      "bytes": 200
+    },
+    "catalog/skills/planning/story-arc/metadata.yaml": {
+      "sha256": "8cca826062160cd9949318e45880d7ee8da534c7bf083acf858204da3eeb1862",
+      "bytes": 296
+    },
+    "catalog/skills/planning/story-arc/modules/channel-female.md": {
+      "sha256": "c137079938be3f019e55831229737f8487dc67d46b3c55c9ea92496b29240aee",
+      "bytes": 393
+    },
+    "catalog/skills/planning/story-arc/modules/channel-male.md": {
+      "sha256": "61e213a5c770938247d56f6cd0e774ea2463cdf884144ceac994e2003650ed55",
+      "bytes": 432
+    },
+    "catalog/skills/planning/story-arc/modules/channel-omni.md": {
+      "sha256": "d5e7814c32b561eaf072a99c53a6de5d9352c88e2f40ad65e0214e2e72adc36c",
+      "bytes": 251
+    },
+    "catalog/skills/planning/story-arc/modules/manifest.json": {
+      "sha256": "b5fb63d20aef45e88f33783a54e60879d88fd1d2afe9cfabd24330ff0d6ea576",
+      "bytes": 962
+    },
+    "catalog/skills/planning/story-arc/modules/reference-emotional-arcs.md": {
+      "sha256": "6e4de96a63b9f97e52d233f4982798db68e6a564df1fb2c9b2057b2334b83f4d",
+      "bytes": 2129
+    },
+    "catalog/skills/planning/story-arc/prompt.md": {
+      "sha256": "f1b821d88e515ce014ff56728875735d38c4e8500aa6e1a12f5e595d70b18528",
+      "bytes": 8573
+    },
+    "catalog/skills/planning/story-arc/provenance.yaml": {
+      "sha256": "f5d1594bcd82e1eb61abd9113d3e8f9b9692ac570a611093a509526c4134be9c",
+      "bytes": 203
+    },
+    "catalog/skills/planning/story-architecture/metadata.yaml": {
+      "sha256": "0df466280064c245f28a3316fbd7e08473f1082916029affaf8d882f2e404109",
+      "bytes": 308
+    },
+    "catalog/skills/planning/story-architecture/modules/channel-female.md": {
+      "sha256": "6c0b8832f298c6278834027a8dd5fbcca289fb10c4a5a6df052e0d929949d8ed",
+      "bytes": 848
+    },
+    "catalog/skills/planning/story-architecture/modules/channel-male.md": {
+      "sha256": "f5940799ac05adaf69cc927346f3fc1295daa6add60ddc6bf097d3adff87f84b",
+      "bytes": 683
+    },
+    "catalog/skills/planning/story-architecture/modules/channel-omni.md": {
+      "sha256": "d0c29c7fb16d43c8fb0506dd4f37a43d99421ae7deabf3b23e44fe408962ff11",
+      "bytes": 460
+    },
+    "catalog/skills/planning/story-architecture/modules/manifest.json": {
+      "sha256": "752a00dcade2fa2a7cff0efc6aae50ac8588848c049ff48ad4791c792025b9be",
+      "bytes": 1227
+    },
+    "catalog/skills/planning/story-architecture/modules/platform-free.md": {
+      "sha256": "3fdddce2d25e44ad1f0ba30ef0128e8515bcd927b3217b0ffdd7d97db73f03b1",
+      "bytes": 418
+    },
+    "catalog/skills/planning/story-architecture/modules/platform-paid.md": {
+      "sha256": "688039af1d96844a91a9d1cce86c9073e9d00c4ce568617fbb5752d995996e07",
+      "bytes": 443
+    },
+    "catalog/skills/planning/story-architecture/modules/reference-plot-frameworks.md": {
+      "sha256": "ada8f871869dde666061f326796c83b1320bbe316d3943e419d9a6d8eaafd77f",
+      "bytes": 2208
+    },
+    "catalog/skills/planning/story-architecture/prompt.md": {
+      "sha256": "79ab6f24e23795848a98bc210590630def8243dc1288507ef61f53594a2c5e73",
+      "bytes": 13787
+    },
+    "catalog/skills/planning/story-architecture/provenance.yaml": {
+      "sha256": "be903a2debd95a3969fa6b34c53569601e5b5b464dea0359259875434e6b1343",
+      "bytes": 200
+    },
+    "catalog/skills/planning/story-direction/metadata.yaml": {
+      "sha256": "f879105974e8e54378d56bf7eb397eb0714af464304eb697668884607ce8ece5",
+      "bytes": 305
+    },
+    "catalog/skills/planning/story-direction/modules/aesthetic-present.md": {
+      "sha256": "9bbef68275de1bea4730bb07655e2f18a7555a9c9fc3c00e1b96fc15c1ad7387",
+      "bytes": 1055
+    },
+    "catalog/skills/planning/story-direction/modules/channel-female.md": {
+      "sha256": "7f8402ce71cb600061970e079b8cb16adfe1946f539ef44e27fdf3babe5f037f",
+      "bytes": 2796
+    },
+    "catalog/skills/planning/story-direction/modules/channel-male.md": {
+      "sha256": "c9ef774fb27b60a40f2cb2de6e51edb50edb5a3f6752b7662103f2391f7d881a",
+      "bytes": 1985
+    },
+    "catalog/skills/planning/story-direction/modules/channel-omni.md": {
+      "sha256": "6e91b3886e896279c8079fd87af6fe60505885dee8ed79ee3ff7b804c6a5cabd",
+      "bytes": 1199
+    },
+    "catalog/skills/planning/story-direction/modules/genre-null.md": {
+      "sha256": "425600a59ba07d26ad34e97638213e4a32c01714ad6bf96576be065997481068",
+      "bytes": 825
+    },
+    "catalog/skills/planning/story-direction/modules/genre-present.md": {
+      "sha256": "25e7ef079ddf1ad856c72798b01f5231203438e630c65e46b1c3c9420ccb4bfe",
+      "bytes": 1042
+    },
+    "catalog/skills/planning/story-direction/modules/manifest.json": {
+      "sha256": "f89c0d464916fdd3b3bb993f9ed995d73552d765660f521709ca0079fd61ae84",
+      "bytes": 1712
+    },
+    "catalog/skills/planning/story-direction/modules/platform-free.md": {
+      "sha256": "2c9d7fec5d98b6c268b473e5055f1bd4b37f9d88c27313151f84df290c85801d",
+      "bytes": 1341
+    },
+    "catalog/skills/planning/story-direction/modules/platform-paid.md": {
+      "sha256": "d204c5f642d21cc5e7caeac2b1f4fcd68257cc18730bac7dc1d3fa51b4cda39e",
+      "bytes": 1390
+    },
+    "catalog/skills/planning/story-direction/modules/reference-book-appeal.md": {
+      "sha256": "fa64e213d7dcb89b9c17bcf9f4cda98c635f726658afd0a6bcbd1daea07be984",
+      "bytes": 2256
+    },
+    "catalog/skills/planning/story-direction/prompt.md": {
+      "sha256": "b4ab11f2b5508153d20af70a6a75ba2c3ecfa6255ce49b852685c72f83f67c8e",
+      "bytes": 16182
+    },
+    "catalog/skills/planning/story-direction/provenance.yaml": {
+      "sha256": "9f0f5b4691f0d4484582fd8b38f4bf630114dd90730af3ef36e6ce2a71f5d5e0",
+      "bytes": 200
+    },
+    "catalog/skills/planning/story-strategy/metadata.yaml": {
+      "sha256": "fe27fadcdd0015d6466533bb21be02f21a43d53e7706e71e66da6967c91b072f",
+      "bytes": 296
+    },
+    "catalog/skills/planning/story-strategy/modules/channel-female.md": {
+      "sha256": "5de50bdde76d078641c5771343a7e0c2687cee2b61be3e1c15a6c37a4e75c0ff",
+      "bytes": 606
+    },
+    "catalog/skills/planning/story-strategy/modules/channel-male.md": {
+      "sha256": "773c4056d1496db2d5c8e01e7cc460c2540763f48b4335c2122e89ab011f6361",
+      "bytes": 550
+    },
+    "catalog/skills/planning/story-strategy/modules/channel-omni.md": {
+      "sha256": "2f21bcb6f9fd4e4cbbac31c7d7b5537462656bf97fb8d9542ebf20152f996de8",
+      "bytes": 384
+    },
+    "catalog/skills/planning/story-strategy/modules/manifest.json": {
+      "sha256": "76c8d140b224639cf42bdbb9630aa865bf96d60f4e4b48fbfb90ad524b261ec5",
+      "bytes": 977
+    },
+    "catalog/skills/planning/story-strategy/modules/platform-free.md": {
+      "sha256": "bf43fdfce1d1abdf9fc2ca59df831e0fec5e57026799e78c80c1c74eb333b113",
+      "bytes": 370
+    },
+    "catalog/skills/planning/story-strategy/modules/platform-paid.md": {
+      "sha256": "11d77fca137a6d66d1a37707013afd834ccfdc56ee7c9b2904c34cfd348c932e",
+      "bytes": 344
+    },
+    "catalog/skills/planning/story-strategy/modules/reference-coolpoint-cadence.md": {
+      "sha256": "f73f5558436f64539581ed10037b02dafff8233790405e7706a611acf529e7a2",
+      "bytes": 2438
+    },
+    "catalog/skills/planning/story-strategy/prompt.md": {
+      "sha256": "cc5144a9271670446a81ab36b73054694d9bbcbd05c3e3cf135566991e5d0547",
+      "bytes": 11121
+    },
+    "catalog/skills/planning/story-strategy/provenance.yaml": {
+      "sha256": "9583ecf620d76b478f200453e91e28e1374600cdacaaad63a48fa504004333eb",
+      "bytes": 200
+    },
+    "catalog/skills/planning/volume-outline/metadata.yaml": {
+      "sha256": "63b9bdf8f111655e742dd145d9a1f8fdb5e9d8840d47e9bfef5107125cfdac38",
+      "bytes": 290
+    },
+    "catalog/skills/planning/volume-outline/modules/channel-female.md": {
+      "sha256": "021b217cbb8154b964b405b3438dfe88d7accd6f74ad20e4d5f4244a3bfccc7b",
+      "bytes": 439
+    },
+    "catalog/skills/planning/volume-outline/modules/channel-male.md": {
+      "sha256": "f35c4a41d04ef07513fcdeb68c9a570853c9638ba987f8d82205aede9ea95da7",
+      "bytes": 393
+    },
+    "catalog/skills/planning/volume-outline/modules/channel-omni.md": {
+      "sha256": "e2b1b1ea5b496a481262a07bd84f5b9c09c28baacc792a1200187e79f2c5bf14",
+      "bytes": 312
+    },
+    "catalog/skills/planning/volume-outline/modules/manifest.json": {
+      "sha256": "084d459e0a755582de2f77f009aeb27d8b076a217b6a9a528b67c6e9de7f355f",
+      "bytes": 1005
+    },
+    "catalog/skills/planning/volume-outline/modules/reference-scene-blueprints.md": {
+      "sha256": "2e34fffb9c82413a813b384a7c3ece68cd0765595785b41a8fce09391faf5c32",
+      "bytes": 2226
+    },
+    "catalog/skills/planning/volume-outline/prompt.md": {
+      "sha256": "248b5db57a52ef00785c62f58986cdcc43fab65aea57f55229774b1b4006bce2",
+      "bytes": 11133
+    },
+    "catalog/skills/planning/volume-outline/provenance.yaml": {
+      "sha256": "2a6b523a7636625cf88e2de866c6ca65442a0a2a693099b9b0ee564b29f0920f",
+      "bytes": 203
+    },
+    "catalog/skills/planning/world-contract/metadata.yaml": {
+      "sha256": "463d32ccdb4631c20f3189ec5626ce77c75a3fee86f21f25aa1919e88cfcda28",
+      "bytes": 299
+    },
+    "catalog/skills/planning/world-contract/modules/channel-female.md": {
+      "sha256": "eeb750452b0e6d6a04fe2307f6a5476ee1cf09a0545af63a6ef4057ddfbd3284",
+      "bytes": 1739
+    },
+    "catalog/skills/planning/world-contract/modules/channel-male.md": {
+      "sha256": "724bb52294f9fb0bb22685999d775641b20ec0575cfec8ae1dc362bf03ec82ff",
+      "bytes": 1039
+    },
+    "catalog/skills/planning/world-contract/modules/channel-omni.md": {
+      "sha256": "a6aecdc7beff22a44e998d1781d1d004667fba76eb03070c6ee9696eedf65580",
+      "bytes": 1154
+    },
+    "catalog/skills/planning/world-contract/modules/genre-null.md": {
+      "sha256": "9fb610ea75d335eeaab12a31cba1b403aeeae52e62a10d78645f3744c100ff76",
+      "bytes": 412
+    },
+    "catalog/skills/planning/world-contract/modules/genre-present.md": {
+      "sha256": "6fec1963181a1cd4f7e3b5c9312a659d17fbfbb5f96e336bd114a6f4640eba63",
+      "bytes": 520
+    },
+    "catalog/skills/planning/world-contract/modules/manifest.json": {
+      "sha256": "560bf629966ba889b5e84076f07a1ed14f8089cabf89638c110279fa8ff5e754",
+      "bytes": 1213
+    },
+    "catalog/skills/planning/world-contract/modules/reference-world-settings.md": {
+      "sha256": "1696b87044b2bf237e3784e930111cbec5455d29208f04974c59d04045e11c94",
+      "bytes": 2464
+    },
+    "catalog/skills/planning/world-contract/prompt.md": {
+      "sha256": "d26868ee7144a4af8f9877a0481e71f0d8dff4f9a8dfe4205aaed7d6386b1e59",
+      "bytes": 16728
+    },
+    "catalog/skills/planning/world-contract/provenance.yaml": {
+      "sha256": "6853d10fb6cb0b7c8321fcc0c98ecc53a95753c707a01dc281278183a905d2a8",
+      "bytes": 203
+    },
+    "catalog/skills/review/continuity-quality-review/input_schema.json": {
+      "sha256": "9be2d1c94ff10f25589f82384303aabd609446bf494fb9ccffd2f4ae6bc72bb5",
+      "bytes": 748
+    },
+    "catalog/skills/review/continuity-quality-review/metadata.yaml": {
+      "sha256": "bb976019bd71f74890ad49ffa231d8fd8e2b3c4d76bda4a6bbea45c9b69786f9",
+      "bytes": 426
+    },
+    "catalog/skills/review/continuity-quality-review/modules/manifest.json": {
+      "sha256": "96e1ddaa6cd6ab92a6c911ca58e27556c2c3008e5640f46eb517ad2a3008bb67",
+      "bytes": 95
+    },
+    "catalog/skills/review/continuity-quality-review/prompt.md": {
+      "sha256": "64c22c5e64c9755e7211b9d301675b8d7ac45afd90dd42d95515183c2907b651",
+      "bytes": 1598
+    },
+    "catalog/skills/review/continuity-quality-review/provenance.yaml": {
+      "sha256": "20788d61eddda94c11b577600f4b20a03445a3ea704d1bad7832a3a12c9fd0a1",
+      "bytes": 236
+    },
+    "catalog/skills/review/continuity-quality-review/schema.json": {
+      "sha256": "5c6c4cdd9418c6c97dfd7af9249f6e7bf3f3f95201bfb2a22ebecca78dee6fb7",
+      "bytes": 1310
+    },
+    "catalog/skills/review/entity-authority-review/input_schema.json": {
+      "sha256": "9be2d1c94ff10f25589f82384303aabd609446bf494fb9ccffd2f4ae6bc72bb5",
+      "bytes": 748
+    },
+    "catalog/skills/review/entity-authority-review/metadata.yaml": {
+      "sha256": "a87aa3f9109b17faae6202200574dfbf2483dd13998ca8ac62dba3fa65943dff",
+      "bytes": 445
+    },
+    "catalog/skills/review/entity-authority-review/modules/manifest.json": {
+      "sha256": "369f5d597f150dfee99e5aa0e28641d111d39b0cde2a4dfa0b24e27f7a9af8d5",
+      "bytes": 78
+    },
+    "catalog/skills/review/entity-authority-review/prompt.md": {
+      "sha256": "3876156c8c2d8797c68dcb8821a2b44cc3d11a938da1a2f8989f06a949490a2f",
+      "bytes": 2018
+    },
+    "catalog/skills/review/entity-authority-review/provenance.yaml": {
+      "sha256": "9ba36b426e3f9bfe1d0d91911ce963292338430ba4f8b9c5ccd5a2378dd30528",
+      "bytes": 232
+    },
+    "catalog/skills/review/entity-authority-review/schema.json": {
+      "sha256": "5c6c4cdd9418c6c97dfd7af9249f6e7bf3f3f95201bfb2a22ebecca78dee6fb7",
+      "bytes": 1310
+    },
+    "catalog/skills/review/planning-architecture-review/contract.yaml": {
+      "sha256": "a011c8275efff95cdb843b7e2261550590fca227377319d69501c3831aa69dee",
+      "bytes": 202
+    },
+    "catalog/skills/review/planning-architecture-review/metadata.yaml": {
+      "sha256": "cbc5eccf8bdcfadfb1a415a908eea29eadc6029cc37a091e5fe7c31522f238c7",
+      "bytes": 393
+    },
+    "catalog/skills/review/planning-architecture-review/modules/check-channel-female.md": {
+      "sha256": "450469f69778c25d6652ea13ce2e27a22c3011d3e82a405f126635c1c2f51b61",
+      "bytes": 334
+    },
+    "catalog/skills/review/planning-architecture-review/modules/check-channel-male.md": {
+      "sha256": "4cd003976e21da172e93fffdd2f6ea59dd54473e13c3a54e3280437a4704df8d",
+      "bytes": 293
+    },
+    "catalog/skills/review/planning-architecture-review/modules/check-channel-omni.md": {
+      "sha256": "f1c1022ba937e5a722ca36bc60af7994033452428ed0d694f0da57c82ae4679f",
+      "bytes": 219
+    },
+    "catalog/skills/review/planning-architecture-review/modules/check-platform-free.md": {
+      "sha256": "ba74342e3330ff1c6337be3d0f6ddfdee11a9c6d60d2c144f26a033e75b41c9c",
+      "bytes": 190
+    },
+    "catalog/skills/review/planning-architecture-review/modules/check-platform-paid.md": {
+      "sha256": "3afddb9df0a9ab929c98d88065ab899d7040129cf569fbefb0f465a78cc8d811",
+      "bytes": 156
+    },
+    "catalog/skills/review/planning-architecture-review/modules/manifest.json": {
+      "sha256": "82877ccea83b312fb4b01abb6c0b2b131c7d8a9b576e18434286dae11bc3dcd2",
+      "bytes": 1092
+    },
+    "catalog/skills/review/planning-architecture-review/prompt.md": {
+      "sha256": "c82f9b51b2ab993795dd8da882a93c875c9302724e45bfa7d15189cd93b5d6b6",
+      "bytes": 5494
+    },
+    "catalog/skills/review/planning-architecture-review/provenance.yaml": {
+      "sha256": "1dccfc7692fe14838378fa1d4675685817e8fee70e30a771edea0b25719fae0f",
+      "bytes": 216
+    },
+    "catalog/skills/review/planning-architecture-review/schema.json": {
+      "sha256": "5c6c4cdd9418c6c97dfd7af9249f6e7bf3f3f95201bfb2a22ebecca78dee6fb7",
+      "bytes": 1310
+    },
+    "catalog/skills/review/planning-chapter-plan-review/contract.yaml": {
+      "sha256": "8b9993b59e2e4ee3fa6929d880b0984c24b4998a351708bfde7f75189d4a64ef",
+      "bytes": 202
+    },
+    "catalog/skills/review/planning-chapter-plan-review/metadata.yaml": {
+      "sha256": "a36de302114ff5df2a84d02ce441a617c25883f48e19d31aa6d7c3dcf5d66b1f",
+      "bytes": 384
+    },
+    "catalog/skills/review/planning-chapter-plan-review/modules/check-channel-female.md": {
+      "sha256": "11e5dcd5f3f0586583d8d01b2a569ce105bd2809d1204baec6e19877f4944173",
+      "bytes": 211
+    },
+    "catalog/skills/review/planning-chapter-plan-review/modules/check-channel-male.md": {
+      "sha256": "3bd4f616d8b1aaafa74ee8c03fe4b57abc7e623ccde640aec295c0fb097d0021",
+      "bytes": 129
+    },
+    "catalog/skills/review/planning-chapter-plan-review/modules/check-channel-omni.md": {
+      "sha256": "738dca6056f1ef92720975e7b05817ec829dfbdcbb0b48ad095f2073f1c4073e",
+      "bytes": 111
+    },
+    "catalog/skills/review/planning-chapter-plan-review/modules/manifest.json": {
+      "sha256": "4a75bf8cf40b778ec3b23362f0da40242f1093ccde1c4973c89233d86d49be5a",
+      "bytes": 828
+    },
+    "catalog/skills/review/planning-chapter-plan-review/prompt.md": {
+      "sha256": "bcddde8db6ee160e866a959b729df4bef292a36d5be0c58340ff0af64f6d4a97",
+      "bytes": 2855
+    },
+    "catalog/skills/review/planning-chapter-plan-review/provenance.yaml": {
+      "sha256": "aa2ed93ca9f103c47486f549c89abc4c7e9af7a2807d9ce67d807efbbd05d793",
+      "bytes": 216
+    },
+    "catalog/skills/review/planning-chapter-plan-review/schema.json": {
+      "sha256": "5c6c4cdd9418c6c97dfd7af9249f6e7bf3f3f95201bfb2a22ebecca78dee6fb7",
+      "bytes": 1310
+    },
+    "catalog/skills/review/planning-character-contract-review/contract.yaml": {
+      "sha256": "36916a96d3df664a02618e844893988105aeb1f4a1fe5a00951b9e451d9a9c7e",
+      "bytes": 208
+    },
+    "catalog/skills/review/planning-character-contract-review/metadata.yaml": {
+      "sha256": "38321829bf875a58a44b5256227d537748c25e1d0de6e53a9d849fbf316dc258",
+      "bytes": 413
+    },
+    "catalog/skills/review/planning-character-contract-review/modules/check-channel-female.md": {
+      "sha256": "82359c4d01a1237a276dc272fe5ddd0759b46d96fb4fe5e842b60024a0cda0aa",
+      "bytes": 544
+    },
+    "catalog/skills/review/planning-character-contract-review/modules/check-channel-male.md": {
+      "sha256": "d6b5e0163576485c83714d5038e9e5925e762f2c06f373c19626ed5d9e9a35af",
+      "bytes": 598
+    },
+    "catalog/skills/review/planning-character-contract-review/modules/check-channel-omni.md": {
+      "sha256": "f367d0eb84c6fd580413daaa78a50a5f29992ca077e83eea9603daad79051de9",
+      "bytes": 380
+    },
+    "catalog/skills/review/planning-character-contract-review/modules/manifest.json": {
+      "sha256": "7987646161b2cfa37a8bd560ccb9e3279da344a738a04eaa9fd7e8ee42f75b50",
+      "bytes": 877
+    },
+    "catalog/skills/review/planning-character-contract-review/prompt.md": {
+      "sha256": "334cb4c5e3f0dad185d7df48bd1c8608e55758c7959b39752e4c7903e9ada700",
+      "bytes": 5656
+    },
+    "catalog/skills/review/planning-character-contract-review/provenance.yaml": {
+      "sha256": "8ffa175628586dcb02bd3b12fe7ecc4611f9f0b77a1155c44fc91b68679812a0",
+      "bytes": 222
+    },
+    "catalog/skills/review/planning-character-contract-review/schema.json": {
+      "sha256": "5c6c4cdd9418c6c97dfd7af9249f6e7bf3f3f95201bfb2a22ebecca78dee6fb7",
+      "bytes": 1310
+    },
+    "catalog/skills/review/planning-cross-consistency-review/input_schema.json": {
+      "sha256": "9be2d1c94ff10f25589f82384303aabd609446bf494fb9ccffd2f4ae6bc72bb5",
+      "bytes": 748
+    },
+    "catalog/skills/review/planning-cross-consistency-review/metadata.yaml": {
+      "sha256": "e3787551c21386c9ab421bdb25ed1c53b15acf3af0406e5ce4eecc9aad6027a9",
+      "bytes": 452
+    },
+    "catalog/skills/review/planning-cross-consistency-review/modules/manifest.json": {
+      "sha256": "9e498104fa626651cf67ed1d32fa522304c2de62394fc382f77a5031e8f23e82",
+      "bytes": 146
+    },
+    "catalog/skills/review/planning-cross-consistency-review/prompt.md": {
+      "sha256": "3008a4ca9b9af51ff3f932b79aeae903af5ccd678ca3f4aa496fda6ccf48d705",
+      "bytes": 1476
+    },
+    "catalog/skills/review/planning-cross-consistency-review/provenance.yaml": {
+      "sha256": "cbbfbd6aa9b146957ce04c92d75e7acc5b48da55914b519e991144d848b16533",
+      "bytes": 243
+    },
+    "catalog/skills/review/planning-cross-consistency-review/schema.json": {
+      "sha256": "5c6c4cdd9418c6c97dfd7af9249f6e7bf3f3f95201bfb2a22ebecca78dee6fb7",
+      "bytes": 1310
+    },
+    "catalog/skills/review/planning-direction-review/contract.yaml": {
+      "sha256": "fb522a0da93ffdfde4deabd3dc44f522062463a03ec69d41c39c4f213fc6e1e6",
+      "bytes": 199
+    },
+    "catalog/skills/review/planning-direction-review/metadata.yaml": {
+      "sha256": "3e611232d16f5e0754006e071ae4d792878fed849508d7d30f6310608fd994c6",
+      "bytes": 403
+    },
+    "catalog/skills/review/planning-direction-review/modules/check-aesthetic-present.md": {
+      "sha256": "d90afd915a4e379b3dd3c0b4806fd5a757c08226a2ea18f0624542e166931c51",
+      "bytes": 865
+    },
+    "catalog/skills/review/planning-direction-review/modules/check-channel-female.md": {
+      "sha256": "88f8f4b88dcd42aade1c49f448d2168df17f0cf05b20fb03854440de7d0f2f0a",
+      "bytes": 782
+    },
+    "catalog/skills/review/planning-direction-review/modules/check-channel-male.md": {
+      "sha256": "3706736cee5597938ad696dec656dd8f07b0e1a78f8d63e68c4ff53758680c53",
+      "bytes": 595
+    },
+    "catalog/skills/review/planning-direction-review/modules/check-channel-omni.md": {
+      "sha256": "b3671b662afe2067aa994af5c64bea1d4018d758c19b380fd744412f238c9d77",
+      "bytes": 567
+    },
+    "catalog/skills/review/planning-direction-review/modules/check-genre-null.md": {
+      "sha256": "3d5cb55941684b9ebd1deae4035c12ba53dd56d20bd988f2239b5bab58251d5d",
+      "bytes": 389
+    },
+    "catalog/skills/review/planning-direction-review/modules/check-genre-present.md": {
+      "sha256": "2ba27276398d9b3f3202c19c420d3f12453a6f455d51e238f8dc3c5860b882cd",
+      "bytes": 666
+    },
+    "catalog/skills/review/planning-direction-review/modules/check-platform-free.md": {
+      "sha256": "de39621be89a054eeba70a586eb35fd6453d87c08503ef2bf8120d39052f1d00",
+      "bytes": 586
+    },
+    "catalog/skills/review/planning-direction-review/modules/check-platform-paid.md": {
+      "sha256": "f07e3529879badb7792e7570dedc00247c7aefb375afec6c44bcc390f690f214",
+      "bytes": 633
+    },
+    "catalog/skills/review/planning-direction-review/modules/manifest.json": {
+      "sha256": "2bead8d2245543140daeee5b1aec3dbffe1135f7d008e9484a09e26e64e8b1e8",
+      "bytes": 1605
+    },
+    "catalog/skills/review/planning-direction-review/prompt.md": {
+      "sha256": "ddbb153ec2e97a4bbe5988f327170a5b4c0ef3c47b048c6cad675ac5fe68b041",
+      "bytes": 7230
+    },
+    "catalog/skills/review/planning-direction-review/provenance.yaml": {
+      "sha256": "d0e04dd14e397e2a33dc427435e293cd0dd1d4ea866559968e1851a25c9dbdf3",
+      "bytes": 213
+    },
+    "catalog/skills/review/planning-direction-review/schema.json": {
+      "sha256": "5c6c4cdd9418c6c97dfd7af9249f6e7bf3f3f95201bfb2a22ebecca78dee6fb7",
+      "bytes": 1310
+    },
+    "catalog/skills/review/planning-quality-review/input_schema.json": {
+      "sha256": "9be2d1c94ff10f25589f82384303aabd609446bf494fb9ccffd2f4ae6bc72bb5",
+      "bytes": 748
+    },
+    "catalog/skills/review/planning-quality-review/metadata.yaml": {
+      "sha256": "58d87ac03c4316cd1a61f2b9efcd5c30a6b4ff299488adbe375a3256099dbd47",
+      "bytes": 414
+    },
+    "catalog/skills/review/planning-quality-review/modules/manifest.json": {
+      "sha256": "369f5d597f150dfee99e5aa0e28641d111d39b0cde2a4dfa0b24e27f7a9af8d5",
+      "bytes": 78
+    },
+    "catalog/skills/review/planning-quality-review/prompt.md": {
+      "sha256": "6df369ab99da8cb6840e21f8787a6c248e432a5e4d99037b76de8f79c884346e",
+      "bytes": 1502
+    },
+    "catalog/skills/review/planning-quality-review/provenance.yaml": {
+      "sha256": "fc856d5606b0cb77c5627c4a1ac0ef4fcf56804f6ba30bfab3412f73b176d968",
+      "bytes": 234
+    },
+    "catalog/skills/review/planning-quality-review/schema.json": {
+      "sha256": "5c6c4cdd9418c6c97dfd7af9249f6e7bf3f3f95201bfb2a22ebecca78dee6fb7",
+      "bytes": 1310
+    },
+    "catalog/skills/review/planning-story-arc-review/contract.yaml": {
+      "sha256": "63acb248d5637f17f4ec273c0449b8c690393215f4505dde90a5b193d81879a8",
+      "bytes": 199
+    },
+    "catalog/skills/review/planning-story-arc-review/metadata.yaml": {
+      "sha256": "f43e2112ac50cd197b573c60fa381a496b71a028a9953fc7d6b51b7c08b7643c",
+      "bytes": 372
+    },
+    "catalog/skills/review/planning-story-arc-review/modules/check-channel-female.md": {
+      "sha256": "d2982c112d05525162fa0b3aac72f87b9923bf65cad8502674681b5bdb99c122",
+      "bytes": 194
+    },
+    "catalog/skills/review/planning-story-arc-review/modules/check-channel-male.md": {
+      "sha256": "d2d5719ba371a478eb9abd0b0edc9765a482bf129bf945659f74c73443a263e9",
+      "bytes": 181
+    },
+    "catalog/skills/review/planning-story-arc-review/modules/check-channel-omni.md": {
+      "sha256": "6b1a8eeb114a6d0919cdafd14ebd3a32a0513de779e46dc3d4528fa5692aea87",
+      "bytes": 120
+    },
+    "catalog/skills/review/planning-story-arc-review/modules/manifest.json": {
+      "sha256": "5d22c383c87e49ee9b95969db31b27fc1d35276295b495c46ad9ca001f74b269",
+      "bytes": 905
+    },
+    "catalog/skills/review/planning-story-arc-review/prompt.md": {
+      "sha256": "872c002efe730bb6287c3b08c58fe3b43d8031a62ac0b14758a077b8eaec991a",
+      "bytes": 4576
+    },
+    "catalog/skills/review/planning-story-arc-review/provenance.yaml": {
+      "sha256": "5cd08751c9d2a76ab9524bf99b6045b32461b42ce2e189ec82b8fc2900acffbe",
+      "bytes": 213
+    },
+    "catalog/skills/review/planning-story-arc-review/schema.json": {
+      "sha256": "5c6c4cdd9418c6c97dfd7af9249f6e7bf3f3f95201bfb2a22ebecca78dee6fb7",
+      "bytes": 1310
+    },
+    "catalog/skills/review/planning-strategy-review/contract.yaml": {
+      "sha256": "95720b665df258d75cf1fd189e43a78df37faa7fe922beb8c2a4ba4f475c6754",
+      "bytes": 198
+    },
+    "catalog/skills/review/planning-strategy-review/metadata.yaml": {
+      "sha256": "a747eeafe9d6b1c6c44eb2efc27183d8edbfe38fc56f0991b0646dca9bbc99ec",
+      "bytes": 396
+    },
+    "catalog/skills/review/planning-strategy-review/modules/check-channel-female.md": {
+      "sha256": "f60c7e9e943434113c5a65ceb0af1311c899f2e29567f106d795cb87cdfdfa4e",
+      "bytes": 265
+    },
+    "catalog/skills/review/planning-strategy-review/modules/check-channel-male.md": {
+      "sha256": "468de3d3dcdbfb5bb0bcae9ee60a0e198db8f9a021130f7da3154bd59cd1395b",
+      "bytes": 218
+    },
+    "catalog/skills/review/planning-strategy-review/modules/check-channel-omni.md": {
+      "sha256": "7982b99e9a8883cb77c774ce878c0828a9b8ebca02d54992b5332026bc1784f5",
+      "bytes": 154
+    },
+    "catalog/skills/review/planning-strategy-review/modules/check-platform-free.md": {
+      "sha256": "c9b13046cea6b94e1c30c005fca1c896ba4bf27065087e637bca0e12831c13c8",
+      "bytes": 150
+    },
+    "catalog/skills/review/planning-strategy-review/modules/check-platform-paid.md": {
+      "sha256": "e0fb88aec387e8de3caaa0ac7baef4f6d3bff36e68fd679a427f11c6b4279f6a",
+      "bytes": 153
+    },
+    "catalog/skills/review/planning-strategy-review/modules/manifest.json": {
+      "sha256": "dc1a9773c218b35e5b6e229ece2536f1c5c92c8de4ee4ed5b670cab4ea4a60cb",
+      "bytes": 925
+    },
+    "catalog/skills/review/planning-strategy-review/prompt.md": {
+      "sha256": "934aa2d50147cac2e59bbc8ee02388f8578088e87ddd5a0a66149f9c7e39c374",
+      "bytes": 4532
+    },
+    "catalog/skills/review/planning-strategy-review/provenance.yaml": {
+      "sha256": "95547f097faa4fa6c854c7e022c78e972e87696998fb434da59d35c52bd970ab",
+      "bytes": 212
+    },
+    "catalog/skills/review/planning-strategy-review/schema.json": {
+      "sha256": "5c6c4cdd9418c6c97dfd7af9249f6e7bf3f3f95201bfb2a22ebecca78dee6fb7",
+      "bytes": 1310
+    },
+    "catalog/skills/review/planning-volume-outline-review/contract.yaml": {
+      "sha256": "6f95b5a18524dae8bd4ad24fcc797cedcdc4628d65d06ab033413416217e3ba6",
+      "bytes": 204
+    },
+    "catalog/skills/review/planning-volume-outline-review/metadata.yaml": {
+      "sha256": "612bcab1e0da8c5223b02909a3dfdf63400b9ac7605015ba1ef7db44e4047f33",
+      "bytes": 385
+    },
+    "catalog/skills/review/planning-volume-outline-review/modules/check-channel-female.md": {
+      "sha256": "7d1cfab502dcad619a29e19b583712b87f7747f724026af468d30f4c711f6cc2",
+      "bytes": 144
+    },
+    "catalog/skills/review/planning-volume-outline-review/modules/check-channel-male.md": {
+      "sha256": "41bbb48a55a4935ff182eaec0501344290009e6bbb783d14b31077133fb72ffd",
+      "bytes": 138
+    },
+    "catalog/skills/review/planning-volume-outline-review/modules/check-channel-omni.md": {
+      "sha256": "0888ad90d08c420c3db68a0dced451bd2433f573a6a3f593593fdcdb01c17264",
+      "bytes": 111
+    },
+    "catalog/skills/review/planning-volume-outline-review/modules/manifest.json": {
+      "sha256": "1c0064512d2e5d7d6550ae311975b3f1c89d49a43e4ab18b223a7b9ed852e443",
+      "bytes": 902
+    },
+    "catalog/skills/review/planning-volume-outline-review/prompt.md": {
+      "sha256": "c0e02527f8a621bca3522bb5d1c0b2cc881f1446126f15394e6ee611aa562cf3",
+      "bytes": 6241
+    },
+    "catalog/skills/review/planning-volume-outline-review/provenance.yaml": {
+      "sha256": "eb22b995ca3a23d51cb26f83012097ad5171e2e2f10ffbeed5fea7929ad94ff2",
+      "bytes": 218
+    },
+    "catalog/skills/review/planning-volume-outline-review/schema.json": {
+      "sha256": "5c6c4cdd9418c6c97dfd7af9249f6e7bf3f3f95201bfb2a22ebecca78dee6fb7",
+      "bytes": 1310
+    },
+    "catalog/skills/review/planning-world-contract-review/contract.yaml": {
+      "sha256": "523dc7a5fc819694032669f980361ae3ec6ec27649121467f469837fbeadd03f",
+      "bytes": 204
+    },
+    "catalog/skills/review/planning-world-contract-review/metadata.yaml": {
+      "sha256": "17ea4b55d1aaf542180321b1d0bb5b5a0cd67bf9251c810eb7025c59ea413a6b",
+      "bytes": 386
+    },
+    "catalog/skills/review/planning-world-contract-review/modules/check-channel-female.md": {
+      "sha256": "be3777d74538d9f42d8a58ca7c7d75b039a69e8ef45f9c130b7b9edd94984ec0",
+      "bytes": 1058
+    },
+    "catalog/skills/review/planning-world-contract-review/modules/check-channel-male.md": {
+      "sha256": "ee965b2899be0caef86c231c4084e157ba3cc3c294902b47493d7e3bddf27858",
+      "bytes": 789
+    },
+    "catalog/skills/review/planning-world-contract-review/modules/check-channel-omni.md": {
+      "sha256": "40f77ffbfef8852232d36ce5d03a67dea8e5139ca1fabb13dd0277b556c40353",
+      "bytes": 700
+    },
+    "catalog/skills/review/planning-world-contract-review/modules/check-genre-null.md": {
+      "sha256": "20bb6cc8224cf2a8e416c3e702ff986723a466f15c373284e771fb4af3d9a8a4",
+      "bytes": 203
+    },
+    "catalog/skills/review/planning-world-contract-review/modules/check-genre-present.md": {
+      "sha256": "60082988cb314f510aa1c1310dd88a78de3210af759e880aec26893fc2a2773a",
+      "bytes": 246
+    },
+    "catalog/skills/review/planning-world-contract-review/modules/manifest.json": {
+      "sha256": "a2da80ca8888e7377ff1528248503540116fb5a5f352f8613dacf251e810d758",
+      "bytes": 920
+    },
+    "catalog/skills/review/planning-world-contract-review/prompt.md": {
+      "sha256": "8210c8646686b1e07b00022903356464bf31a4167cf87d44120a71d56bcc70ca",
+      "bytes": 5271
+    },
+    "catalog/skills/review/planning-world-contract-review/provenance.yaml": {
+      "sha256": "db3a26c7c7ca299f0a11eefb82a56f8471db80f20aec72e9579ed06a0064b36e",
+      "bytes": 218
+    },
+    "catalog/skills/review/planning-world-contract-review/schema.json": {
+      "sha256": "5c6c4cdd9418c6c97dfd7af9249f6e7bf3f3f95201bfb2a22ebecca78dee6fb7",
+      "bytes": 1310
+    },
+    "catalog/skills/review/prose-blindtest/modules/manifest.json": {
+      "sha256": "00ec1c007a3b86ebe14c5e7ed992dd6728b3466666ced96f35b95f06336b0599",
+      "bytes": 141
+    },
+    "catalog/skills/review/prose-blindtest/prompt.md": {
+      "sha256": "55780a471534925c6beff03974ef22a175c1bf20c36bae7c6de6b1824fac65d7",
+      "bytes": 2019
+    },
+    "catalog/skills/review/prose-quality-review/contract.yaml": {
+      "sha256": "f464067b03f3c9e52ecdd73190f508f0308a49cf7a1bf4c6d5ec6ca8435c7bf4",
+      "bytes": 215
+    },
+    "catalog/skills/review/prose-quality-review/input_schema.json": {
+      "sha256": "9be2d1c94ff10f25589f82384303aabd609446bf494fb9ccffd2f4ae6bc72bb5",
+      "bytes": 748
+    },
+    "catalog/skills/review/prose-quality-review/metadata.yaml": {
+      "sha256": "6e7d4ef2899e56f42a9100d8ab23fe1b3dfd2f57cf5d40da8e96ec63b39e25c1",
+      "bytes": 429
+    },
+    "catalog/skills/review/prose-quality-review/modules/check-channel-female.md": {
+      "sha256": "f5e862185d498150bf2c6356825ab0bcd09d33c79d564eeb5a93a97417bd48b4",
+      "bytes": 293
+    },
+    "catalog/skills/review/prose-quality-review/modules/check-channel-male.md": {
+      "sha256": "a3db64001943216d7f85c726a33d4c580dfdf1f27fe98160ab77e44b79534ec0",
+      "bytes": 269
+    },
+    "catalog/skills/review/prose-quality-review/modules/check-channel-omni.md": {
+      "sha256": "f9add14a1e9ac1bcf9909618aa0d79185cacb9d2f54728fcad7d6446fe440b8c",
+      "bytes": 114
+    },
+    "catalog/skills/review/prose-quality-review/modules/manifest.json": {
+      "sha256": "0d35f507fe5530eecca1c20699b87b6402dbbca566e756b8455b31b048294c86",
+      "bytes": 999
+    },
+    "catalog/skills/review/prose-quality-review/prompt.md": {
+      "sha256": "5b822e05be4069ad81dbd8185371088940ba84361537d65b6cdd0c7f2e0187d8",
+      "bytes": 8897
+    },
+    "catalog/skills/review/prose-quality-review/provenance.yaml": {
+      "sha256": "79030ec5e52ff3db0f8b6175d0a17144a10853f391dc5353dca99b9e1df186ff",
+      "bytes": 244
+    },
+    "catalog/skills/review/prose-quality-review/schema.json": {
+      "sha256": "5d02efef1e7a48417076622973b22ae74ef48175117d9408016f2b9196a0d3ec",
+      "bytes": 1926
+    },
+    "catalog/skills/writing/chapter-draft-generation/metadata.yaml": {
+      "sha256": "992afb4ba28d76f366d113d27918b86c1ed1d305fa51d45a68597b256cfaff7a",
+      "bytes": 304
+    },
+    "catalog/skills/writing/chapter-draft-generation/modules/channel-female.md": {
+      "sha256": "bfdbe36e3d0094a9aaadf23e109f6252d40d5ac4102af33697e72ebebf051b87",
+      "bytes": 507
+    },
+    "catalog/skills/writing/chapter-draft-generation/modules/channel-male.md": {
+      "sha256": "1d6d457fa6fd0f0fcbb184b1119d870ccb207650e7c165568b24c204a1396761",
+      "bytes": 430
+    },
+    "catalog/skills/writing/chapter-draft-generation/modules/channel-omni.md": {
+      "sha256": "44011556341440ca09397cfc0456dcb6b91ad04e95ff995710f74037edbd5045",
+      "bytes": 233
+    },
+    "catalog/skills/writing/chapter-draft-generation/modules/kernel-psychology.md": {
+      "sha256": "f30bca55661642f04ce6c0f7927e6d3a735011182eee5e9bee8ec0c6b012fec2",
+      "bytes": 1238
+    },
+    "catalog/skills/writing/chapter-draft-generation/modules/manifest.json": {
+      "sha256": "c23eadd28998b9e9114bae767d7d0d84f06289bef3b330a4c5ba9821726416ef",
+      "bytes": 1191
+    },
+    "catalog/skills/writing/chapter-draft-generation/prompt.md": {
+      "sha256": "18e2da3d7c0f97e07139eb1daf4f23c65f24081669891409ee259274cdfa3ac7",
+      "bytes": 5142
+    },
+    "catalog/skills/writing/chapter-draft-generation/provenance.yaml": {
+      "sha256": "ce1b86ec1c4fd5f2603d94d2e75014d18b7f85ed3a080b0ca65c860c5ad7843c",
+      "bytes": 223
+    },
+    "catalog/skills/writing/scene-dialogue/metadata.yaml": {
+      "sha256": "1b429027c5f286794d828037028103422a9151ecb52c3b6e25026b0ef2f85ea3",
+      "bytes": 642
+    },
+    "catalog/skills/writing/scene-dialogue/prompt.md": {
+      "sha256": "092bf7ca133ffc8a43896fd72d108b65227c8a92bfe910cb14278d41158babc0",
+      "bytes": 718
+    },
+    "catalog/skills/writing/scene-dialogue/provenance.yaml": {
+      "sha256": "30bf685c312e727421fb838c71710c95626876f16698b195706514da2f5f8c36",
+      "bytes": 449
+    },
+    "catalog/skills/writing/scene-fight-craft/metadata.yaml": {
+      "sha256": "5ddf8c97f531041b15520fc11ebc5d9c9053a9fb1318990c7397b080690270f9",
+      "bytes": 617
+    },
+    "catalog/skills/writing/scene-fight-craft/prompt.md": {
+      "sha256": "d118103462cb17aa9836e4cbf9427fb898dd3562d566f47655613cc5569d3528",
+      "bytes": 474
+    },
+    "catalog/skills/writing/scene-fight-craft/provenance.yaml": {
+      "sha256": "0bfb6c53ecc208eec5a79aac10e34630f86ae73636bceddd09ef7c07a228a3e4",
+      "bytes": 436
+    }
+  }
+}
