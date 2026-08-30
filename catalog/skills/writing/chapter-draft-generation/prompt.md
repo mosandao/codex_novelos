@@ -34,4 +34,4 @@
 ## 可选场景方法卡（按需 Read，不能替代主干起草）
 
 - **prose-revision**（`catalog/skills/expansions/prose-revision/prompt.md`）：对**已有草稿**局部重写/润色/消 AI 痕迹时 Read。不能替代全新章节起草；严禁改变场景事实、突破视角受限或推翻已定因果。
-- **scene-dialogue** / **scene-fight-craft** / **compliance-place-guard**（`catalog/skills/craft/` 下同名目录）：对话关键场景（谈判/试探/摊牌）/ 对抗场景（战斗/论辩/对峙）/ 真实地名合规（现实/架空/都市题材涉真实地名）时按需 Read 其 prompt。各自不能替代主干起草；使用条件见其 metadata 的 `use_when` / `avoid_when`。
+- **scene-dialogue** / **scene-fight-craft**（`catalog/skills/writing/` 下同名目录）/ **compliance-place-guard**（`catalog/skills/craft/` 下同名目录）：对话关键场景（谈判/试探/摊牌）/ 对抗场景（战斗/论辩/对峙）/ 真实地名合规（现实/架空/都市题材涉真实地名）时按需 Read 其 prompt。各自不能替代主干起草；使用条件见其 metadata 的 `use_when` / `avoid_when`。

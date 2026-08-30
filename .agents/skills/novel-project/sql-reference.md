@@ -237,6 +237,17 @@ INSERT INTO narrative_promises (id, project_id, promise_key, description_resourc
 VALUES ('promise:xxx', 'project:xxx', '伏笔键名', 'resource:pd', 'open', 'chapter:xxx', 'sha256:...');
 -- status 只接受: open/resolved/broken
 
+-- 伏笔流水（021 起，R7-T4：余额之外必留分录——每章收口时为状态发生变化的承诺追加事件行；
+-- resolve/break 时同步 UPDATE narrative_promises.status 与 resolved_chapter_id）
+INSERT INTO promise_events (id, project_id, promise_key, chapter_id, event_type, note, source_content_hash)
+VALUES ('pe:xxx', 'project:xxx', '伏笔键名', 'chapter:xxx', 'progress', '本章推进要点', 'sha256:...');
+-- event_type 只接受: plant/progress/twist/resolve/break
+-- 收付平衡查询：每章至少兑现一条（close/partial 口径见 story_arc 台账）+ Claremont 系数
+SELECT COUNT(*) AS open_count FROM narrative_promises WHERE project_id = ? AND status = 'open';
+SELECT promise_key, status, source_chapter_id, resolved_chapter_id FROM narrative_promises WHERE project_id = ?;
+SELECT promise_key, event_type, chapter_id, created_at FROM promise_events
+WHERE project_id = ? AND promise_key = ? ORDER BY created_at, rowid;
+
 -- 读者期待
 INSERT INTO resources (id, media_type, content, content_hash) VALUES ('resource:ed', 'text/markdown', CAST(? AS BLOB), ?);
 INSERT INTO expectation_ledgers (id, project_id, expectation_key, description_resource_id, status, source_chapter_id, source_content_hash)
@@ -296,3 +307,18 @@ console.log(`resource:${randomUUID()}`);  // resource:3bb695f0-...
 | `novelos_accept_chapter` | 按「项目 / 书 / 卷 / 章节」接受模板：核对回执 → UPDATE status='accepted' + review_id 留痕 |
 
 原 `dsh-novelos-viewer` 插件 defineTool 门工具已随 `plugin/` 移除退役，机器校验不再存在；上表为「原门工具 → 退役后纪律」映射（主控自查执行，SQL 模板见上文各节）。content_hash 格式 `'sha256:'+sha256(utf8 hex)`，node:crypto 计算。资产语义校验（book_soul 等 validate_* 机器门）已随插件退役，当前对照各 skill 速查表与 `config/schemas/*.json` 自查。
+
+## R7 机器门通道（novelos-gate.mjs——2026-08-29 起关键状态写入优先走门）
+
+上表「自查纪律」中的关键状态写入自 R7 起有机器门通道 `scripts/novelos-gate.mjs`（dry-run 默认，写库须 `--commit`，生产库路径另须 `--allow-production`；GateFail=阻断+零写入，exit 1）：
+
+| 关键状态写入 | 门子命令 | 门强制点（SQL 模板仍是语义权威） |
+|---|---|---|
+| 回执落库 | `commit-review --receipt <file>` | reviewer_profile 强制 `model:/agent:` 前缀；G2 引文验证 in-process（no_hit/missing/空查回执 FATAL，`--allow-empty` 留痕豁免） |
+| 规划资产锁定 | `lock-asset --asset <id> --review <id>` | 封跳审/错绑/错版；同 key 旧 locked 自动翻 superseded；幂等重放仅限同回执 |
+| 章节接受 | `accept-chapter --chapter <id> --review <id>` | 同上三封 + 必写 `chapters.review_id`；Claremont 收口 WARN（open 伏笔 >2） |
+| stale 传播 | `propagate-stale --asset <id> [--fine]` | coarse 全量 / fine 内容未变不误伤（依赖边版本+content_hash 双比对） |
+| 人物登记/状态迁移 | `register-characters --project <id> --roster/--entry/--status-update` | 四规则校验 + 幂等合并不覆盖状态史 + 批内失败整体回滚 |
+| 资产语义校验 | `validate-asset --asset <id>` | 七件校验器（book_soul 档位门/世界代价两轴/roster 规模/弧数/卷纲高潮密度等常量逐字），只读自查 |
+
+项目创建签名链（六表事务）与项目删除仍走上文受控事务模板（主控执行，未见 R7 门覆盖范围）。「连续性」流水查询见该节 promise_events 部分（migration 021）。

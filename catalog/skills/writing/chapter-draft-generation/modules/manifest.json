@@ -44,7 +44,8 @@
     "world_lexicon",
     "character_essence",
     "canon_minimal",
-    "review_feedback"
+    "review_feedback",
+    "prev_chapter_tail"
   ],
   "craft_refs": [
     "prose-format-hardrules",

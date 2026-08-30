@@ -26,7 +26,7 @@ description: 根据已锁定 Chapter Plan 和已确认 Canon 上下文起草或�
    ```
    content_hash 格式 `'sha256:'+sha256(内容 UTF-8 字节的 hex)`，用 node:crypto 计算（`crypto.createHash('sha256').update(content,'utf8')`）。
    落库前跑 `node scripts/novelos-prose-fingerprint.mjs --text-file <草稿>` 预筛自查（只报事实不判级，命中不阻断落库），screen 摘要写入章节 metadata_json 的 `prescreen` 字段；修订轮 UPDATE 分支重跑预筛并更新 prescreen——预筛候选是审查侧证伪线索，不是写作方的整改清单。
-7. 交给 `$novel-review` 审查：回执按 sql-reference.md「审查」模板以受控 SQL 落库。审查通过后接受：单事务内先核对回执为 approved 且 subject_ref=该章节，再 `UPDATE chapters SET status='accepted', review_id=? ...`（写 `chapters.review_id` 机器痕迹，模板见 sql-reference.md）。交审查时预筛候选清单由主控手工附审查注入尾部并标注「仅供证伪，须逐条 confirm（`fpr:<ID>`）或 deny（`fpr-deny:<ID>`）+理由」；修订分支（重开 draft）按第 6 步口径重跑预筛并更新 metadata_json.prescreen。
+7. 交给 `$novel-review` 审查：回执按 sql-reference.md「审查」模板以受控 SQL 落库。落库前先跑 G2 引文验证——空 findings+approved 空查回执默认 FATAL（R7-A1，`--allow-empty` 仅为显式豁免通道），不得以「无问题」空回执放行接受。审查通过后接受：单事务内先核对回执为 approved 且 subject_ref=该章节，再 `UPDATE chapters SET status='accepted', review_id=? ...`（写 `chapters.review_id` 机器痕迹，模板见 sql-reference.md）。交审查时预筛候选清单由主控手工附审查注入尾部并标注「仅供证伪，须逐条 confirm（`fpr:<ID>`）或 deny（`fpr-deny:<ID>`）+理由」；修订分支（重开 draft）按第 6 步口径重跑预筛并更新 metadata_json.prescreen。
 
 修改已接受章节：免审直改禁止——必须重开 draft（降级操作 UPDATE status='draft'）→ 改稿 → `$novel-review` 重审（落新回执）→ 按第 7 步接受 SQL 重新接受。唯一例外是幂等确认：对已 accepted 章节重复接受且内容 hash 未变时，允许零写入确认；内容已变必须重审。
 

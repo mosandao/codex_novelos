@@ -1206,6 +1206,35 @@ function slotPromiseLedger(db, projectId) {
     + 'static 台账只作规划基线）', parts.join('\n\n')];
 }
 
+function slotPrevChapterTail(db, projectId) {
+  /** 上章定稿结尾语态（R7-T5，修正案 A4）：动笔前最后注入的必须是正文语态而非表格/清单
+   *  ——防文风被大纲数据区污染（chinese-novelist-skill 技巧思想，对抗审查 P2-4 成立判处置）。
+   *  取最近 accepted 章节正文结尾 800 字（任务书口径 500-800：不足整段注入并注明，超长取 800）。 */
+  if (projectId === null || projectId === undefined) fail('prev_chapter_tail 槽位需要 --project');
+  let rows;
+  try {
+    rows = db.prepare(
+      'SELECT ch.number AS ch_no, ch.title, CAST(r.content AS TEXT) AS content '
+      + 'FROM chapters ch JOIN volumes v ON v.id = ch.volume_id '
+      + 'JOIN books b ON b.id = v.book_id '
+      + 'JOIN resources r ON r.id = ch.content_resource_id '
+      + "WHERE b.project_id = ? AND ch.status = 'accepted' "
+      + 'ORDER BY v.number DESC, ch.number DESC, ch.rowid DESC LIMIT 1',
+    ).all(projectId);
+  } catch (exc) {
+    fail(`[prev_chapter_tail] 语态查询失败：${exc.message}`);
+  }
+  if (rows.length === 0) {
+    return ['上章定稿结尾（prev_chapter_tail——文风语态锚）',
+      '（无已接受章节——首章组装：语态锚缺位，按指纹卡/文风卡执行，禁止以大纲表格语态续写）'];
+  }
+  const content = rows[0].content ?? '';
+  const tail = content.length > 800 ? content.slice(-800) : content;
+  const note = content.length > 800 ? '结尾 800 字' : `全文 ${content.length} 字（不足 500 下限，整段注入）`;
+  return [`上章定稿结尾（prev_chapter_tail——动笔前最后阅读的正文语态，续写无缝衔接此语态；`
+    + `第 ${rows[0].ch_no} 章《${rows[0].title}》${note}）`, tail];
+}
+
 function slotCanonMinimal(db, projectId) {
   /** canon 最小集：六类账本近端条目 + 近期已接受章节摘要。查询失败显式降级打 stderr。 */
   if (projectId === null || projectId === undefined) fail('canon_minimal 槽位需要 --project');
@@ -1513,11 +1542,16 @@ export const SLOT_REGISTRY = {
   mechanisms: slotMechanisms,
   prev_volume_outline: slotPrevVolumeOutline,
   promise_ledger: slotPromiseLedger,
+  prev_chapter_tail: slotPrevChapterTail,
 };
 
 /** 按 manifest 的 data_slots 声明顺序解析注入槽位。未注册槽位即报错。
  *  withoutSlots（--without-slot，可重复）：组装时跳过指定槽（data_slots 槽名或 craft 卡名）
  *  ——盲测有/无对照用（红方 P1-6）；禁用清单由 writeCompositionLog 留痕。 */
+/** 语态槽：唯一在 craft 卡之后、自检节之前渲染的槽——「动笔前最后读的必须是正文语态」
+ *  （R7-T5/A4：生成点前最近端防文风被数据表格污染；其余槽按 data_slots 声明序注入）。 */
+const TAIL_SLOT = 'prev_chapter_tail';
+
 export function resolveSlots(db, skillDir, {
   projectId = null, payload = null, subjectId = null,
   context = null, reviewFeedback = null, withoutSlots = null,
@@ -1527,6 +1561,7 @@ export function resolveSlots(db, skillDir, {
   const sections = [];
   for (const slot of manifest.data_slots ?? []) {
     if (disabled.includes(slot)) continue;
+    if (slot === TAIL_SLOT) continue; // 延迟到 craft 卡之后渲染（生成点前最近端）
     if (slot.startsWith('knowledge:')) {
       const section = resolveKnowledge(db, slot.slice('knowledge:'.length), projectId);
       if (section !== null) sections.push(...section); // null = 蒸馏源全缺，槽静默跳过
@@ -1565,6 +1600,11 @@ export function resolveSlots(db, skillDir, {
       fail(`craft_refs 引用不存在的 craft 卡: ${craft}（${path.basename(skillDir)}）`);
     }
     sections.push([`craft 方法卡（${craft}，逐字注入——数字阈值唯一权威源）`, pyStrip(craftText)]);
+  }
+  if ((manifest.data_slots ?? []).includes(TAIL_SLOT) && !disabled.includes(TAIL_SLOT)) {
+    const resolver = SLOT_REGISTRY[TAIL_SLOT];
+    if (resolver === undefined) fail(`未注册的槽位: ${TAIL_SLOT}（${path.basename(skillDir)}）`);
+    sections.push(resolver(db, projectId, payload, subjectId, context)); // 单 section（[title, body]），不展开
   }
   return sections;
 }

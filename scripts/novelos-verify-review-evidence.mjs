@@ -7,12 +7,14 @@
  * 对不上 = 纸面化证据 = exit 1 供主控打回；同时校验 subject_hash ↔ 草稿绑定
  * （复用组装器 contentHash，'sha256:'+sha256(utf8)，零重复实现）。
  *
- * 三路 FATAL（任一命中 exit 1）：
+ * 四路 FATAL（任一命中 exit 1）：
  *   ① no_hit      —— blocking/warning finding 的 excerpt 归一化后在草稿中无命中
  *   ② missing     —— blocking/warning finding 缺 excerpt / 空串
  *   ③ hash_mismatch —— subject_hash ≠ 'sha256:'+sha256(草稿 utf8 字节)
+ *   ④ empty_findings_approved —— findings=0 且 verdict=approved（空查回执，红方 F7；
+ *      R7-A1 起默认 FATAL——原「--strict 才拦」口径作废；确需放行空回执加 --allow-empty，
+ *      降为 advisory 并在输出留痕豁免字样）
  * ADVISORY（默认只报；--strict 升级 FATAL）：
- *   · findings 总数 = 0 且 verdict = approved（空查回执，红方 F7）
  *   · excerpt 归一化后 < 8 字符（weak）
  *   · 命中次数 > 1（多处命中 = 证据力弱）
  * note / strength 级 finding 不做 FATAL 检查（只统计；R2 轮任务口径，
@@ -25,7 +27,7 @@
  *
  * 用法：
  *   node scripts/novelos-verify-review-evidence.mjs --receipt <回执.json|内联JSON> --draft <草稿.md>
- *       [--stdin-draft] [--json] [--strict] [--no-check-hash]
+ *       [--stdin-draft] [--json] [--strict] [--allow-empty] [--no-check-hash]
  * 回执兼容两种形态：candidate（findings 数组）/ DB 行（findings_json 字符串）；
  * --receipt 以 { 开头按内联 JSON 解析（对齐 composer --review-feedback 习惯）。
  * exit：0 = 通过（可落库）；1 = 存在 FATAL（纸面化回执，打回重审）；2 = 用法/输入错误。
@@ -38,7 +40,7 @@ import { fileURLToPath } from 'node:url';
 import { contentHash } from './novelos-compose-prompt.mjs';
 
 const PROG = 'novelos-verify-review-evidence';
-const VERSION = '1.0.0';
+const VERSION = '1.1.0';
 const SCHEMA = 'novelos.review-evidence-verify.v1';
 const WEAK_THRESHOLD = 8; // 归一化后 <8 字符 = weak（红方 F8 处置：6 升 8）
 
@@ -207,7 +209,7 @@ export function checkFindings(receiptFindings, draftNorm) {
 
 // ---------------------------------------------------------------- 报告
 
-function buildReport({ receipt, receiptForm, draftSource, draftHash, checkHash, strict, rows, summary, fatalList, advisories }) {
+function buildReport({ receipt, receiptForm, draftSource, draftHash, checkHash, strict, allowEmpty, rows, summary, fatalList, advisories }) {
   const hashOk = !checkHash || fatalList.every((x) => x.type !== 'hash_mismatch');
   const verdict = fatalList.length > 0 ? 'FAIL' : 'PASS';
   summary.fatal_total = fatalList.length; // finding 级 + 回执级合计（成功路径恒可判的口径）
@@ -219,6 +221,7 @@ function buildReport({ receipt, receiptForm, draftSource, draftHash, checkHash, 
       boundary: 'G2 验证证据存在性与回执↔草稿版本绑定，不验证引文相关性（红方 F8 边界，相关性归主控/红方抽查）',
       normalization: '全半角折叠+中西标点折叠+引号统一+破折号/省略号折叠+删全部空白',
       strict,
+      allow_empty: allowEmpty,
       check_hash: checkHash,
     },
     receipt: {
@@ -259,13 +262,15 @@ function toHuman(r) {
 
 function usage() {
   return [
-    `用法：node scripts/${PROG}.mjs --receipt <回执.json|内联JSON> --draft <草稿.md> [--stdin-draft] [--json] [--strict] [--no-check-hash]`,
+    `用法：node scripts/${PROG}.mjs --receipt <回执.json|内联JSON> --draft <草稿.md> [--stdin-draft] [--json] [--strict] [--allow-empty] [--no-check-hash]`,
     '',
-    '三路 FATAL（exit 1 = 纸面化回执，打回重审、不得落库）：',
+    '四路 FATAL（exit 1 = 纸面化回执，打回重审、不得落库）：',
     '  no_hit       blocking/warning 的 excerpt 归一化后在草稿中无命中',
     '  missing      blocking/warning 缺 excerpt / 空串',
     '  hash_mismatch  subject_hash ≠ sha256(草稿 utf8)（回执对错版本草稿同样判纸面化）',
-    'ADVISORY（默认只报；--strict 升级 FATAL）：findings=0 且 verdict=approved（空查回执）/ excerpt 归一化后 <8 字符（weak）/ 命中次数>1（多处命中）',
+    '  empty_findings_approved  findings=0 且 verdict=approved（空查回执，默认 FATAL；',
+    '             确需放行加 --allow-empty，降为 advisory 并留痕豁免字样）',
+    'ADVISORY（默认只报；--strict 升级 FATAL）：excerpt 归一化后 <8 字符（weak）/ 命中次数>1（多处命中）',
     'note / strength 级不做 FATAL（只统计）；strength 无 excerpt = exempt。',
     '',
     '边界声明（红方 F8）：本验证只管证据「存在性」与「回执↔草稿版本绑定」，',
@@ -281,6 +286,7 @@ async function main() {
   let stdinDraft = false;
   let jsonOut = false;
   let strict = false;
+  let allowEmpty = false;
   let checkHash = true;
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -290,6 +296,7 @@ async function main() {
       case '--stdin-draft': stdinDraft = true; break;
       case '--json': jsonOut = true; break;
       case '--strict': strict = true; break;
+      case '--allow-empty': allowEmpty = true; break;
       case '--no-check-hash': checkHash = false; break;
       case '--help': case '-h': console.log(usage()); return;
       default: throw new UsageError(`未知参数：${a}`);
@@ -342,14 +349,22 @@ async function main() {
     }
   }
 
-  // 回执级 advisory：空 findings + approved（红方 F7 空查回执防线）
+  // 回执级 ④：空 findings + approved（红方 F7 空查回执防线）
+  // R7-A1 起默认 FATAL（原「--strict 才拦」口径作废——对抗审查 P4-1：标准命令无人传 --strict，
+  // 橡皮图章回执曾默认放行）；--allow-empty 显式豁免 = 降为 advisory 并留痕豁免字样。
   const advisories = [];
   if (summary.findings_total === 0 && receipt.verdict === 'approved') {
-    advisories.push({
-      type: 'empty_findings_approved',
-      detail: 'findings 总数=0 且 verdict=approved：什么都没查的回执（--strict 下 FATAL）',
-    });
-    if (strict) fatalList.push({ type: 'empty_findings_approved', detail: advisories[advisories.length - 1].detail + '（--strict）' });
+    if (allowEmpty) {
+      advisories.push({
+        type: 'empty_findings_approved',
+        detail: 'findings 总数=0 且 verdict=approved：什么都没查的回执（--allow-empty 显式豁免留痕；相关性仍归主控/红方抽查）',
+      });
+    } else {
+      fatalList.push({
+        type: 'empty_findings_approved',
+        detail: 'findings 总数=0 且 verdict=approved：什么都没查的回执（R7-A1 默认 FATAL；确需放行加 --allow-empty 并留痕）',
+      });
+    }
   }
 
   // --strict：仅 blocking/warning 的 finding 级 advisory（weak / 多处命中）升级 FATAL
@@ -369,6 +384,7 @@ async function main() {
     draftHash,
     checkHash,
     strict,
+    allowEmpty,
     rows,
     summary,
     fatalList,

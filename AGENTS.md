@@ -7,7 +7,7 @@
 ```
 L0 权威存储   data/novelos-v2.db + config/（schemas ×18 · genre-packs（唯一词表源，scripts/test-guardrails.mjs 守卫）· system_archetypes）
               —— schemas 与 SQL migrations 与语言无关，是落库前自查复用的资产
-L1 运行时     主控 agent + node:sqlite（读=一次性只读查询；写=受控事务直写）
+L1 运行时     主控 agent + node:sqlite（读=一次性只读查询；写=机器门 novelos-gate.mjs 优先，门未覆盖的幂等读改受控事务直写）
 L2 方法论     catalog/skills/**（prompt.md 主干 + modules/ + manifest v2）——语言无关，原样有效
 L3 组装产物   data/compositions/
 L4 harness 适配 adapters/（单源 adapters/source/harness.yaml）
@@ -23,7 +23,7 @@ UI            md 投影（scripts/novelos-render-projection.mjs，node:sqlite �
 
 状态机约束：`candidate → locked` 与章节接受必须留下 review 关联（`db/migrations/019_state_machine_links.sql` 的 chapters.review_id）——锁定资产须绑定 `verdict='approved'` 且 `subject_ref` 匹配的回执；章节接受须写 `review_id` 留痕；已接受章节不得免审直改（降级 draft → 改 → 重审 → 重接受）。项目创建遇 mismatch 必须用户裁决后才落库（红队 F2「纸面化裁决门」教训）。
 
-写库三约定：① ID 格式 `类型:uuid`；② resources.content 经 BLOB 写入并同步 content_hash（`'sha256:'+hex`，node:crypto 计算）；③ 多表写入单事务，任一步失败整体回滚。
+写库三约定：① ID 格式 `类型:uuid`；② resources.content 经 BLOB 写入并同步 content_hash（`'sha256:'+hex`，node:crypto 计算）；③ 多表写入单事务，任一步失败整体回滚。**第四约定（R7 起）**：关键状态写入优先走机器门 `scripts/novelos-gate.mjs`（commit-review/lock-asset/accept-chapter/propagate-stale/register-characters/validate-asset；dry-run 默认，写库须 `--commit`+生产库 `--allow-production`；GateFail=阻断零写入），门未覆盖的幂等读改才走受控 SQL 直写。
 
 **读路径**：agent 查库用一次性 node:sqlite 只读查询；人类浏览用任意 SQLite 工具只读打开 `data/novelos-v2.db`，或打开 `node scripts/novelos-render-projection.mjs --project <id> --verify` 渲染出的 `novels/` 投影目录阅读。Python MCP 通道、legacy-python 校验门与 DSH 插件均已删除，不要再寻找或重建它们。
 
@@ -68,7 +68,7 @@ node scripts\novelos-compose-prompt.mjs --asset <asset> --project <id>
 
 1. `$novel-memory` 组织上下文（canon 最小集经组装器注入）。
 2. `$novel-writing` 起草 → sub agent → 主控按 sql-reference.md 模板落库（draft）。落库前跑 `node scripts/novelos-prose-fingerprint.mjs --text-file <draft>` 预筛（screen 命中即候选，只报事实不判级），候选清单由主控手工附审查注入尾部并标注「仅供证伪，须逐条 confirm（`fpr:<ID>`）或 deny（`fpr-deny:<ID>`）+理由」；修订轮 UPDATE 分支重跑预筛并更新 `metadata_json.prescreen`。
-3. `$novel-review` 审查：blocking+warning 必修，修复 = 新 revision 受控重组装；3 轮未收敛或同因复发 → 升级用户裁决，禁止无限打转。回执落库前跑 `node scripts/novelos-verify-review-evidence.mjs --receipt <回执> --draft <该版草稿>` 引文验证，FATAL（excerpt 无命中/缺失/subject_hash 错配）即打回、不得落库。
+3. `$novel-review` 审查：blocking+warning 必修，修复 = 新 revision 受控重组装；3 轮未收敛或同因复发 → 升级用户裁决，禁止无限打转。回执落库前跑 `node scripts/novelos-verify-review-evidence.mjs --receipt <回执> --draft <该版草稿>` 引文验证，FATAL（excerpt 无命中/缺失/subject_hash 错配/空 findings+approved 空查回执——R7-A1 起默认拦截，确需放行加 `--allow-empty` 并留痕）即打回、不得落库。
 4. `$novel-continuity` 提取连续性：账本候选落库后与人物注册表对账（SQL 见 sql-reference.md），有漂移即处理完才开下一章。
 5. **用户实时打断与修改（最高优先级）**：任何阶段用户提出修改——①暂停生成与提交；②按影响面分流（setup 级→UPDATE+全量 stale 重审；资产级→change proposal 走上游修订；章内级→审查回执受控重组装）；③呈报影响面清单获确认后执行。禁止以「生成进行中」为由推迟用户指令。
 

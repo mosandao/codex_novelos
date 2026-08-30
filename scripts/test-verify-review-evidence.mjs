@@ -7,7 +7,7 @@
  *   ② 编造引文 no_hit → FATAL exit 1
  *   ③ blocking 缺 excerpt missing → FATAL exit 1
  *   ④ subject_hash 错配 hash_mismatch → FATAL exit 1；--no-check-hash 放行
- *   ⑤ 空 findings+approved：默认 ADVISORY exit 0；--strict exit 1（红方 F7 空查回执防线）
+ *   ⑤ 空 findings+approved：默认 FATAL exit 1（R7-A1，原「--strict 才拦」作废）；--allow-empty 豁免 exit 0 且留痕；--strict 仍 exit 1（红方 F7 空查回执防线）
  *   ⑥ weak excerpt（归一化后 <8 字符）与多处命中（hit_count>1）报告；--strict 升级 FATAL
  *   ⑦ note-only 回执 PASS（note 缺 excerpt/未命中只统计不 FATAL——R2 轮任务口径）
  *   ⑧ 归一化变体：换行断句/全角逗号→半角/「」→“"" 引号统一 → hit
@@ -209,21 +209,32 @@ test('④ subject_hash 错配 → hash_mismatch FATAL；--no-check-hash 放行',
   assert.equal(r2.status, 0, r2.stdout + r2.stderr);
 });
 
-test('⑤ 空 findings+approved：默认 ADVISORY exit 0；--strict FATAL exit 1（红方 F7）', () => {
+test('⑤ 空 findings+approved：默认 FATAL exit 1；--allow-empty 豁免留痕 exit 0；--strict 仍 FATAL（红方 F7 · R7-A1）', () => {
   const p = writeReceipt('empty.json', receipt({ verdict: 'approved', findings: [] }));
+  // R7-A1：默认即 FATAL（橡皮图章回执不再默认放行）
   const r1 = runCli(['--receipt', p, '--draft', draftPath, '--json']);
-  assert.equal(r1.status, 0, r1.stdout + r1.stderr);
+  assert.equal(r1.status, 1, r1.stdout + r1.stderr);
   const j1 = JSON.parse(r1.stdout);
-  assert.equal(j1.advisory_receipt[0].type, 'empty_findings_approved');
-  assert.equal(j1.verdict, 'PASS');
-  const r2 = runCli(['--receipt', p, '--draft', draftPath, '--json', '--strict']);
-  assert.equal(r2.status, 1);
-  assert.equal(JSON.parse(r2.stdout).fatal[0].type, 'empty_findings_approved');
-  // 空 findings + rejected 不触发该 advisory（F7 只对准 approved 空查）
+  assert.equal(j1.fatal[0].type, 'empty_findings_approved');
+  assert.equal(j1.verdict, 'FAIL');
+  assert.equal(j1.meta.allow_empty, false);
+  // --allow-empty：显式豁免 exit 0，advisory 留痕含豁免字样
+  const r2 = runCli(['--receipt', p, '--draft', draftPath, '--json', '--allow-empty']);
+  assert.equal(r2.status, 0, r2.stdout + r2.stderr);
+  const j2 = JSON.parse(r2.stdout);
+  assert.equal(j2.verdict, 'PASS');
+  assert.equal(j2.meta.allow_empty, true);
+  assert.equal(j2.advisory_receipt[0].type, 'empty_findings_approved');
+  assert.ok(j2.advisory_receipt[0].detail.includes('--allow-empty 显式豁免'));
+  // --strict：仍 FATAL（语义与默认一致）
+  const r3 = runCli(['--receipt', p, '--draft', draftPath, '--json', '--strict']);
+  assert.equal(r3.status, 1);
+  assert.equal(JSON.parse(r3.stdout).fatal[0].type, 'empty_findings_approved');
+  // 空 findings + rejected 不触发该防线（F7 只对准 approved 空查）
   const p2 = writeReceipt('empty-rej.json', receipt({ verdict: 'rejected', findings: [] }));
-  const r3 = runCli(['--receipt', p2, '--draft', draftPath, '--json']);
-  assert.equal(r3.status, 0);
-  assert.equal(JSON.parse(r3.stdout).advisory_receipt.length, 0);
+  const r4 = runCli(['--receipt', p2, '--draft', draftPath, '--json']);
+  assert.equal(r4.status, 0);
+  assert.equal(JSON.parse(r4.stdout).advisory_receipt.length, 0);
 });
 
 test('⑥ weak excerpt（<8 字符）与多处命中报告；--strict 升级 FATAL', () => {
