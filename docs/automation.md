@@ -31,23 +31,23 @@
 1. 主控读取对应方法论 `prompt.md`，用 Agent 工具创建临时 sub agent，注入最小输入与必要的 locked 上游内容。
 2. sub agent 在隔离上下文执行，只返回候选文本（规划候选 / 章节草稿 / 审查意见 / 融合候选 / 上下文包）。
 3. 主控以 node:sqlite 单事务直写落库：content_hash 用 node:crypto 计算（`sha256:`+hex）→ BLOB 写入 resources → planning_assets/chapters 登记 `candidate` → 记录上游依赖 `planning_asset_dependencies`。
-4. 主控创建**独立**审查 sub agent（不同上下文）审查候选 → 审查意见登记 `reviews`。
-5. 审查通过后主控将状态置 `locked`（规划）或 `'accepted'`（章节）；旧版本变 `superseded`。
-6. 上游资产修订（新 revision locked）后，主控以 node:sqlite UPDATE 沿依赖边递归标记下游 `stale`。
-7. 章节接受后由 `$novel-continuity` 提取连续性数据 → SQL INSERT 事实/承诺/期待/关系/故事弧状态。
+4. 主控创建**独立**审查 sub agent（多视角三视角或单审查者，防共谋异构模型）审查候选 → G2 引文验证（`novelos-verify-review-evidence.mjs`）通过后，走机器门 `novelos-gate.mjs commit-review`（或受控 SQL）登记 reviews。
+5. 审查通过后，主控经机器门 `novelos-gate.mjs lock-asset`（规划）或 `accept-chapter`（章节，写 `chapters.review_id` 机器痕迹）锁定或接受；旧版本自动变 `superseded`。3 轮未收敛或同因复发时走 `open-adjudication` 物化裁决单与门互锁，裁决后 `resolve-adjudication` 解除。
+6. 上游资产修订（新 revision locked）后，主控以机器门 `novelos-gate.mjs propagate-stale` 沿依赖边递归标记下游 `stale`。
+7. 章节接受后由 `$novel-continuity` 提取连续性数据 → 写入六账本（含 `promise_events` 伏笔流水）与人物状态迁移，收尾跑只读对账。
 
 失败或超时的 sub agent 不返回部分结果；是否重试由主控基于用户目标重新路由，并创建新的 sub agent。
 
 ## 审查隔离
 
-审查 sub agent 必须是与生产 sub agent 不同的 Codex 临时 Agent（独立上下文），读取不可变的候选内容与精确上游。主控把审查意见 `INSERT INTO reviews`，绑定 subject（候选 ID/Hash）与审查 Profile。审查意见是落库/锁定的前置条件，但不自动触发写入——锁定/接受由主控经 SQL 完成。
+审查 sub agent 必须是与生产 sub agent 不同的 Codex 临时 Agent（独立上下文），读取不可变的候选内容与精确上游。主控把审查意见登记 `reviews`，绑定 subject（候选 ID/Hash）与审查 Profile。审查意见是落库/锁定的前置条件，但不自动触发写入——锁定/接受由主控经机器门或受控 SQL 完成。
 
 Agent 质量实验延期。延期期间 Writer 只处理完整章节、长场景或明确需要隔离上下文的写作；上下文构建智能体只在跨卷、多线、事实冲突或上下文溢出时创建。已完成的部分 case 仅作为恢复证据，不用于宣称胜率或改变路由。
 
 ## 操作控制
 
-- 审批：只有主控执行锁定、接受、晋升和删除的 SQL。
-- 审计：`reviews` 表、`planning_assets.status` 流转、`resources.content_hash`、`planning_asset_dependencies` 构成审计链；无 `authority_commits`/Trace，权威状态由 SQL 状态机直接表达。
+- 审批：只有主控执行锁定、接受、晋升和删除的机器门与受控 SQL。
+- 审计：`reviews` 表、`adjudications` 裁决单、`planning_assets.status` 流转、`resources.content_hash`、`planning_asset_dependencies` 构成审计链；无 `authority_commits`/Trace，权威状态由 SQL 状态机直接表达。
 - Rate limit：本地单用户，没有独立请求限流；sub agent 只在当前用户任务内创建。
 - Kill switch：停止当前 Codex 任务；未落库的候选不进入权威状态。
 - 外部模型/API：SQLite MCP 已删除、无从调用；模型认证由所用 harness 产品负责。

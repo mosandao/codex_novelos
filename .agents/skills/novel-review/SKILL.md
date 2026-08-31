@@ -32,8 +32,8 @@ description: 独立审查不可变小说资产并生成 Review Receipt。规划�
 3. **防共谋模型分工**：三视角须 **≥2 家不同 provider**；`perspective-structure`（结构视角，blocking 权限最重）**不得与写作者同 provider**。三视角模型身份记入回执 metadata_json.perspectives（各自 `provider:model`）。
 4. **统一 findings schema，零新协议**：三视角各自返回 findings 数组（`severity/code/message/excerpt/evidence_refs`；code 前缀 STRUCT-/VOICE-/READER- 区分来源）；**reader-pull 维度（READER-*）severity 上限=warning**（A6 观察期裁决：先 warning 观察一个项目周期，升 blocking 与否据实另行呈报）。
 5. **主控合并**：去重（同 issue 同 excerpt 重叠取最高 severity 并保留双视角 code）、逐条核对 excerpt 后组成**一份合并回执**（reviewer_profile=`agent:prose-review-perspectives@<合并模型>`；metadata_json 记 perspectives 三身份与合并规则），走既有 commit-review 门 + G2 引文验证——空回执/错绑/错版语义全部不变。
-6. **单审查者降级模式**：修复轮微审或用户明示省成本时，可单 sub agent 全维度审（组装产物含全部三张视角卡作维度自检清单）；`blocking`/`warning` 必修循环、升级裁决物化等纪律不变。
-7. 规划资产审查（planning-*-review）暂维持单审查者（A6 范围=prose-review；扩面另行呈报）。
+6. **单审查者模式与轻量迭代**：修复轮微审、轻量规划资产或用户明示省成本时，可单 sub agent 全维度审（组装产物含对应自检清单）；`blocking`/`warning` 必修循环、升级裁决物化等纪律不变。
+7. **全场景审查适配（A6 终态）**：正文审查（`prose-review`）默认并行三视角（结构/声音/读者）；核心规划资产审查（如 `direction-review`、`architecture-review`、`strategy-review`、`story-arc-review` 等高风险节点）可按需采用多视角（一致性/世界规则/叙事张力）异构模型并行审查，主控合并为单回执并执行 G2 验证。
 
 ## 审查标准来源
 

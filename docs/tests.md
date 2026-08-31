@@ -29,9 +29,17 @@
 | 迁移汇总 | 来源、Legacy、Catalog、seed、质量实验和切换门禁动态重建；统计篡改失败关闭 | `migration_summary.json`、`test_migration_summary.py` | existing |
 | 仓库产物卫生 | prospective Git 文件集、忽略规则、生成物和本地敏感文件失败关闭 | `hygiene.json`、`test_repository_hygiene.py` | existing |
 
-当前基线为 53 项根测试和 154 项 MCP 测试。Profile 测试覆盖 binding 缺失、键名拼错、空值、未注册引用、自定义运行时映射，以及 enforcement 缺省值、boolean 类型、未知 key 和未知查询名；交叉审查测试覆盖 pending、错配、stale、缺失及 lock 前来源失效。完整本地门禁还包括 Migration/Catalog manifest、Agent 质量数据集、seed inventory、迁移汇总、备份/导出恢复、仓库卫生、cutover plan/readiness 和 `compileall` 检查。仓库没有 CI，这些检查目前不自动阻止合并。
+当前 JS 时代的基线测试套件（全部为 Node.js ≥22 原生实现，零 Python 依赖）：
+1. `node scripts/test-guardrails.mjs`（409 断言）：词表自洽 G1、manifest⊆matrix 槽集合 G2、G2b-f 矩阵全等、G3 catalog manifest 复核、KG1 知识文件、KG2 规划参照。
+2. `node scripts/test-gate.mjs`（70 断言）：机器写门 8 大子命令（stale 传播、人物登记、状态机锁定与章节接受、CLI 门禁、裁决物化与互锁）。
+3. `node scripts/test-compose-prompt.mjs`（28 用例）：方法论组装器（主干、条件模块、输入数据区、动态槽位、knowledge 槽、when 路由、自检节提取、fusion 校验）。
+4. `node scripts/test-render-projection.mjs`（48 用例）：Markdown 投影渲染器（快照、确定性、manifest 校验、篡改检出、归属保护）。
+5. `node scripts/test-prose-fingerprint.mjs`（49 用例）：43 条 AI 文本指纹规则、分段分句、掩码配对、密度分母与金丝雀测试。
+6. `node scripts/test-verify-review-evidence.mjs`（15 用例）：G2 审查回执引文存在性、版本绑定、空查回执默认 FATAL 拦截。
+7. `node scripts/novelos-catalog-manifest.mjs --check`：360 个 catalog 文件 sha256 逐字匹配复核。
+8. `node scripts/novelos-canary.mjs --compare docs/knowledge/canary-baseline.json`：金丝雀基线比对与 screen 命中回归检测。
 
-零 Python 终态后的 JS 验证口径见 `README.md`「验证口径」：`node scripts/test-compose-prompt.mjs`（19 用例）、`node scripts/test-guardrails.mjs`、`node scripts/test-render-projection.mjs`（投影渲染器 48 用例，2026-08-27 之后按用户裁决恢复）。本表为插件时代 py 覆盖留档。
+上表为历史 MCP/Python 时代测试覆盖留档；当前仓库没有 CI，本地交付门禁以运行上述全套 JS 测试为准。
 
 
 ## 已提出但未完成

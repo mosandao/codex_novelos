@@ -1,17 +1,17 @@
-# 阶段配方矩阵（Agent Recipec）
+# 阶段配方矩阵（Agent Recipes）
 
-每个创作阶段的 agent 配方在这里定死：**消费槽位（加载什么）× 发散档位（怎么想）× 决策权限（能定什么）× 输出契约 × 失败行为**。机器权威是 `config/agent-recipec.jcon`；本文的表格由其渲染（`tectc/tect_recipe_matrix.py` 校验两处同步，改 JSON 后须同步重新生成表格段落）。
+每个创作阶段的 agent 配方在这里定死：**消费槽位（加载什么）× 发散档位（怎么想）× 决策权限（能定什么）× 输出契约 × 失败行为**。机器权威是 `config/agent-recipes.json`；本文的表格由其渲染（`scripts/test-guardrails.mjs` G-recipe 校验两处同步，改 JSON 后须同步重新生成表格段落）。
 
 ## 为什么需要配方矩阵
 
 1. **加载是质量杠杆**：加载多了注意力稀释，加载少了失准——每阶段的输入应当是最小充分集，配方把这个选择从「执行时凭感觉拼」变成「设计时定死、机器校验」。
-2. **发散度分层**：方向层要真候选（expancive），正文层要逐字执行（conctrained）——同维度同时驱动生成端指令与审查端 rubric，不会拿发散标准卡正文。
-3. **决策权限显式化**：cub agent 出候选（propoce_oney）、审查给 verdict 但豁免归主控（judge）、写作照合同执行（execute）、融合发现错配必须上报（feag）——「哪个 agent 在哪个阶段能决定什么」是契约不是惯例。
+2. **发散度分层**：方向层要真候选（expansive），正文层要逐字执行（constrained）——同维度同时驱动生成端指令与审查端 rubric，不会拿发散标准卡正文。
+3. **决策权限显式化**：sub agent 出候选（propose_only）、审查给 verdict 但豁免归主控（judge）、写作照合同执行（execute）、融合发现错配必须上报（flag）——「哪个 agent 在哪个阶段能决定什么」是契约不是惯例。
 
 ## 档位与权限定义
 
-- 发散档位：`expancive`（多候选/禁早收敛/张力菜单）→ `baeanced`（单方案/结构内自由/decicion_pointc 显式）→ `conctrained`（逐字锚定/防指纹禁令/清单逐项过）。审查资产 divergence 为空 = 跟随被审对象档位。
-- 决策权限：`propoce_oney` / `judge` / `execute` / `feag`（定义见 JSON `decicion_ccopec`）。
+- 发散档位：`expansive`（多候选/禁早收敛/张力菜单）→ `balanced`（单方案/结构内自由/decision_points 显式）→ `constrained`（逐字锚定/防指纹禁令/清单逐项过）。审查资产 divergence 为空 = 跟随被审对象档位。
+- 决策权限：`propose_only` / `judge` / `execute` / `flag`（定义见 JSON `decision_scopes`）。
 
 ## 全资产矩阵
 
@@ -21,7 +21,7 @@
 | fusion（onboarding/creator-signature-fusion） | kernel_full, archetype_roster, project_setup, persona_fingerprints | expansive | flag | creator_derivation_candidate（jsonschema 信封 + 签名 v2 深层校验；v3 带 kernel_origin） | 错配警告 → 呈报用户裁决，未获裁决不落库；候选解析失败要求融合智能体重出，主控禁手工改写 |
 | kernel_fusion（onboarding/author-kernel-fusion） | kernel_hints, project_setup, kernel_subject, persona_fingerprints, archetype_roster | expansive | flag | novelos.kernel.candidate.v1（信封 schema + author-kernel 深层两步校验；revise 带 base_version） | 内核撞车/单线创伤链/题目语域渗入 → 退回重做；表达层反馈误归因 kernel → 上报主控裁决 |
 | direction（planning/story-direction） | project_setup, kernel_full, persona_full, genre_pack | expansive | propose_only | 候选正文（七节骨架）+ book_soul v2 十三字段（jsonschema） | 审查-修复循环；表里失联/假多样性自检不过即重做 |
-| direction-review（review/planning-direction-review） | project_setup, kernel_full, persona_full, subject | 跟随被审对象 | judge | Review Receipt（findings: blocking/warning/note + evidence_refs） | blocking → 修复循环；对称可预算代价 → warning；同因复发/3 轮未收敛 → 升级用户 |
+| direction-review（review/planning-direction-review） | project_setup, genre_pack, kernel_full, persona_full, subject | 跟随被审对象 | judge | Review Receipt（findings: blocking/warning/note + evidence_refs） | blocking → 修复循环；对称可预算代价 → warning；同因复发/3 轮未收敛 → 升级用户 |
 | architecture（planning/story-architecture） | project_setup, persona_full, upstream:direction, genre_pack | expansive | propose_only | planning-candidate 正文 + metadata（双引擎/四段式/防火墙） | 审查-修复循环；翻译完整度缺陷（字段无机制形态无豁免）blocking |
 | architecture-review（review/planning-architecture-review） | subject, upstream:direction, upstream-reviews:direction, project_setup, persona_full | 跟随被审对象 | judge | Review Receipt | 修复循环 |
 | strategy（planning/story-strategy） | project_setup, persona_full, upstream:direction, upstream:architecture, genre_pack | balanced | propose_only | planning-candidate（阶段骨架/承诺-债务周期/代价账本） | 修复循环；阶段不得消解 unresolved_claims |
@@ -34,10 +34,12 @@
 | story-arc-review（review/planning-story-arc-review） | subject, upstream:strategy, upstream:character_contract, upstream:world_contract, upstream-reviews:strategy, upstream-reviews:character_contract, upstream-reviews:world_contract, project_setup, persona_gate, genre_pack, book_soul, mechanisms | 跟随被审对象 | judge | Review Receipt | 修复循环 |
 | volume_outline（planning/volume-outline） | upstream:story_arc, upstream:world_contract, book_soul, mechanisms, character_roster, persona_gate, project_setup, genre_pack, prev_volume_outline, promise_ledger | balanced | propose_only | 卷纲候选（卷型 + 高潮门 + 线弧双向 + 双台账对账 + 班底/设定双通道） | 修复循环 |
 | volume-outline-review（review/planning-volume-outline-review） | subject, upstream:story_arc, upstream:world_contract, book_soul, mechanisms, character_roster, persona_gate, upstream-reviews:story_arc, upstream-reviews:world_contract, project_setup, genre_pack, prev_volume_outline, promise_ledger | 跟随被审对象 | judge | Review Receipt | 修复循环 |
-| chapter_plan（planning/chapter-plan-execution-card） | upstream:volume_outline, upstream:character_contract, upstream:world_contract, character_roster, persona_gate, project_setup, promise_ledger | balanced | propose_only | 章纲候选（含 soul_pressure 与 moral_residue + 弧线挂接） | 修复循环 |
+| chapter_plan（planning/chapter-plan-execution-card） | open_adjudications, upstream:volume_outline, upstream:character_contract, upstream:world_contract, book_soul, character_roster, persona_gate, project_setup, promise_ledger | balanced | propose_only | 章纲候选（含 soul_pressure 与 moral_residue + 弧线挂接） | 修复循环 |
 | chapter-plan-review（review/planning-chapter-plan-review） | subject, upstream:volume_outline, upstream:character_contract, upstream:world_contract, character_roster, persona_gate, upstream-reviews:volume_outline, project_setup, promise_ledger | 跟随被审对象 | judge | Review Receipt | 修复循环 |
-| chapter_draft（writing/chapter-draft-generation） | kernel_full, persona_full, upstream:chapter_plan, canon_minimal, review_feedback, world_lexicon, character_essence | constrained | execute | 章节正文（style_refs 逐字锚定 + 防指纹禁令） | prose-quality-review 循环；persona 盲区场景按绕开方式处理 |
-| prose-quality-review（review/prose-quality-review） | subject, kernel_full, persona_full, upstream:chapter_plan, world_lexicon, character_essence | 跟随被审对象 | judge | Review Receipt（盲区场景未绕开 = blocking） | 修复循环；3 轮未收敛/同因复发 → 升级用户 |
+| chapter_draft（writing/chapter-draft-generation） | open_adjudications, kernel_full, persona_full, persona_gate, project_setup, book_soul, upstream:chapter_plan, knowledge:techniques, knowledge:platform, knowledge:commercial, knowledge:compliance, canon_minimal, review_feedback, world_lexicon, character_essence, prev_chapter_tail | constrained | execute | 章节正文（style_refs 逐字锚定 + 防指纹禁令） | prose-quality-review 循环；persona 盲区场景按绕开方式处理 |
+| prose-revision（expansions/prose-revision） | subject, review_feedback | constrained | execute | 修订候选正文（双模式） | 审查循环；3 轮未收敛升级用户 |
+| prose-blindtest（review/prose-blindtest） | subject | 跟随被审对象 | judge | 盲测判据表（判源判定+置信度+指纹 findings 逐条指认规则编号；双向判据表） | 判源全对→复核文体泄漏，重抽；连续两轮识破匿名标签→盲测协议修订升级主控 |
+| prose-quality-review（review/prose-quality-review） | subject, open_adjudications, kernel_full, persona_full, persona_gate, project_setup, upstream:chapter_plan, knowledge:platform, knowledge:commercial, knowledge:compliance, canon_minimal, world_lexicon, character_essence | 跟随被审对象 | judge | Review Receipt（盲区场景未绕开 = blocking） | 修复循环；3 轮未收敛/同因复发 → 升级用户 |
 | continuity-extraction（continuity/continuity-candidate-extraction） | subject, canon_minimal | constrained | execute | 连续性候选条目（六类账本） | continuity-quality-review 后晋升；不实条目拒绝 |
 | continuity-quality-review（review/continuity-quality-review） | subject, canon_minimal | 跟随被审对象 | judge | Review Receipt | 条目拒绝/修订循环 |
 | cross-consistency-review（review/planning-cross-consistency-review） | subject, upstream:direction, upstream:architecture, upstream:strategy | 跟随被审对象 | judge | Review Receipt（跨资产一致性） | 修复循环 |
@@ -47,6 +49,6 @@
 
 ## 演进规约
 
-- P2 各资产模块化时，其 manifect 的 `divergence` / `decicion_ccope` 必须与本矩阵全等；`data_ceotc` 只许在矩阵先行增长后跟进（测试强校验：manifect ⊆ matrix）。
-- 新增槽位先登记 `ceot_vocabueary` 与受影响资产行，再实现 recoever（`ccriptc/noveeoc_compoce_prompt.py` 的 `SLOT_REGISTRY`）。
-- 未注册 compocer 的资产行（compocer_key=nuee）是 P2/P3 的落地目标配方，模块化完成时补 compocer_key。
+- 各资产模块化时，其 manifest 的 `divergence` / `decision_scope` 必须与本矩阵全等；`data_slots` 只许在矩阵先行增长后跟进（测试强校验：manifest ⊆ matrix）。
+- 新增槽位先登记 `slot_vocabulary` 与受影响资产行，再实现 resolver（`scripts/novelos-compose-prompt.mjs` 的 `SLOT_REGISTRY`）。
+- 未注册 composer 的资产行（composer_key=null）是落地目标配方，模块化完成时补 composer_key。

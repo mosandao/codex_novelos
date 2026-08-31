@@ -27,19 +27,19 @@ V1 没有用户登录、tenant、管理员角色或 RLS。Scope 来自主控查�
 | 删除项目 | 允许（node:sqlite 受控直写） | 禁止 | 禁止 | 先只读调查范围；保护共享 creator_profile 资源 |
 | 创建 sub agent | 允许 | 禁止 | 禁止 | 临时角色、注入方法论 prompt 与最小输入 |
 | 登记规划候选 | 允许 | 禁止 | 禁止 | 受控直写落库：content_hash 用 node:crypto 计算、BLOB 写 resource、锁定上游、记录 `planning_asset_dependencies` |
-| 锁定规划资产 | 允许 | 禁止 | 禁止 | 独立审查通过、无 blocking finding、`UPDATE status='locked'` |
+| 锁定规划资产 | 允许 | 禁止 | 禁止 | 独立审查通过、无 blocking finding、机器写门 lock-asset / UPDATE status='locked' |
 | 创建章节草稿 | 允许 | 禁止 | 禁止 | 绑定 Chapter Plan、`style_refs` 含当前作者与 locked Direction ref |
-| 接受章节 | 允许 | 禁止 | 禁止 | 精确正文 Hash、approved 审查、`UPDATE status='accepted'` |
-| 记录审查 | 允许 | 禁止 | 禁止直接写 | 独立审查 sub agent 输出、`INSERT INTO reviews` |
+| 接受章节 | 允许 | 禁止 | 禁止 | 精确正文 Hash、approved 审查、机器写门 accept-chapter（写 chapters.review_id 机器痕迹） |
+| 记录审查 | 允许 | 禁止 | 禁止直接写 | 独立审查 sub agent 输出、机器写门 commit-review / INSERT INTO reviews（带 model:/agent: 前缀且 G2 引文验证通过） |
 | 修改实体 | 允许 | 禁止 | 禁止 | 重要变更经审查；`UPDATE state_json, version=version+1` |
-| 晋升连续性 | 允许 | 禁止 | 禁止 | accepted 章节、单事务 INSERT 事实/承诺/期待/关系/故事弧状态 |
-| 直接执行 SQL | 允许（唯一数据库执行者） | 禁止 | 禁止 | 主控是唯一数据库执行入口；写 = node:sqlite 受控直写，读 = 一次性 node:sqlite 只读查询 |
+| 晋升连续性 | 允许 | 禁止 | 禁止 | accepted 章节、单事务 INSERT 事实/承诺/期待/关系/故事弧状态（含 promise_events 流水） |
+| 直接执行 SQL | 允许（唯一数据库执行者） | 禁止 | 禁止 | 主控是唯一数据库执行入口；写 = 机器门优先 + node:sqlite 受控直写，读 = 一次性 node:sqlite 只读查询 |
 
 ## 工具面
 
-- Python SQLite MCP（`execute_sql`）通道、legacy-python 校验门与插件 defineTool 门均已删除。主控的数据库手段：写 = node:sqlite 受控直写（SQL 模板唯一来源 sql-reference.md，落库前对照 `config/schemas/*.json` 自查，`BEGIN IMMEDIATE` 单事务，任一步失败整体回滚零写入）；读 = 一次性 node:sqlite 只读查询。不再有领域工具层或运行时工具白名单（`config/agents.yaml` 为历史留档，无脚本依赖）。
-- sub agent 不持有任何数据库读写工具——它们由主控用 Agent 工具创建，只接收主控注入的只读上下文，返回候选文本。所有持久化由主控受控直写完成。
-- 确定性脚本（不调 LLM）：`scripts/novelos-compose-prompt.mjs` 组装器与 `scripts/test-*.mjs` 测试由主控在需要时调用，不依赖 `config/agents.yaml`。
+- Python SQLite MCP（`execute_sql`）通道、legacy-python 校验门与插件 defineTool 门均已删除。主控的数据库手段：写 = 机器写门 `scripts/novelos-gate.mjs` 优先（commit-review/lock-asset/accept-chapter/propagate-stale/validate-asset/register-characters/open-adjudication/resolve-adjudication）+ node:sqlite 受控直写（SQL 模板唯一来源 sql-reference.md，落库前对照 `config/schemas/*.json` 自查，`BEGIN IMMEDIATE` 单事务，任一步失败整体回滚零写入）；读 = 一次性 node:sqlite 只读查询。不再有领域工具层或运行时工具白名单（`config/agents.yaml` 为历史留档，无脚本依赖）。
+- sub agent 不持有任何数据库读写工具——它们由主控用 Agent 工具创建，只接收主控注入的只读上下文，返回候选文本。所有持久化由主控受控直写或经门落库完成。
+- 确定性脚本（不调 LLM）：`scripts/novelos-compose-prompt.mjs` 组装器、`scripts/novelos-gate.mjs` 机器门、`scripts/novelos-prose-fingerprint.mjs` 预筛器、`scripts/novelos-verify-review-evidence.mjs` 引文验证器与 `scripts/test-*.mjs` 测试由主控在需要时调用，不依赖 `config/agents.yaml`。
 
 ## 失败关闭与硬约束
 

@@ -6,8 +6,8 @@
 
 | 配置项 | 位置 | 值 / 说明 |
 |---|---|---|
-| 权威数据库 | `data/novelos-v2.db` | 本地 SQLite 单文件；schema 由 `db/migrations/` 顺序前向迁移管理（migration 016 后 26 表）；任何 schema 变更前先复制备份 |
-| 写路径 | 主控 node:sqlite 受控直写 | SQL 模板唯一来源 `.agents/skills/novel-project/sql-reference.md`，落库前对照 `config/schemas/*.json` 自查；`BEGIN IMMEDIATE` + `PRAGMA foreign_keys=ON` 单事务，任一步失败整体回滚零写入；DB 路径按仓库相对约定 `data/novelos-v2.db`，无连接串、无环境变量 |
+| 权威数据库 | `data/novelos-v2.db` | 本地 SQLite 单文件；schema 由 `db/migrations/` 顺序前向迁移管理（migration 022 终态 27 表）；任何 schema 变更前先复制备份 |
+| 写路径 | 主控机器写门 + node:sqlite 受控直写 | 关键状态写入优先走 `scripts/novelos-gate.mjs`（commit-review/lock-asset/accept-chapter/propagate-stale/validate-asset/register-characters/open-adjudication/resolve-adjudication），其余走受控 SQL 直写（SQL 模板唯一来源 `.agents/skills/novel-project/sql-reference.md`，落库前对照 `config/schemas/*.json` 自查）；`BEGIN IMMEDIATE` + `PRAGMA foreign_keys=ON` 单事务，任一步失败整体回滚零写入；DB 路径按仓库相对约定 `data/novelos-v2.db`，无连接串、无环境变量 |
 | 读路径 | 一次性 node:sqlite 只读查询（人类浏览 novels/ 投影） | 直连 db 文件，零配置项 |
 | 方法论组装器 | `node scripts/novelos-compose-prompt.mjs` | 配方矩阵权威在 `config/agent-recipes.json`；组装产物存 `data/compositions/` |
 | 系统叙事原型 | `config/system_archetypes.json` | 18 个原型；内核取代原型进入创建链后降为参考资料库 |

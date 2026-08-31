@@ -441,18 +441,43 @@ function writePilot(cards, stats) {
 
 // ── 主流程 ────────────────────────────────────────────────────────────────────
 
+let picked = [];
+let poolSize = 0;
+let weaknessesEmptyIds = [];
 const mergeLog = { trimHits: [], aliasHits: [], sameBookDropped: [], axisShortfall: [], authorOverflow: [] };
-console.log('读 MySQL kb_author_personas（只读）…');
-const rows = readMysqlRows();
-console.log(`  全表 ${rows.length} 行 / ${new Set(rows.map((r) => (r.author_name ?? '').trim())).size} 作者（trim 后）`);
-const { picked, poolSize, weaknessesEmptyIds } = selectCards(rows, mergeLog);
+
+if (!process.env.MYSQL_PWD && fs.existsSync(PILOT_OUT)) {
+  console.log(`未设置 MYSQL_PWD，直接读取已有试点文件: ${PILOT_OUT}`);
+  const pilotData = JSON.parse(fs.readFileSync(PILOT_OUT, 'utf8'));
+  picked = pilotData.cards || [];
+  poolSize = pilotData.stats?.pool_q9 ?? picked.length;
+} else {
+  console.log('读 MySQL kb_author_personas（只读）…');
+  const rows = readMysqlRows();
+  console.log(`  全表 ${rows.length} 行 / ${new Set(rows.map((r) => (r.author_name ?? '').trim())).size} 作者（trim 后）`);
+  const sel = selectCards(rows, mergeLog);
+  picked = sel.picked;
+  poolSize = sel.poolSize;
+  weaknessesEmptyIds = sel.weaknessesEmptyIds;
+  writeAliasMap(mergeLog);
+  writePilot(picked, {
+    total_rows: rows.length,
+    pool_q9: poolSize,
+    selected: picked.length,
+    female_channel: picked.filter((c) => c.axis === '女频（必取）').length,
+    alias_map: ALIAS_RULES.map((r) => `${r.pattern}→${r.to}`),
+    merge_log: mergeLog,
+  });
+  console.log(`\npilot JSON → ${PILOT_OUT}（gitignore）`);
+  console.log(`alias map  → ${ALIAS_OUT}（入 git 裁决材料）`);
+}
+
 const femaleCount = picked.filter((c) => c.axis === '女频（必取）').length;
 const rowPlan = buildWritePlan(picked);
 console.log(`  q≥9 池 ${poolSize} 条；weaknesses 空排除 ${weaknessesEmptyIds.length} 条（id: ${weaknessesEmptyIds.join(', ') || '无'}）`);
-console.log(`  归并：别名命中 ${mergeLog.aliasHits.length}（${mergeLog.aliasHits.map((h) => `${JSON.stringify(h.raw)}→${h.to}`).join('；') || '无'}）；trim 命中 ${mergeLog.trimHits.length}；同书去重丢弃 ${mergeLog.sameBookDropped.length}`);
 console.log(`\n选样 ${picked.length} 卡（女频 ${femaleCount}）：`);
 for (const c of picked) {
-  console.log(`  [${c.axis}] ${c.author}·《${c.book_source}》 q=${c.quality_score} src_id=${c.source_row_id} weaknesses=${c.weaknesses.length}条`);
+  console.log(`  [${c.axis}] ${c.author}·《${c.book_source}》 q=${c.quality_score} src_id=${c.source_row_id} weaknesses=${c.weaknesses?.length ?? 0}条`);
 }
 if (mergeLog.axisShortfall.length > 0) {
   console.log(`⚠ 轴缺口: ${JSON.stringify(mergeLog.axisShortfall)}`);
@@ -465,18 +490,6 @@ for (const r of rowPlan) {
   console.log(`    ${r.profileId.slice(0, 40)}… (ownership='style_seed')`);
   console.log(`    ${r.versionId.slice(0, 46)}… (revision=1, parent=NULL)`);
 }
-
-writeAliasMap(mergeLog);
-writePilot(picked, {
-  total_rows: rows.length,
-  pool_q9: poolSize,
-  selected: picked.length,
-  female_channel: femaleCount,
-  alias_map: ALIAS_RULES.map((r) => `${r.pattern}→${r.to}`),
-  merge_log: mergeLog,
-});
-console.log(`\npilot JSON → ${PILOT_OUT}（gitignore）`);
-console.log(`alias map  → ${ALIAS_OUT}（入 git 裁决材料）`);
 
 if (COMMIT) {
   commit(rowPlan, TARGET_DB);

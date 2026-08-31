@@ -14,7 +14,8 @@
 
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { readFileSync, rmSync, copyFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -62,13 +63,81 @@ function firstProjectId() {
   }
 }
 
-const projectId = firstProjectId();
+const prodProjectId = firstProjectId();
+const FIXTURE_DB = '/tmp/r3-compose-fixture.db';
+const FIXTURE_LOG = '/tmp/r3-compose-fixture-log';
+
+function buildFixtureDb() {
+  rmSync(FIXTURE_DB, { force: true });
+  rmSync(FIXTURE_LOG, { recursive: true, force: true });
+  copyFileSync(path.join(ROOT, 'data', 'novelos-v2.db'), FIXTURE_DB);
+  const db = new DatabaseSync(FIXTURE_DB);
+  let pRow = db.prepare('SELECT id FROM projects LIMIT 1').get();
+  let pid;
+  if (!pRow) {
+    pid = 'project:zzfix-001';
+    const setup = {
+      channel: '男频',
+      platform: '起点',
+      scale: '中篇（50-100万字）',
+      primary_genre: '诸天无限',
+      secondary_directions: ['无限流'],
+      emotional_surface: ['爽快'],
+      emotional_core: '对抗宿命',
+      tonal_contrast: null,
+      aesthetic_styles: ['硬朗'],
+      genre_profile: { primary_genre: '诸天无限' },
+      reference_material: ''
+    };
+    db.prepare(`INSERT INTO projects (id, name, description, version, metadata_json)
+      VALUES (?, '测试项目', '用于测试', 1, ?)`).run(pid, JSON.stringify({ setup_schema_version: 3, setup }));
+
+    const sigJson = JSON.stringify({
+      schema_version: 2,
+      display_name: '测试创作者',
+      persona: {
+        narrative_voice: '冷峻克制',
+        anchors: {
+          five_dimensions: { life_trajectory: '工程师转型', career_track: '技术' },
+          trait_profile: '严谨',
+          inner_tension: '理性与情感',
+          theme_orientation: { dominant: '秩序' }
+        },
+        blindspots: { cannot_write: ['宫斗'], refuses: ['无脑装逼'] }
+      },
+      creative_boundaries: { core_interests: ['机制设计'], taboos: ['机械降神'] }
+    });
+    const sigHash = 'sha256:' + createHash('sha256').update(sigJson, 'utf8').digest('hex');
+    db.prepare(`INSERT INTO resources (id, media_type, content, content_hash) VALUES ('resource:zzfix-sig', 'application/json', CAST(? AS BLOB), ?)`).run(sigJson, sigHash);
+    db.prepare(`INSERT INTO creator_profiles (id, display_name, ownership) VALUES ('creator-profile:zzfix', '测试创作者', 'user')`).run();
+    db.prepare(`INSERT INTO creator_profile_versions (id, profile_id, revision, content_resource_id, subject_hash)
+      VALUES ('creator-profile-version:zzfix', 'creator-profile:zzfix', 1, 'resource:zzfix-sig', ?)`).run(sigHash);
+    db.prepare(`INSERT INTO project_creator_bindings (project_id, profile_id, profile_version_id, profile_revision, subject_hash, binding_mode)
+      VALUES (?, 'creator-profile:zzfix', 'creator-profile-version:zzfix', 1, ?, 'kernel_derive')`).run(pid, sigHash);
+  } else {
+    pid = pRow.id;
+  }
+  const planText = '第一章章纲：主角进入拍卖行，与对手展开谈判与多轮对话；'
+    + '开篇用危机切入，中段战斗收尾。';
+  const hash = 'sha256:' + createHash('sha256').update(planText, 'utf8').digest('hex');
+  db.prepare("INSERT OR REPLACE INTO resources (id, media_type, content, content_hash) "
+    + "VALUES ('resource:zzfix-plan', 'text/markdown', CAST(? AS BLOB), ?)").run(planText, hash);
+  db.prepare("INSERT OR REPLACE INTO planning_assets (id, project_id, asset_type, scope_ref, revision, "
+    + "status, content_resource_id, producer_role, metadata_json) "
+    + "VALUES ('planning:zzfix-plan', ?, 'chapter_plan', 'volume:zzfix#1', 1, 'locked', "
+    + "'resource:zzfix-plan', 'chapter_plan', '{}')").run(pid);
+  db.close();
+  return pid;
+}
+
+const projectId = prodProjectId || buildFixtureDb();
+const baseArgs = prodProjectId ? [] : ['--db', FIXTURE_DB];
 
 // ---------------------------------------------------------------- ① direction 对真实项目
 
-test('①a direction 资产对生产项目 exit=0 且输出非空', () => {
-  assert.ok(projectId, '生产库无项目可测');
-  const r = runCli(['--asset', 'direction', '--project', projectId, '--no-log']);
+test('①a direction 资产对生产/夹具项目 exit=0 且输出非空', () => {
+  assert.ok(projectId, '无项目可测');
+  const r = runCli(['--asset', 'direction', '--project', projectId, ...baseArgs, '--no-log']);
   assert.equal(r.status, 0, `stderr: ${r.stderr}`);
   assert.ok(r.stdout.length > 1000, '输出过短');
 });
@@ -78,24 +147,24 @@ test('①b 输出含主干标题（prompt.md 首个 H1）', () => {
     path.join(ROOT, 'catalog/skills/planning/story-direction/prompt.md'), 'utf8');
   const h1 = promptMd.split('\n').find((l) => l.startsWith('# '));
   assert.ok(h1 && h1.length > 2);
-  const r = runCli(['--asset', 'direction', '--project', projectId, '--no-log']);
+  const r = runCli(['--asset', 'direction', '--project', projectId, ...baseArgs, '--no-log']);
   assert.ok(r.stdout.includes(h1.trim()), `缺主干标题「${h1.trim()}」`);
 });
 
 test('①c 输出含输入数据区标记', () => {
-  const r = runCli(['--asset', 'direction', '--project', projectId, '--no-log']);
+  const r = runCli(['--asset', 'direction', '--project', projectId, ...baseArgs, '--no-log']);
   assert.ok(r.stdout.includes('## 输入数据（权威源，正文引用以此为准）'));
 });
 
 test('①d 输出含尾部自检汇总节', () => {
-  const r = runCli(['--asset', 'direction', '--project', projectId, '--no-log']);
+  const r = runCli(['--asset', 'direction', '--project', projectId, ...baseArgs, '--no-log']);
   assert.ok(r.stdout.includes('## 交付前自检（普适项 + 条件模块附加项，逐项通过才返回）'));
 });
 
 // ---------------------------------------------------------------- ② 未知 asset
 
 test('② 未知 asset 报错退出码非 0', () => {
-  const r = runCli(['--asset', 'does-not-exist', '--project', projectId]);
+  const r = runCli(['--asset', 'does-not-exist', '--project', projectId, ...baseArgs]);
   assert.notEqual(r.status, 0);
   assert.ok(r.stderr.includes("invalid choice: 'does-not-exist'"), r.stderr);
 });
@@ -103,7 +172,7 @@ test('② 未知 asset 报错退出码非 0', () => {
 // ---------------------------------------------------------------- ③ 缺 --subject
 
 test('③ direction-review 缺 --subject 报错', () => {
-  const r = runCli(['--asset', 'direction-review', '--project', projectId, '--no-log']);
+  const r = runCli(['--asset', 'direction-review', '--project', projectId, ...baseArgs, '--no-log']);
   assert.notEqual(r.status, 0);
   assert.ok(r.stderr.includes('--subject'), r.stderr);
 });
@@ -236,9 +305,7 @@ test('附6 fusion 载荷结构校验：合法放行、非法报字段路径', ()
 
 // ---------------------------------------------------------------- ⑦ knowledge 槽（R3）
 
-const { createHash } = await import('node:crypto');
-const fs = await import('node:fs');
-const { mkdirSync, rmSync, writeFileSync, readFileSync: rfSync, existsSync, copyFileSync } = fs;
+const rfSync = readFileSync;
 
 /** 内存夹具库：planning_assets + resources 最小结构（knowledgePlanText 查询面）。 */
 function makeMemoryDb(planText) {
@@ -371,28 +438,6 @@ test('⑦c 蒸馏源全缺 = 槽静默跳过（P2-13 惰性读取）；无章纲
 });
 
 // ---- ⑦d/⑦e/⑦f CLI 冒烟：/tmp 夹具库副本（生产库零写入） ----
-
-const FIXTURE_DB = '/tmp/r3-compose-fixture.db';
-const FIXTURE_LOG = '/tmp/r3-compose-fixture-log';
-
-function buildFixtureDb() {
-  rmSync(FIXTURE_DB, { force: true });
-  rmSync(FIXTURE_LOG, { recursive: true, force: true });
-  copyFileSync(path.join(ROOT, 'data', 'novelos-v2.db'), FIXTURE_DB);
-  const db = new DatabaseSync(FIXTURE_DB);
-  const pid = db.prepare('SELECT id FROM projects LIMIT 1').get().id;
-  const planText = '第一章章纲：主角进入拍卖行，与对手展开谈判与多轮对话；'
-    + '开篇用危机切入，中段战斗收尾。';
-  const hash = 'sha256:' + createHash('sha256').update(planText, 'utf8').digest('hex');
-  db.prepare("INSERT INTO resources (id, media_type, content, content_hash) "
-    + "VALUES ('resource:zzfix-plan', 'text/markdown', ?, ?)").run(planText, hash);
-  db.prepare("INSERT INTO planning_assets (id, project_id, asset_type, scope_ref, revision, "
-    + "status, content_resource_id, producer_role, metadata_json) "
-    + "VALUES ('planning:zzfix-plan', ?, 'chapter_plan', 'volume:zzfix#1', 1, 'locked', "
-    + "'resource:zzfix-plan', 'chapter_plan', '{}')").run(pid);
-  db.close();
-  return pid;
-}
 
 const hasFixture = existsSync(path.join(ROOT, 'data', 'novelos-v2.db'));
 

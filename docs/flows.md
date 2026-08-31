@@ -38,12 +38,12 @@
 
 前置条件：项目存在；精确上游资产均为 `locked` 且版本匹配。
 
-1. 主控从 `catalog/skills/planning/<对应 skill>/prompt.md` 读取方法论，确定目标 `asset_type` 与 `scope_ref`。
+1. 主控从 `catalog/skills/planning/<对应 skill>/prompt.md` 读取方法论（优先经 `novelos-compose-prompt.mjs` 组装注入），确定目标 `asset_type` 与 `scope_ref`。
 2. 主控用 Agent 工具创建临时 sub agent，注入方法论 prompt、最小输入与必要的 locked 上游内容；sub agent 在隔离上下文返回候选正文（或绑定上游精确版本/Hash 的 change proposal）。
 3. 主控以 node:sqlite 单事务直写落库候选（模板见 sql-reference.md）：content_hash 用 node:crypto 计算（`sha256:`+hex）→ BLOB 写入 resources → planning_assets 登记 `candidate` → `planning_asset_dependencies` 记录上游依赖。
-4. 主控创建**独立**审查 sub agent（不同上下文）审查候选 → 审查意见登记 reviews，绑定 subject（候选 ID/Hash）与审查意见。
-5. 审查通过后主控将资产状态置 `locked` 并绑定 locked_review_id；旧版本变为 `superseded`。
-6. 上游资产修订（新 revision locked）后，主控以 node:sqlite UPDATE 沿依赖边递归标记所有下游 `stale`。
+4. 主控创建**独立**审查 sub agent（不同上下文）审查候选 → G2 引文验证（`novelos-verify-review-evidence.mjs`）通过后，经机器门 `novelos-gate.mjs commit-review`（或受控 SQL）登记 reviews。
+5. 审查通过后，主控经机器门 `novelos-gate.mjs lock-asset` 锁定资产并绑定 review_id；旧版本自动变为 `superseded`。3 轮未收敛或同因复发时走 `open-adjudication` 物化裁决单与门互锁，裁决后 `resolve-adjudication` 解除。
+6. 上游资产修订（新 revision locked）后，主控经机器门 `novelos-gate.mjs propagate-stale`（或受控 SQL）沿依赖边递归标记所有下游 `stale`。
 
 拒绝路径：未锁定上游、错误 producer、候选被主控改写、自审、blocking 审查意见或越权 change proposal 均不得产生 locked 版本。
 
@@ -53,11 +53,11 @@ Character 与 World 可以并行生成（上游相同、互不依赖），全部
 
 参与者：主控智能体、`$novel-memory`、可选上下文构建智能体、章节规划智能体、写作智能体、审查智能体、`$novel-continuity`。
 
-1. 主控使用 `$novel-memory` 获取最小 Canon 上下文；仅在跨卷、多线、事实冲突或上下文溢出时创建上下文构建智能体。
+1. 主控使用 `$novel-memory` 获取最小 Canon 上下文（优先消费组装器 `canon_minimal` 槽位）；仅在跨卷、多线、事实冲突或上下文溢出时创建上下文构建智能体。
 2. 没有有效 Chapter Plan 时，按规划流程生成并锁定；执行卡包含可追溯到 locked Direction 的 `soul_pressure` 和 `moral_residue`，纯过渡场景允许明确降低思想前景强度。
-3. 主控创建写作智能体 sub agent，注入 `style_refs`（至少含当前 Creator Profile 精确 ref 和 locked Direction 精确 ref）；sub agent 返回正文候选，主控 `INSERT INTO chapters (...,'draft',...)`。
-4. 主控创建独立审查 sub agent 审查不可变正文 Hash → `INSERT INTO reviews`；审查通过后 `UPDATE chapters SET status='accepted'`。
-5. `$novel-continuity` 从已接受正文提取候选（事实/承诺/期待/关系/故事弧状态/人物状态迁移），绑定正文 Hash，主控 SQL INSERT 到对应连续性账本；character_status 晋升后主控按 sql-reference.md 模板直写更新人物注册表，收尾跑只读对账。
+3. 主控创建写作智能体 sub agent，注入 `style_refs`（经组装器 `chapter-draft` 一步产出）；sub agent 返回正文候选，主控跑 `novelos-prose-fingerprint.mjs` 预筛写入 `metadata_json.prescreen` 后 `INSERT INTO chapters (...,'draft',...)`。
+4. 主控创建独立审查 sub agent（默认多视角三视角 `perspective-structure/voice/reader`，防共谋异构模型）审查不可变正文 Hash → G2 引文验证通过后经机器门 `commit-review` 登记回执；审查通过后经机器门 `novelos-gate.mjs accept-chapter`（写 `chapters.review_id` 机器痕迹）接受章节。
+5. `$novel-continuity` 从已接受正文提取候选（事实/承诺/期待/关系/故事弧状态/人物状态迁移），绑定正文 Hash，主控写入对应连续性六账本（含 `promise_events` 伏笔流水）；character_status 晋升后主控经机器门 `register-characters` 或受控 SQL 更新人物注册表，收尾跑只读对账。
 
 拒绝路径：正文修改使旧审查失效则不得接受；任一失败不得部分更新连续性账本。
 
