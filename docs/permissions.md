@@ -1,12 +1,11 @@
 # 权限矩阵
-> ⚠️ **口径更新（2026-08-27）**：`plugin/` 与 DSH 插件已退役。本文中「插件门工具 / viewer 面板 / 向导」相关描述为插件时代口径；当前权威口径见 `README.md` 与 `AGENTS.md`（写库 = node:sqlite 受控直写）。
 
 ## 角色
 
 | 角色 | 来源 | 生命周期 | 权限原则 |
 |---|---|---|---|
 | 用户 | 当前 harness 会话 | 外部 | 提供意图并决定是否继续，不直接写 SQLite |
-| 主控智能体 | 当前 harness 会话 | 唯一常驻 | 唯一数据库执行者：写唯一经 `dsh-novelos-viewer` 插件六个 defineTool 门工具，读用一次性 node:sqlite 只读查询或 viewer 面板（sql.js 只读）；必须遵守审查前置、版本/Hash 与状态机约束 |
+| 主控智能体 | 当前 harness 会话 | 唯一常驻 | 唯一数据库执行者：写 = node:sqlite 受控直写（sql-reference.md 模板 + schemas 自查），读 = 一次性 node:sqlite 只读查询或 novels/ 投影；必须遵守审查前置、版本/Hash 与状态机约束 |
 | 规划资产 Agent | 主控用 Agent 工具创建 + 注入 `catalog/skills` 方法论 | 临时 | 无数据库权限；只返回自己拥有的候选或上游 change proposal |
 | 写作智能体 | 主控用 Agent 工具创建 | 临时 | 无数据库权限；只返回正文候选 |
 | 审查智能体 | 主控用 Agent 工具创建（独立上下文） | 临时 | 无数据库权限；只返回审查意见 |
@@ -25,29 +24,29 @@ V1 没有用户登录、tenant、管理员角色或 RLS。Scope 来自主控查�
 | 打开/提交项目创建向导 | 允许 | 禁止 | 禁止 | V3 仅接受系统叙事原型 `derive`、精确父版本/Hash、固定题材选项、最多两项美学风格和 10,000 字资料；jsonschema 校验签名合规；项目与绑定同事务 |
 | 管理 Creator Profile | 允许 | 只读（主控注入） | 只读（主控注入） | 内容修订创建不可变 revision；禁止人口属性推导和具体作者模仿目标 |
 | rebind 项目作者版本 | 允许 | 禁止 | 禁止 | 提供用户原因；Direction 及后代递归 `stale`，不自动重生成 |
-| 删除项目 | 允许（`novelos_delete_project` 门工具） | 禁止 | 禁止 | 先 `dryRun` 调查；保护共享 creator_profile 资源 |
+| 删除项目 | 允许（node:sqlite 受控直写） | 禁止 | 禁止 | 先只读调查范围；保护共享 creator_profile 资源 |
 | 创建 sub agent | 允许 | 禁止 | 禁止 | 临时角色、注入方法论 prompt 与最小输入 |
-| 登记规划候选 | 允许 | 禁止 | 禁止 | 经门工具落库：content_hash 门内 crypto 自动计算、BLOB 写 resource、锁定上游、记录 `planning_asset_dependencies` |
+| 登记规划候选 | 允许 | 禁止 | 禁止 | 受控直写落库：content_hash 用 node:crypto 计算、BLOB 写 resource、锁定上游、记录 `planning_asset_dependencies` |
 | 锁定规划资产 | 允许 | 禁止 | 禁止 | 独立审查通过、无 blocking finding、`UPDATE status='locked'` |
 | 创建章节草稿 | 允许 | 禁止 | 禁止 | 绑定 Chapter Plan、`style_refs` 含当前作者与 locked Direction ref |
 | 接受章节 | 允许 | 禁止 | 禁止 | 精确正文 Hash、approved 审查、`UPDATE status='accepted'` |
 | 记录审查 | 允许 | 禁止 | 禁止直接写 | 独立审查 sub agent 输出、`INSERT INTO reviews` |
 | 修改实体 | 允许 | 禁止 | 禁止 | 重要变更经审查；`UPDATE state_json, version=version+1` |
 | 晋升连续性 | 允许 | 禁止 | 禁止 | accepted 章节、单事务 INSERT 事实/承诺/期待/关系/故事弧状态 |
-| 直接执行 SQL | 禁止（无裸 SQL 写通道） | 禁止 | 禁止 | 主控是唯一数据库执行入口；写路径一律经插件 defineTool 门工具，读用一次性 node:sqlite 只读查询 |
+| 直接执行 SQL | 允许（唯一数据库执行者） | 禁止 | 禁止 | 主控是唯一数据库执行入口；写 = node:sqlite 受控直写，读 = 一次性 node:sqlite 只读查询 |
 
 ## 工具面
 
-- Python SQLite MCP（`execute_sql`）通道与 legacy-python 校验门均已删除。主控的数据库手段：写 = 唯一经 `dsh-novelos-viewer` 插件六个 defineTool 门工具（ajv 门 + `BEGIN IMMEDIATE` 单事务，FAIL 返回 ok:false 零写入）；读 = viewer 面板（sql.js 只读）或一次性 node:sqlite 只读查询。不再有领域工具层或运行时工具白名单（`config/agents.yaml` 为历史留档，无脚本依赖）。
-- sub agent 不持有任何数据库读写工具——它们由主控用 Agent 工具创建，只接收主控注入的只读上下文，返回候选文本。所有持久化由主控经门工具完成。
-- 确定性门工具（插件 host 内，不调 LLM）：六个 defineTool 门由主控在需要时调用，不依赖 `config/agents.yaml`。
+- Python SQLite MCP（`execute_sql`）通道、legacy-python 校验门与插件 defineTool 门均已删除。主控的数据库手段：写 = node:sqlite 受控直写（SQL 模板唯一来源 sql-reference.md，落库前对照 `config/schemas/*.json` 自查，`BEGIN IMMEDIATE` 单事务，任一步失败整体回滚零写入）；读 = 一次性 node:sqlite 只读查询。不再有领域工具层或运行时工具白名单（`config/agents.yaml` 为历史留档，无脚本依赖）。
+- sub agent 不持有任何数据库读写工具——它们由主控用 Agent 工具创建，只接收主控注入的只读上下文，返回候选文本。所有持久化由主控受控直写完成。
+- 确定性脚本（不调 LLM）：`scripts/novelos-compose-prompt.mjs` 组装器与 `scripts/test-*.mjs` 测试由主控在需要时调用，不依赖 `config/agents.yaml`。
 
 ## 失败关闭与硬约束
 
-- ajv 校验签名/book_soul 失败时拒绝落库（FAIL 零写入）。
+- 对照 schema 自查（签名/book_soul 等）失败时拒绝落库（零写入）。
 - SQL `CHECK` 约束与状态机：`planning_assets.status` 仅允许 candidate/locked/stale/superseded；`revision`/`version` 必须 > 0；`asset_type` 仅允许枚举值。
 - sub agent 失败或超时不得携带部分输出；主控决定是否重新路由并创建新 sub agent。
 - change proposal 必须绑定当前项目 locked 上游的 ID、版本和 Hash。
-- 删除项目经 `novelos_delete_project` 门工具：保护共享 creator_profile 系统原型资源；`dryRun:true` 只调查不写数据；删除按单事务提交。
+- 删除项目由主控 node:sqlite 受控直写：保护共享 creator_profile 系统原型资源；先只读调查再删；删除按单事务提交。
 - 绑定项目的 Direction 缺少/错绑 `creator_signature_ref` 或 `book_soul` 时拒绝；Chapter Plan 缺少/错绑 `soul_pressure` 与 `moral_residue` 时拒绝；Writer `style_refs` 缺少当前作者或 locked Direction ref 时拒绝。
-- 落库约定已在门内固化：resources.content 经 BLOB 写入并同步 content_hash（`sha256:`+hex，门内 crypto 计算）；绕过门手工写库会破坏下游解码与校验，一律禁止。
+- 落库约定（主控自查执行）：resources.content 经 BLOB 写入并同步 content_hash（`sha256:`+hex，node:crypto 计算）；偏离约定手工写库会破坏下游解码与校验，一律禁止。
