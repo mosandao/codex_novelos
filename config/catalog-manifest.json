@@ -1,6 +1,6 @@
 {
   "schema": "novelos.catalog-manifest.v1",
-  "generated_at": "2026-09-01T05:00:58Z",
+  "generated_at": "2026-09-01T05:29:09Z",
   "file_count": 360,
   "files": {
     "catalog/skills/continuity/continuity-candidate-extraction/input_schema.json": {
@@ -632,8 +632,8 @@
       "bytes": 2318
     },
     "catalog/skills/planning/chapter-plan-execution-card/prompt.md": {
-      "sha256": "b85f40444cba78fdde8abc26097a377483a577e20813aac9b8b0ab7e35bcd625",
-      "bytes": 6573
+      "sha256": "7d809fa73693ca2915c4e2e9acb6b0a6f05b30e7948a74f759c1f69acfdb2140",
+      "bytes": 6967
     },
     "catalog/skills/planning/chapter-plan-execution-card/provenance.yaml": {
       "sha256": "531d8c7281383597efcda1ffa11b7b98a935ed0717743639cd100c8427ff7229",
@@ -668,8 +668,8 @@
       "bytes": 2375
     },
     "catalog/skills/planning/character-contract/prompt.md": {
-      "sha256": "947c5b7ff8cf897f34daa5a6e03debc2930ddc92d6990b941bbd68ce1657abd3",
-      "bytes": 18100
+      "sha256": "2775d9730c5d3263466deed6f96e2e4467d63da4c9f1c7fc7b89c0dbb5e95e4e",
+      "bytes": 20295
     },
     "catalog/skills/planning/character-contract/provenance.yaml": {
       "sha256": "e78bc0f22a6fe9dec2d056ceb00c2fafb2e9195be0edaa9208410dd00f4655b9",
@@ -1412,8 +1412,8 @@
       "bytes": 1299
     },
     "catalog/skills/writing/chapter-draft-generation/prompt.md": {
-      "sha256": "18e2da3d7c0f97e07139eb1daf4f23c65f24081669891409ee259274cdfa3ac7",
-      "bytes": 5142
+      "sha256": "bb673793764936c181cf622f11a4e4845b2ade1fef2ee32819955dcfa4f42e97",
+      "bytes": 5319
     },
     "catalog/skills/writing/chapter-draft-generation/provenance.yaml": {
       "sha256": "ce1b86ec1c4fd5f2603d94d2e75014d18b7f85ed3a080b0ca65c860c5ad7843c",
