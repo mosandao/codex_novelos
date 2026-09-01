@@ -111,7 +111,7 @@
         "style_seed": {
           "type": "object",
           "additionalProperties": false,
-          "description": "可选风格种子段（R5，U6 裁决后启用）。mode=persona_select 时走库内反查（主控自查，与 author_kernel select 同构且更严）：seed_version_id 存在 + 该 profile ownership='style_seed' + status='active' + seed_subject_hash 与该版本 subject_hash 相符。种子卡语义 = 表达层风格参照，不是 parent（parent 永远是内核版本）；种子与内核/表里基调根本相斥时须用户裁决，禁止静默硬融",
+          "description": "可选风格种子段。mode=persona_select 时走库内反查（主控自查，与 author_kernel select 同构且更严）：seed_version_id 存在 + 该 profile ownership='style_seed' + status='active' + seed_subject_hash 与该版本 subject_hash 相符。种子卡语义 = 表达层风格参照，不是 parent（parent 永远是内核版本）；种子与内核/表里基调根本相斥时须用户裁决，禁止静默硬融",
           "required": [
             "mode"
           ],

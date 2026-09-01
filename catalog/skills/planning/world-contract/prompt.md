@@ -135,7 +135,7 @@ strategy 的 metadata（随 upstream 槽注入）在世界层逐项落地，缺�
 
 ## world-metadata 出口
 
-metadata 附结构化产物（schema 见 `config/schemas/world-metadata.schema.json`，交付前对照本节各机器门规则自查——席位/岗位表/规则一致性；自动机器校验待 R4 JS 化）：
+metadata 附结构化产物（schema 见 `config/schemas/world-metadata.schema.json`，交付前对照本节各机器门规则自查——席位/岗位表/规则一致性；自动机器校验未覆盖）：
 
 - `seats[]`：岗位表（如上）。
 - `lexicon`：四件套机器可读形态——`positive_terms` / `banned_categories`（四类各含本书示例禁词，每类 ≥1 条）/ `measure_system` / `exceptions`。

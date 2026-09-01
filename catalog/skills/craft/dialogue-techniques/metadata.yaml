@@ -12,7 +12,7 @@ priority: 20
 tags: [dialogue, techniques, knowledge]
 use_when:
 - 起草对话密集章节需要语言指纹、潜台词或对话节奏参照
-- 审查对话质量需要对照 R3 蒸馏技法条目
+- 审查对话质量需要对照注入的技法蒸馏条目
 avoid_when:
 - 章节无对话场景
 - 需要 Canon 对账时（本卡为知识参照，非 Canon、无对账义务）

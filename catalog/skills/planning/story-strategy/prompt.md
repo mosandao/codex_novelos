@@ -106,4 +106,4 @@ character_contract 与 world_contract 以 strategy 为输入。每阶段列出�
 6. **中盘终局**：阶段数 ≥3 有换挡事件且丝滑；终局字数不压缩（或 open 模式有喂料声明）。
 7. **persona 与题材**：四用法引用 persona 全文部件；题材阶段形态非默认模糊升级。
 8. **下游交接**：人物弧需求与世界状态变更清单完整。
-9. **形式与机器门**：正文符合骨架；metadata 含 decision_points（或空数组）；对照档位规则自查 metadata（机器门待 R4 JS 化）。
+9. **形式与机器门**：正文符合骨架；metadata 含 decision_points（或空数组）；对照档位规则自查 metadata（机器门未覆盖）。

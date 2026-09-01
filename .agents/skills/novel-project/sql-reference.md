@@ -327,15 +327,15 @@ console.log(`resource:${randomUUID()}`);  // resource:3bb695f0-...
 | stale 传播 | `propagate-stale --asset <id> [--fine]` | coarse 全量 / fine 内容未变不误伤（依赖边版本+content_hash 双比对） |
 | 人物登记/状态迁移 | `register-characters --project <id> --roster/--entry/--status-update` | 四规则校验 + 幂等合并不覆盖状态史 + 批内失败整体回滚 |
 | 资产语义校验 | `validate-asset --asset <id>` | 七件校验器（book_soul 档位门/世界代价两轴/roster 规模/弧数/卷纲高潮密度等常量逐字），只读自查 |
-| 向导载荷校验 | `validate-payload --payload <file>` | R9 P0-1/M2：v3 载荷结构门 + select 内核三查（ownership/status/hash）+ style_seed 反查，只读——六表落库前必跑，替换纯「对照 schema 自查」纪律 |
-| 升级用户裁决（开单） | `open-adjudication --project <id> --subject-type <planning\|chapter> --subject-ref <id> --reason <文本> [--rounds <json>]` | subject 存在性+归属反查；同 subject 已 open 拒绝（022 部分唯一索引兜底）；open 期间 lock/accept 门互锁阻断（R8-T2，A5） |
+| 向导载荷校验 | `validate-payload --payload <file>` | v3 载荷结构门 + select 内核三查（ownership/status/hash）+ style_seed 反查，只读——六表落库前必跑，替换纯「对照 schema 自查」纪律 |
+| 升级用户裁决（开单） | `open-adjudication --project <id> --subject-type <planning\|chapter> --subject-ref <id> --reason <文本> [--rounds <json>]` | subject 存在性+归属反查；同 subject 已 open 拒绝（022 部分唯一索引兜底）；open 期间 lock/accept 门互锁阻断 |
 | 用户裁决落定 | `resolve-adjudication --adjudication <id> --resolution <文本>` | open→resolved 终态；resolution 必填；解除互锁 |
 
-R9 增补门语义：`commit-review` 另有 `--writer-profile`（写作/审查同模型 GateFail，`--allow-same-provider` 留痕豁免）与 `--no-check-hash`（metadata 记 `check_hash:false`）；空查口径=无 blocking/warning 级 finding（note 凑数 FATAL）；`lock-asset`/`accept-chapter` 遇同 subject ≥3 条回执且无裁决单 = 升级裁决门 GateFail（M10）；lock 对零上游依赖边资产 WARN（M8 静默断链形态）；023 TRIGGER 为上述状态机约束的 DB 层第二防线（裸 SQL 直写同样被拦）。
+门增补语义：`commit-review` 另有 `--writer-profile`（写作/审查同模型 GateFail，`--allow-same-provider` 留痕豁免）与 `--no-check-hash`（metadata 记 `check_hash:false`）；空查口径=无 blocking/warning 级 finding（note 凑数 FATAL）；`lock-asset`/`accept-chapter` 遇同 subject ≥3 条回执且无裁决单 = 升级裁决门 GateFail；lock 对零上游依赖边资产 WARN（静默断链形态）；023 TRIGGER 为上述状态机约束的 DB 层第二防线（裸 SQL 直写同样被拦）。
 
-项目创建签名链（六表事务）与项目删除仍走上文受控事务模板（主控执行，未见 R7 门覆盖范围）。「连续性」流水查询见该节 promise_events 部分（migration 021）。
+项目创建签名链（六表事务）与项目删除仍走上文受控事务模板（主控执行，机器门未覆盖）。「连续性」流水查询见该节 promise_events 部分（migration 021）。
 
-## 升级裁决物化（adjudications——R8-T2，A5 TBD 物化）
+## 升级裁决物化（adjudications）
 
 审查 3 轮未收敛/同因复发/mismatch 升级用户裁决时，**必须过门落一条裁决单**（不可只口头挂起）：
 
@@ -352,7 +352,7 @@ FROM adjudications WHERE project_id = 'project:xxx' AND status = 'open' ORDER BY
 
 互锁语义：subject 存在 open 行时 `lock-asset`/`accept-chapter` GateFail（先裁决后推进）；`commit-review`/`propagate-stale` 不拦。库未应用 022 时互锁静默放行（随迁移生效），open 显式报错。
 
-## M7 对账查询（A8 · R8——per-model 依从性记账，一次性只读）
+## M7 对账查询（per-model 依从性记账，一次性只读）
 
 三指标定义与判读纪律见 `docs/knowledge/metrics.md` M7 节（低于阈值只呈报用户裁决，不自动除名）。模型身份权威=`reviewer_profile` 的 `model:`/`agent:` 前缀（P4-2 机器强制）；无前缀行进「未标记」桶并视为口径违规呈报。
 

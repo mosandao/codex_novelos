@@ -47,11 +47,11 @@ persona 是这本书的第一因。book_soul 不是从题材套路构造的，�
 | 长篇（100-300万字） | 主承诺分 3-4 幂兑现，矛盾两层递进 | 兑现间隔 ≤ 80 万字 |
 | 超长篇（300万字以上） | 承诺可再造（同一承诺在不同世界/阶段重新定价），矛盾三层以上 | 兑现 5 次以上，间隔 ≤ 100 万字 |
 
-  禁止 300 万字的书只排 3 次兑现（一次兑现隔一百万字 = 读者流失空窗），也禁止 30 万字的短篇铺三层矛盾（收不了尾）。兑现次数与间隔的规划值落 `metadata.book_soul.cadence_plan`（fulfillment_count × interval_volumes），对照档位规则自查次数下限（机器门待 R4 JS 化）——数字门不靠自检自觉。
+  禁止 300 万字的书只排 3 次兑现（一次兑现隔一百万字 = 读者流失空窗），也禁止 30 万字的短篇铺三层矛盾（收不了尾）。兑现次数与间隔的规划值落 `metadata.book_soul.cadence_plan`（fulfillment_count × interval_volumes），对照档位规则自查次数下限（机器门未覆盖）——数字门不靠自检自觉。
 
 - setup 输入过薄（如 platform_traits 的 patience / reader_profile 仅寥寥数语）时，在候选正文显式声明「消费受限 + 缺什么」，交主控补采后重生成——禁止在贫信息上空转消费语法。
 
-## 上游消费：表里基调（普适硬输入）
+## 上游消费：表里基调
 
 `emotional_core`（内核，恰 1 项）是 book_soul 的情感承诺来源：它决定这个故事最终运送的情感真相——写进 `central_contradiction` 的情感底色与 `protected_dignity` 的不可侵犯底线。direction 必须回答「内核如何在结局兑现」。
 
@@ -143,7 +143,7 @@ persona 是这本书的第一因。book_soul 不是从题材套路构造的，�
 - **story-expectation-design**（`catalog/skills/expansions/story-expectation-design/prompt.md`）：设计读者承诺骨架、信息揭示阶梯与兑现节点时参考——本层用它定**承诺结构与节奏**（architecture 层用它定兑现机制）。
 - 未覆盖的场景依靠 persona 与签名直接推导，不强行套用素材。
 
-## 交付前自检（普适九项；条件模块附加项附于本节之后）
+## 交付前自检
 
 1. **两难测试**：central_contradiction 的两个判断各自成立且互斥，无单向口号。
 2. **组织原则测试**：organizing_principle 换一本书即不成立；能追溯到 persona 的目光。
@@ -153,4 +153,4 @@ persona 是这本书的第一因。book_soul 不是从题材套路构造的，�
 6. **可展开性测试**：承诺与矛盾层次撑得起 scale 规模的中段（progress 不塌）；兑现次数与间隔规划值匹配 scale 档位（短篇 1-2 次 / 中篇 3 次量级 / 长篇 3-4 幂 / 超长篇 ≥5 次）。
 7. **假多样性测试**：比较表中无两个候选共享实质相同的两难+组织原则，且情感登记两两不同；至少一个候选走了最大表里反差档或激进承诺结构；每个候选完成 atlas 同题材簇去重声明且 market_position 无同质化声明（对标 2-3 部 + 逐维 delta）。
 8. **边界测试**：未提前建世界百科/人物传记/卷章事件；cannot_write 的场景已进负面清单。
-9. **形式测试**：book_soul 过 schema v2（organizing_principle / promise_cadence / market_position 必填）；正文符合骨架；metadata 含精确 `creator_signature_ref` 与完整 `book_soul`（与正文逐字段一致，含 lineage 映射与 cadence_plan）；对照档位规则自查 cadence_plan 数字门通过（机器门待 R4 JS 化）。
+9. **形式测试**：book_soul 过 schema v2（organizing_principle / promise_cadence / market_position 必填）；正文符合骨架；metadata 含精确 `creator_signature_ref` 与完整 `book_soul`（与正文逐字段一致，含 lineage 映射与 cadence_plan）；对照档位规则自查 cadence_plan 数字门通过（机器门未覆盖）。

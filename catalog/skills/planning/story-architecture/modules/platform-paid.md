@@ -7,4 +7,4 @@
 
 - 释放阶梯各级带到期日；每章增量类型已声明。
 
-数字常数以 config/platform-constants.json 为唯一权威源（R9 P11 单源化）；本卡叙述性规则与常数冲突时以 config 为准。
+数字常数以 config/platform-constants.json 为唯一权威源；本卡叙述性规则与常数冲突时以 config 为准。

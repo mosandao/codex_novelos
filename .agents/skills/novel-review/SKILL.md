@@ -21,9 +21,9 @@ description: 独立审查不可变小说资产并生成 Review Receipt。规划�
    - `reviewerProfile`：审查者身份，必须携带模型身份前缀——`model:<provider:model>`（异构厂商模型直审，防共谋）或 `agent:<name>@<model>`（具名审查 agent）；匿名裸字符串（如 `prose-v1`）拒绝落库
    - 可选 `evidenceRefsJson`（证据引用数组）、`metadataJson`
    - `subject_hash` 取被审对象库内资源的 content_hash 溯源锚点；落库后把 `reviewId` 交给锁定/接受步骤引用
-   - 回执落库前主控先跑 G2 引文验证：`node scripts/novelos-verify-review-evidence.mjs --receipt <回执JSON> --draft <该版草稿>`，FATAL（excerpt 无命中/缺失/subject_hash 错配/空 findings+approved 空查回执——R7-A1 起默认拦截，确需放行空回执加 `--allow-empty`，输出留痕豁免字样）即打回重审、不得落库；该验证只管证据存在性与版本绑定，不验证相关性（归主控/红方抽查）
+   - 回执落库前主控先跑 G2 引文验证：`node scripts/novelos-verify-review-evidence.mjs --receipt <回执JSON> --draft <该版草稿>`，FATAL（excerpt 无命中/缺失/subject_hash 错配/空 findings+approved 空查回执——默认拦截，确需放行空回执加 `--allow-empty`，输出留痕豁免字样）即打回重审、不得落库；该验证只管证据存在性与版本绑定，不验证相关性（归主控/红方抽查）
 
-## 多视角审查编排（A6 · R8 起正文审查默认形态）
+## 多视角审查编排（正文审查默认形态）
 
 正文/章节审查（prose-review 场景）**默认并行三视角 sub agent**（对抗「同分布宽容」：单审查者与写作者同分布，天然偏向同样盲区——oh-story/creative-writing 双实证，裁决记录见 `docs/novelos-adversarial-cross-exam.md` P4-7）：
 
@@ -58,7 +58,7 @@ description: 独立审查不可变小说资产并生成 Review Receipt。规划�
 ### 循环边界（防无限打转，必须执行）
 
 - **轮次上限**：同一 subject 默认 **3 轮**未收敛 → 停止循环，升级用户裁决（附各轮 blocking 摘要）。禁止无限重试。
-- **升级即物化（R8-A5）**：升级用户裁决必须经门落裁决单——`node scripts/novelos-gate.mjs open-adjudication --project <id> --subject-type <planning|chapter> --subject-ref <id> --reason <升级原因> --rounds '<各轮 blocking 摘要 JSON>' --commit`；open 期间该 subject 的 lock/accept 被门互锁阻断，下游组装经 `open_adjudications` 槽可见未决状态。用户裁决后 `resolve-adjudication --adjudication <id> --resolution <结论> --commit` 解除。禁止只口头挂起不落单。
+- **升级即物化**：升级用户裁决必须经门落裁决单——`node scripts/novelos-gate.mjs open-adjudication --project <id> --subject-type <planning|chapter> --subject-ref <id> --reason <升级原因> --rounds '<各轮 blocking 摘要 JSON>' --commit`；open 期间该 subject 的 lock/accept 被门互锁阻断，下游组装经 `open_adjudications` 槽可见未决状态。用户裁决后 `resolve-adjudication --adjudication <id> --resolution <结论> --commit` 解除。禁止只口头挂起不落单。
 - **同因复发检测**：本轮 blocking 与上一轮同因（同一问题未解决或换个说法复发）→ **直接升级**，不再重试——修复手段无效的信号，换手段或人工介入。
 - 主控在每次重审前查上轮回执做同因判定；`--round` ≥ 3 时组装器日志已标记轮次，主控须核对升级条件后再组装。
 

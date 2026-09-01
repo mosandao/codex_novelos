@@ -111,7 +111,7 @@ decision_points 附在 metadata 由主控呈现给用户裁决；用户选择经
 
 ## character_roster 结构化出口
 
-metadata 另附 `character_roster` 数组（schema 见 `config/schemas/planning-candidate.schema.json`，交付前自查：roster 结构符合 planning-candidate.schema.json、规模档位与席位指认自检；机器校验门待 R4 JS 化）——每个立档人物一行：`name` / `role_class`（main|secondary）/ `arc_role`（主角|核心对手|主锚点|卷级载体等一句话职责）/ `登场卷` / `预期退场`（七型之一或「持续活跃」）/ `seat_ref`（可选，认领的 world 席位名）/ `essence`（**人物卡一句话要点，main 必填**——执念/失稳点/语域口癖/最要命的关系，≤160 字，正文执行端经 character_essence 槽消费，写作与审校都看得到）。
+metadata 另附 `character_roster` 数组（schema 见 `config/schemas/planning-candidate.schema.json`，交付前自查：roster 结构符合 planning-candidate.schema.json、规模档位与席位指认自检；机器校验门未覆盖）——每个立档人物一行：`name` / `role_class`（main|secondary）/ `arc_role`（主角|核心对手|主锚点|卷级载体等一句话职责）/ `登场卷` / `预期退场`（七型之一或「持续活跃」）/ `seat_ref`（可选，认领的 world 席位名）/ `essence`（**人物卡一句话要点，main 必填**——执念/失稳点/语域口癖/最要命的关系，≤160 字，正文执行端经 character_essence 槽消费，写作与审校都看得到）。
 
 **essence 写法**：它不是 arc_role 的重复——arc_role 说「他在故事里干什么」，essence 说「写他时必须抓住什么」。好——「对被除名母亲的牌位执念（谈宗族即失措，三秒失误第二卷显形）｜仙门雅言，避市井俚语」；坏——「聪明冷静的主角」（无失效点、无语域，等于没写）。没有 essence 的人物卡是空的：契约设计得再好，Writer 看不见就等于没设计。
 

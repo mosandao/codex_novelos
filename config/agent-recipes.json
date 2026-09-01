@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "description": "阶段配方矩阵（机器权威）：每个资产/审查场景一行——消费槽位配方（加载什么）× 发散档位（怎么想）× 决策权限（能定什么）× 输出契约 × 失败行为。composer 已注册资产（composer_key 非空）由 scripts/test-guardrails.mjs G-recipe 校验（R7-T2 落地）：divergence/decision_scope 全等，data_slots 只许增长（manifest ⊆ matrix）。divergence=null 表示审查档位跟随被审对象。",
+  "description": "阶段配方矩阵（机器权威）：每个资产/审查场景一行——消费槽位配方（加载什么）× 发散档位（怎么想）× 决策权限（能定什么）× 输出契约 × 失败行为。composer 已注册资产（composer_key 非空）由 scripts/test-guardrails.mjs G-recipe 校验：divergence/decision_scope 全等，data_slots 只许增长（manifest ⊆ matrix）。divergence=null 表示审查档位跟随被审对象。",
   "slot_vocabulary": [
     "project_setup",
     "persona_full",

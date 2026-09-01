@@ -36,7 +36,7 @@ genre（genre_pack 槽注入）：支线弧的弧型与题材阶段形态对偶�
 
 每条悬念线标注**预计开始给出阶段性答案的卷次**。读者能容忍谜题多，但不能容忍「不知道什么时候能获得收益」。禁止只种不收——每卷至少兑现一条此前埋下的悬念（validate 机器门）。台账行三来源：`book_soul.unresolved_claims` / `strategy.claim_ledger` / 本层新种（`source_ref` 指认原文条目）。**豁免体系**：`close_volume` 与 `exempt` 二选一必填——合法豁免仅两种：引用 `book_soul.deliberate_silences` 条目（有意挖坑不埋）、open 喂料线（引用 world 储备）；**违约与转化也是合法收束形态**（`close_form: 违约/转化`），违约式收束须让读者看清代价。
 
-**twist（反转）登记纪律（R9 P26——DB promise_events 五态含 twist，台账此前只覆盖 plant/payoff）**：每条悬念线标注承诺类型二分——**断言式**（叙述者断言「这是最后一次」，食言=叙事违约，只能 break 且代价可见）或 **悬念式**（人物/局面许诺，可 twist）。计划以 twist 推进的线必须在台账行登记 `twist_volume`（最早允许反转的卷次）与 `twist_fairness`（反转公平性依据：反转必须让读者回看时能重释此前 plant 的全部线索——「重释承诺」而非「背叛承诺」；找不到可重释线索的反转 = 台账不合法）。twist 落章时由连续性提取端记 `promise_events(event_type='twist')` 流水。
+**twist（反转）登记纪律**：每条悬念线标注承诺类型二分——**断言式**（叙述者断言「这是最后一次」，食言=叙事违约，只能 break 且代价可见）或 **悬念式**（人物/局面许诺，可 twist）。计划以 twist 推进的线必须在台账行登记 `twist_volume`（最早允许反转的卷次）与 `twist_fairness`（反转公平性依据：反转必须让读者回看时能重释此前 plant 的全部线索——「重释承诺」而非「背叛承诺」；找不到可重释线索的反转 = 台账不合法）。twist 落章时由连续性提取端记 `promise_events(event_type='twist')` 流水。
 
 ## 规模形态
 
