@@ -65,10 +65,10 @@ node scripts\novelos-compose-prompt.mjs --asset <asset> --project <id>
 角色→模型分工由主控在编排时显式指定（格式 `provider:model` 或裸 model 名）：写作=强创意模型；审查=异构厂商模型（防共谋，reviewer_profile 留机器身份前缀）；记忆提取=廉价快速模型。在 workflow/subagent 按 per-agent provider/model 覆盖。方法论与校验基准均模型无关——映射只影响编排，不改代码。
 
 默认映射（主控编排首选，随 API key 可用性调整；完整方案与备选见 `docs/model-roles.md`）：
-- 写作：`deepseek-v4-pro`（备选 `minimax-m3`）
-- 审查：`zai-coding-cn:glm-5.3`（备选 `kimi-k3` 仅关键章双审；与写作端必须不同厂商）
+- 写作：正文按文体分流——细腻/女频 `deepseek-v4-pro`（备选 `minimax-m3`），快节奏玄幻 `deepseek-v4-flash`；规划层 `deepseek-v4-pro`。分流与快照锁定细则见 `docs/model-roles.md`
+- 审查：`zai-coding-cn:glm-5.3`（备选 `kimi-k3` 仅关键章双审；与写作端必须不同厂商；⚠️ 该通道已不在 DSH 注册，走 ZCode 客户端通道，缺口说明见 `docs/model-roles.md`）
 - 记忆提取：`glm-5.3-flash`（备选 `deepseek-v4-flash`）
-- 视觉：`glm-4v-flash`（已配置）
+- 视觉：`glm-4v-flash`（zhipu-vision 通道已从 DSH 移除，恢复前用 `deepseek-v4-flash-vision-exp`）
 
 ## 小说工作流
 
