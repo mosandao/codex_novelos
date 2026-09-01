@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://novelos.local/schemas/book-soul.schema.json",
   "title": "NovelOS 书级创作灵魂",
-  "description": "NovelOS 书级创作灵魂 v2：十三字段，含 organizing_principle（组织原则）、promise_cadence（承诺兑现节奏）与 power_currency（力量货币），下游 architecture/strategy 结构化依赖。v2 可选扩展（不破坏旧数据）：lineage（逐字段血缘映射，结构化可核验）与 cadence_plan（兑现次数×间隔规划，配 validate --scale 机器数字门）",
+  "description": "NovelOS 书级创作灵魂 v2：十四字段，含 organizing_principle（组织原则）、promise_cadence（承诺兑现节奏）、power_currency（力量货币）与 market_position（市场定位：对标+逐维差异声明），下游 architecture/strategy 结构化依赖。v2 可选扩展（不破坏旧数据）：lineage（逐字段血缘映射，结构化可核验）与 cadence_plan（兑现次数×间隔规划，配 validate --scale 机器数字门）",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -18,7 +18,8 @@
     "recurring_tests",
     "narrative_mercy",
     "narrative_cruelty",
-    "deliberate_silences"
+    "deliberate_silences",
+    "market_position"
   ],
   "properties": {
     "schema_version": {"const": 2},
@@ -34,6 +35,31 @@
     "narrative_mercy": {"$ref": "#/$defs/non_empty_text"},
     "narrative_cruelty": {"$ref": "#/$defs/non_empty_text"},
     "deliberate_silences": {"$ref": "#/$defs/non_empty_text_list"},
+    "market_position": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["benchmarks", "differentiator"],
+      "properties": {
+        "benchmarks": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 3,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["title", "dimension", "delta"],
+            "properties": {
+              "title": {"$ref": "#/$defs/non_empty_text"},
+              "dimension": {"$ref": "#/$defs/non_empty_text"},
+              "delta": {"$ref": "#/$defs/non_empty_text"}
+            }
+          },
+          "description": "对标 2-3 部同题材名作：title=对标书名；dimension=对比维度（组织原则/两难结构/承诺类型…）；delta=逐维差异声明（「类似但更好」不算 delta，须说清同维上的结构差异）"
+        },
+        "differentiator": {"$ref": "#/$defs/non_empty_text"}
+      },
+      "description": "P9：市场定位——书内唯一性≠市场差异性；对标真实作品+逐维差异声明，「本题材经典设定」式同质化声明不合法"
+    },
     "lineage": {
       "type": "array",
       "minItems": 2,

@@ -25,7 +25,8 @@ const CLI = path.join(__dirname, 'novelos-compose-prompt.mjs');
 const ROOT = path.resolve(__dirname, '..');
 
 const { evaluateWhen, getField, pyJsonDumps, contentHash, extractChecklist,
-  extractModuleChecklist, validateFusionPayloadStruct, resolveKnowledge } = await import(
+  extractModuleChecklist, validateFusionPayloadStruct, resolveKnowledge, verifyKernelBinding,
+  validateManifestStruct } = await import(
   `file://${CLI.replace(/\\/g, '/')}`);
 
 let passed = 0;
@@ -570,6 +571,79 @@ test('⑧c world-contract 组装同规则命中/不命中：形态谱系随 genr
   const miss = runCli(['--asset', 'world-contract', '--project', pid, '--db', FIXTURE_DB, '--no-log']);
   assert.equal(miss.status, 0, `stderr: ${miss.stderr}`);
   assert.ok(!miss.stdout.includes('力量体系形态'), '参照模块未按 when 跳过');
+});
+
+// ---------------------------------------------------------------- 附11 R9 RT-B1 内核绑定三查
+
+test('附11 RT-B1 内核绑定三查：风格卡冒充拒/非active拒/hash不符拒/真内核放行', () => {
+  const db = new DatabaseSync(FIXTURE_DB);
+  const realErr = console.error;
+  const capture = (fn) => {
+    const buf = [];
+    console.error = (...a) => buf.push(a.join(' '));
+    try {
+      fn();
+      return { threw: false, buf };
+    } catch {
+      return { threw: true, buf };
+    } finally {
+      console.error = realErr;
+    }
+  };
+  try {
+    // ① 库内真实 style_seed 卡冒充内核 → ownership 查获拒
+    const seedRow = db.prepare(
+      "SELECT v.id FROM creator_profile_versions v JOIN creator_profiles cp ON cp.id=v.profile_id "
+      + "WHERE cp.ownership='style_seed' LIMIT 1").get();
+    assert.ok(seedRow, '夹具库应含 style_seed 卡');
+    const r1 = capture(() => verifyKernelBinding(db, seedRow.id, null));
+    assert.ok(r1.threw && r1.buf.join('').includes("ownership='style_seed'"), r1.buf.join(''));
+
+    // ② 真内核 + active → 放行；hash 不符 → 拒；非 active → 拒
+    const khash = 'sha256:' + createHash('sha256').update('rt-b1-kernel-body', 'utf8').digest('hex');
+    db.prepare(`INSERT OR REPLACE INTO resources (id, media_type, content, content_hash)
+      VALUES ('resource:rtb1-k', 'application/json', CAST(? AS BLOB), ?)`)
+      .run('rt-b1-kernel-body', khash);
+    db.prepare(`INSERT OR REPLACE INTO creator_profiles (id, display_name, ownership, status)
+      VALUES ('creator-profile:rtb1', 'RT内核', 'author_kernel', 'active')`).run();
+    db.prepare(`INSERT OR REPLACE INTO creator_profile_versions
+      (id, profile_id, revision, content_resource_id, subject_hash)
+      VALUES ('creator-profile-version:rtb1', 'creator-profile:rtb1', 1, 'resource:rtb1-k', ?)`)
+      .run(khash);
+    const ok = verifyKernelBinding(db, 'creator-profile-version:rtb1', khash);
+    assert.equal(ok.ownership, 'author_kernel');
+    const r2 = capture(() => verifyKernelBinding(db, 'creator-profile-version:rtb1', 'sha256:' + '0'.repeat(64)));
+    assert.ok(r2.threw && r2.buf.join('').includes('subject_hash 不相符'), r2.buf.join(''));
+    db.prepare("UPDATE creator_profiles SET status='archived' WHERE id='creator-profile:rtb1'").run();
+    const r3 = capture(() => verifyKernelBinding(db, 'creator-profile-version:rtb1', khash));
+    assert.ok(r3.threw && r3.buf.join('').includes("status='archived'"), r3.buf.join(''));
+  } finally {
+    console.error = realErr;
+    db.close();
+  }
+});
+
+// ---------------------------------------------------------------- 附12 R9 M12 modules.file 白名单
+
+test('附12 M12 manifest.modules.file 白名单：穿越与非法名拒绝、合法名放行', () => {
+  const base = { id: 'm1', when: undefined };
+  assert.throws(() => validateManifestStruct({
+    data_slots: [],
+    modules: [{ ...base, file: '../../../../etc/passwd' }],
+  }), /R9 M12|\\.md/);
+  assert.throws(() => validateManifestStruct({
+    data_slots: [],
+    modules: [{ ...base, file: 'a..b.md' }],
+  }), /R9 M12|\.\./);
+  assert.throws(() => validateManifestStruct({
+    data_slots: [],
+    modules: [{ ...base, file: 'Module.TXT' }],
+  }), /\.md/);
+  // 合法：现有命名习惯（小写数字点连字符 + .md）
+  assert.doesNotThrow(() => validateManifestStruct({
+    data_slots: [],
+    modules: [{ ...base, file: 'reference-coolpoint-cadence.md' }],
+  }));
 });
 
 // ---------------------------------------------------------------- 汇总

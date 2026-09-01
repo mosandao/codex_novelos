@@ -38,7 +38,10 @@
     "knowledge:compliance",
     "canon_minimal",
     "world_lexicon",
-    "character_essence"
+    "character_essence",
+    "book_soul",
+    "upstream:world_contract",
+    "prev_chapter_tail"
   ],
   "craft_refs": [
     "scene-pacing",
@@ -50,7 +53,8 @@
     "worldview-lexicon",
     "perspective-structure",
     "perspective-voice",
-    "perspective-reader"
+    "perspective-reader",
+    "dialogue-techniques"
   ],
   "decision_scope": "judge"
 }

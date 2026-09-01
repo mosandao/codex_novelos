@@ -125,10 +125,12 @@ parent = 内核版本（`kernel_full` 节首行的版本与 hash）。必须输�
 |---|---|---|
 | A | 用户自有语料 ≥15 篇 | 蒸馏与测量的首选依据；**≥5 篇即可用，但 notes 必须声明小样本折扣**（≥5 篇可用 / ≥15 篇可信——样本不足时区间放宽、措辞降档为「倾向」，红方 F13） |
 | B | 授权文本 | **notes 必须含可核验凭证**（授权来源/范围/凭证标识）；只蒸馏写法，原文观点/事实/专有名词零搬运 |
-| C | 降级（库内种子卡在场 / 仅内核派生） | 无直接语料测量：各列表写「推导缺省」并在 notes 声明来路；measured_features 只能引用种子卡声明值且 `source='library_persona'`，或留空 |
+| C | 降级（库内种子卡在场 / 仅内核派生） | 无直接语料测量：各列表写「推导缺省」并在 notes 声明来路；measured_features 引用种子卡声明值须先**档位化映射**（见下方 tier C 种子卡映射纪律）且 `source='library_persona'`，或留空 |
 | D | 无（无语料无种子） | 风格侧显式留白：`corpus_basis.tier='D'` + notes 写明「本签名无测量依据，指纹豁免不可用」；**measured_features 必须为空**（schema 强制，红方 F12） |
 
 组合来源（A+C 等）主源在前写入 notes。禁止假装有语料。
+
+**tier C 种子卡映射纪律**：tier C 引用种子卡时，必须先把卡的叙述性风格描述（如「短句为主极具节奏感」）**档位化映射**为本 schema 的区间/档位值——映射表：句长→`syntax_patterns` 档位、意象→`lexicon_summary`、语气→`lexicon_summary` 附注；`source` 仍标 `'library_persona'` 并在 `notes` 记录映射依据；**不得把叙述句原样塞进 `measured_features.value`**（schema 强制区间/档位，点值不可信——原样摘抄的叙述句无法按区间比对，豁免必不成立）。
 
 ### 3.2 style_dna 产物写法（L1 语言/结构蒸馏要点）
 

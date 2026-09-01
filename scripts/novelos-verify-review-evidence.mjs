@@ -59,7 +59,8 @@ export class UsageError extends Error {}
  *   ③ 引号统一：「」『』“”‘’"' → `"`（开闭统一，excerpt 嵌引号不致错杀）
  *   ④ 破折号 ——（U+2014 连串）与 –（U+2013 连串）折叠为单个 —
  *   ⑤ 省略号：\.{2,} 与 …+ 折叠为单个 …
- *   ⑥ 删全部空白 \s+ → ''（换行断句的引文照常命中；JS \s 含 U+FEFF BOM 一并删除）
+ *   ⑥ 空白run折叠为单空格 \s+ → ' '（R9 M5：原为整串删除——跨行/跨段 splice 拼接可命中
+ *      不连续引文；现 excerpt 须自带与原文一致的空白结构才命中，两侧同规则仍是匹配中立的）
  */
 export function normalizeForMatch(s) {
   let out = '';
@@ -77,7 +78,7 @@ export function normalizeForMatch(s) {
   out = out.replace(/[「」『』“”‘’"']/g, '"');
   out = out.replace(/\u2014{2,}|\u2013+/g, '\u2014');
   out = out.replace(/\.{2,}/g, '\u2026').replace(/\u2026+/g, '\u2026');
-  out = out.replace(/\s+/g, '');
+  out = out.replace(/\s+/g, ' ').trim();
   return out;
 }
 
@@ -352,17 +353,24 @@ async function main() {
   // 回执级 ④：空 findings + approved（红方 F7 空查回执防线）
   // R7-A1 起默认 FATAL（原「--strict 才拦」口径作废——对抗审查 P4-1：标准命令无人传 --strict，
   // 橡皮图章回执曾默认放行）；--allow-empty 显式豁免 = 降为 advisory 并留痕豁免字样。
+  // R9 M5：「空」口径升格——blocking/warning 合计数=0 即空查（原只查 findings 总数，
+  // 1 条 note 级凑数即可绕过；note/strength/suggestion 凑数不构成「查过」的证据）。
+  const substantiveTotal = rows
+    .filter((r) => PROBLEM_SEVERITIES.has(r.severity)).length;
   const advisories = [];
-  if (summary.findings_total === 0 && receipt.verdict === 'approved') {
+  if (substantiveTotal === 0 && receipt.verdict === 'approved') {
+    const scopeNote = summary.findings_total > 0
+      ? `（findings 总数=${summary.findings_total} 但全为 note/strength 级凑数）`
+      : '（findings 总数=0）';
     if (allowEmpty) {
       advisories.push({
         type: 'empty_findings_approved',
-        detail: 'findings 总数=0 且 verdict=approved：什么都没查的回执（--allow-empty 显式豁免留痕；相关性仍归主控/红方抽查）',
+        detail: `无 blocking/warning 级 finding 且 verdict=approved${scopeNote}：空查回执（--allow-empty 显式豁免留痕；相关性仍归主控/红方抽查）`,
       });
     } else {
       fatalList.push({
         type: 'empty_findings_approved',
-        detail: 'findings 总数=0 且 verdict=approved：什么都没查的回执（R7-A1 默认 FATAL；确需放行加 --allow-empty 并留痕）',
+        detail: `无 blocking/warning 级 finding 且 verdict=approved${scopeNote}：空查回执（R9 M5 默认 FATAL——note 级凑数不算查过；确需放行加 --allow-empty 并留痕）`,
       });
     }
   }

@@ -59,6 +59,11 @@
           "excerpt": {
             "type": "string"
           },
+          "issue_key": {
+            "type": "string",
+            "minLength": 1,
+            "description": "R9 M10 稳定问题键：同一根因跨轮复用同一 key（指纹类用 fpr: 编号/FP 定位符，语义类用受控分类号如 STRUCT-climax-gap）——3 轮升级判「同因复发」的机器可比对锚点；缺省=主控语义判读"
+          },
           "evidence_refs": {
             "type": "array",
             "uniqueItems": true,

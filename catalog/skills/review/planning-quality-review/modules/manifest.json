@@ -1,5 +1,9 @@
 {
   "modules": [],
-  "data_slots": ["subject"],
+  "data_slots": [
+    "subject",
+    "project_setup",
+    "book_soul"
+  ],
   "decision_scope": "judge"
 }

@@ -27,12 +27,19 @@ function deepEqual(a, b) {
 }
 
 // ── 守卫一：题材词表结构自洽（单一来源） ────────────────────────────────
-// 唯一来源约定：config/genre-packs.json 是题材词表的唯一权威（原 plugin/client/
-// project-wizard-data.js 双源镜像已随 plugin/ 移除退役）。每包必须含四个非空数组字段。
+// 唯一来源约定：config/genre-packs.json 是题材词表的唯一权威（原 plugin/
+// project-wizard-data.js 双源镜像已随 plugin/ 移除退役）。每包必须含五个非空数组字段。
+// R9 P2-13 扩容纪律（红队 P10/P14「模板填空」批判）：taboos ≥6 且逐条带
+// [审核]/[雷点]/[手法] 三分类前缀（三类至少各一）、typical_dilemmas ≥4、
+// reader_expectations ≥4、stage_form 键 4-6 条且每条为「阶段名：核心任务」形态。
 const packs = JSON.parse(
   fs.readFileSync(path.join(ROOT, 'config/genre-packs.json'), 'utf8')
 );
-const PACK_FIELDS = ['power_currency_candidates', 'typical_dilemmas', 'reader_expectations', 'taboos'];
+const PACK_FIELDS = ['power_currency_candidates', 'typical_dilemmas', 'reader_expectations', 'taboos', 'stage_form'];
+const TABOO_PREFIXES = ['[审核]', '[雷点]', '[手法]'];
+const PACK_MINS = { taboos: 6, typical_dilemmas: 4, reader_expectations: 4 };
+const STAGE_FORM_MIN = 4;
+const STAGE_FORM_MAX = 6;
 
 check('G1 词表源存在且非空（config/genre-packs.json）', Object.keys(packs).length > 0);
 
@@ -43,6 +50,53 @@ for (const [key, pack] of Object.entries(packs)) {
     `G1 包结构自洽 ${key}`,
     missing.length === 0 && empty.length === 0,
     `缺失字段:[${missing}] 空字段:[${empty}]`
+  );
+
+  // R9 P2-13 扩容阈值：taboos≥6 / dilemmas≥4 / expectations≥4 / stage_form 4-6 元素。
+  const counts = {
+    taboos: Array.isArray(pack?.taboos) ? pack.taboos.length : 0,
+    typical_dilemmas: Array.isArray(pack?.typical_dilemmas) ? pack.typical_dilemmas.length : 0,
+    reader_expectations: Array.isArray(pack?.reader_expectations) ? pack.reader_expectations.length : 0,
+  };
+  const stageForm = Array.isArray(pack?.stage_form) ? pack.stage_form : [];
+  const short = Object.entries(PACK_MINS)
+    .filter(([f, min]) => counts[f] < min)
+    .map(([f, min]) => `${f}:${counts[f]}<${min}`);
+  const stageBad =
+    stageForm.length < STAGE_FORM_MIN || stageForm.length > STAGE_FORM_MAX
+      ? `stage_form:${stageForm.length}不在[${STAGE_FORM_MIN},${STAGE_FORM_MAX}]`
+      : '';
+  check(
+    `G1 扩容阈值 ${key}`,
+    short.length === 0 && stageBad === '',
+    [short.join(' '), stageBad].filter(Boolean).join(' ')
+  );
+
+  // R9 P10 taboos 三分类前缀：逐条合法且 [审核]/[雷点]/[手法] 三类至少各一。
+  const badPrefix = (pack?.taboos ?? []).filter(
+    (t) => typeof t !== 'string' || !TABOO_PREFIXES.some((p) => t.startsWith(p))
+  );
+  const covered = TABOO_PREFIXES.filter((p) =>
+    (pack?.taboos ?? []).some((t) => typeof t === 'string' && t.startsWith(p))
+  );
+  const uncovered = TABOO_PREFIXES.filter((p) => !covered.includes(p));
+  check(
+    `G1 taboos 三分类前缀合法且三类齐备 ${key}`,
+    badPrefix.length === 0 && uncovered.length === 0,
+    [
+      badPrefix.length > 0 ? `无前缀或前缀非法:${JSON.stringify(badPrefix.slice(0, 2))}` : '',
+      uncovered.length > 0 ? `缺分类:[${uncovered}]` : '',
+    ]
+      .filter(Boolean)
+      .join(' ')
+  );
+
+  // R9 P14 stage_form 条目形态：每条「阶段名：一句话核心任务」（须含全角冒号分隔）。
+  const badStages = stageForm.filter((s) => typeof s !== 'string' || !s.includes('：'));
+  check(
+    `G1 stage_form 条目为「阶段名：核心任务」形态 ${key}`,
+    badStages.length === 0,
+    `缺「：」分隔:${JSON.stringify(badStages.slice(0, 2))}`
   );
 }
 

@@ -1,6 +1,6 @@
 {
   "schema": "novelos.catalog-manifest.v1",
-  "generated_at": "2026-08-30T09:56:32Z",
+  "generated_at": "2026-09-01T00:55:41Z",
   "file_count": 360,
   "files": {
     "catalog/skills/continuity/continuity-candidate-extraction/input_schema.json": {
@@ -16,8 +16,8 @@
       "bytes": 140
     },
     "catalog/skills/continuity/continuity-candidate-extraction/prompt.md": {
-      "sha256": "fd15cf12e85d1daaf257aa9e00bdab5f1f43357b9a9dbc7d1e7dd1773e8b3f98",
-      "bytes": 3544
+      "sha256": "ecdf509482e6e89f20e5ab59f829199f0e50cf28201ab60293123daa3dec63a1",
+      "bytes": 3963
     },
     "catalog/skills/continuity/continuity-candidate-extraction/provenance.yaml": {
       "sha256": "9a20d7ad8ca88fdfe4276ee2ab96d8a782d0f5803d6e292ea7cc8b125c37100c",
@@ -140,8 +140,8 @@
       "bytes": 489
     },
     "catalog/skills/craft/prose-webnovel-accessibility/prompt.md": {
-      "sha256": "cbe2547a842fda9a56c4daa73fe8abdcbdd1238a3a17bfc554f6c97a39b19778",
-      "bytes": 5537
+      "sha256": "334adb3797c43af42d42b9c49ecd40fff00cc00c9e73add43f9b268a8b86c5ef",
+      "bytes": 6691
     },
     "catalog/skills/craft/prose-webnovel-accessibility/provenance.yaml": {
       "sha256": "7024b59958861823d33753bec226569d37165de4a0dc6225294ed391b9234f67",
@@ -164,8 +164,8 @@
       "bytes": 650
     },
     "catalog/skills/craft/shuangwen-techniques/prompt.md": {
-      "sha256": "ffc4c0da51fe111ce9e2d1be90619a80e06af1ab653aa40dd87fed2797f7c1fd",
-      "bytes": 1007
+      "sha256": "c7e2915baeb1232aca96f955d93b5dd46a5ed2020b4ce8fe87a0505e3ddccc26",
+      "bytes": 1935
     },
     "catalog/skills/craft/shuangwen-techniques/provenance.yaml": {
       "sha256": "15cb00681b3f773d5dde667eeff7c1206f101e07b98e8a2ee42df277b01e49b6",
@@ -548,8 +548,8 @@
       "bytes": 997
     },
     "catalog/skills/onboarding/author-kernel-fusion/prompt.md": {
-      "sha256": "cafca0bd91915b541974a08aa21197e03a66afbf925f5a64fc0667520855a70b",
-      "bytes": 8819
+      "sha256": "dfae79cf856192be1841dd4783f5fe0afe9d0bd53d1a850cb64c4624c48adf99",
+      "bytes": 10802
     },
     "catalog/skills/onboarding/author-kernel-fusion/provenance.yaml": {
       "sha256": "f3cbb7e8f9a96b70b1f9256bb15de9d5423247201bd61ec12351c1af2b5adfb5",
@@ -580,8 +580,8 @@
       "bytes": 672
     },
     "catalog/skills/onboarding/creator-signature-fusion/modules/kernel-derive.md": {
-      "sha256": "9f2e8578dfd85ce02a88122f498b878b532ce5fd88c49422a18a30b1664fed40",
-      "bytes": 1963
+      "sha256": "771e156c2960185133ccd1dfa228e88d4e77482480f84579806a6801cb87f7b5",
+      "bytes": 2425
     },
     "catalog/skills/onboarding/creator-signature-fusion/modules/library-empty.md": {
       "sha256": "57bf38a9bbd916366df8a2d7af4cc53e16dfc24e5492f9aa6b59fa96dcb7bfd1",
@@ -600,8 +600,8 @@
       "bytes": 1896
     },
     "catalog/skills/onboarding/creator-signature-fusion/prompt.md": {
-      "sha256": "472fe8e82d0bbca3166ad87b36edf7c58fb1ca0acf6d911e3d4318120966ae73",
-      "bytes": 23982
+      "sha256": "d52099bd1449a849cb5872fcd703e025cec88942d286c04e5a3cdedfeefc62df",
+      "bytes": 24619
     },
     "catalog/skills/onboarding/creator-signature-fusion/provenance.yaml": {
       "sha256": "236604e0c647226cdbb2c56e3176e915a735d68f56a07f1db2f6250dc6493a76",
@@ -632,8 +632,8 @@
       "bytes": 2318
     },
     "catalog/skills/planning/chapter-plan-execution-card/prompt.md": {
-      "sha256": "9afe72e083c4ff5cac038ff44c8e40830ba1aada51216ceb1cda5903bbafd90a",
-      "bytes": 5726
+      "sha256": "37910e30f8c59e8c1b75460206c062bbf0bbfd5525b812a95b49234f08762bab",
+      "bytes": 6616
     },
     "catalog/skills/planning/chapter-plan-execution-card/provenance.yaml": {
       "sha256": "531d8c7281383597efcda1ffa11b7b98a935ed0717743639cd100c8427ff7229",
@@ -692,16 +692,16 @@
       "bytes": 251
     },
     "catalog/skills/planning/story-arc/modules/manifest.json": {
-      "sha256": "b5fb63d20aef45e88f33783a54e60879d88fd1d2afe9cfabd24330ff0d6ea576",
-      "bytes": 962
+      "sha256": "4bf8e37c363e9de6f920793b7b385287293557a00a908cbaf64003585763d803",
+      "bytes": 1046
     },
     "catalog/skills/planning/story-arc/modules/reference-emotional-arcs.md": {
       "sha256": "6e4de96a63b9f97e52d233f4982798db68e6a564df1fb2c9b2057b2334b83f4d",
       "bytes": 2129
     },
     "catalog/skills/planning/story-arc/prompt.md": {
-      "sha256": "f1b821d88e515ce014ff56728875735d38c4e8500aa6e1a12f5e595d70b18528",
-      "bytes": 8573
+      "sha256": "101cfc408d61bebd693c8dbcc0412f6075b87fd0d60170c349d5d4107fdbe1fa",
+      "bytes": 9320
     },
     "catalog/skills/planning/story-arc/provenance.yaml": {
       "sha256": "f5d1594bcd82e1eb61abd9113d3e8f9b9692ac570a611093a509526c4134be9c",
@@ -728,12 +728,12 @@
       "bytes": 1227
     },
     "catalog/skills/planning/story-architecture/modules/platform-free.md": {
-      "sha256": "3fdddce2d25e44ad1f0ba30ef0128e8515bcd927b3217b0ffdd7d97db73f03b1",
-      "bytes": 418
+      "sha256": "0c24491b54d3b8d6a537b9315bd5c0b80621c2163313fe9fb206862fe8caf790",
+      "bytes": 569
     },
     "catalog/skills/planning/story-architecture/modules/platform-paid.md": {
-      "sha256": "688039af1d96844a91a9d1cce86c9073e9d00c4ce568617fbb5752d995996e07",
-      "bytes": 443
+      "sha256": "3377dfce217078310feb4e1e79dffe2f4bd7a42ca717b44f14c208532143a7f1",
+      "bytes": 594
     },
     "catalog/skills/planning/story-architecture/modules/reference-plot-frameworks.md": {
       "sha256": "ada8f871869dde666061f326796c83b1320bbe316d3943e419d9a6d8eaafd77f",
@@ -780,20 +780,20 @@
       "bytes": 1712
     },
     "catalog/skills/planning/story-direction/modules/platform-free.md": {
-      "sha256": "2c9d7fec5d98b6c268b473e5055f1bd4b37f9d88c27313151f84df290c85801d",
-      "bytes": 1341
+      "sha256": "aa2ee620a4844ab0937e0aef001688a849be42f8b3c2b28ffb391a4515a651f6",
+      "bytes": 1492
     },
     "catalog/skills/planning/story-direction/modules/platform-paid.md": {
-      "sha256": "d204c5f642d21cc5e7caeac2b1f4fcd68257cc18730bac7dc1d3fa51b4cda39e",
-      "bytes": 1390
+      "sha256": "221f9726cc153557a1de632e331dc2bd3f989a033f652aed673abdafe032c51c",
+      "bytes": 1541
     },
     "catalog/skills/planning/story-direction/modules/reference-book-appeal.md": {
       "sha256": "fa64e213d7dcb89b9c17bcf9f4cda98c635f726658afd0a6bcbd1daea07be984",
       "bytes": 2256
     },
     "catalog/skills/planning/story-direction/prompt.md": {
-      "sha256": "b4ab11f2b5508153d20af70a6a75ba2c3ecfa6255ce49b852685c72f83f67c8e",
-      "bytes": 16182
+      "sha256": "7bb65273f5310d95353baafb154e9d2d6a1e83da0b2098bed0bda76af546c3b2",
+      "bytes": 19014
     },
     "catalog/skills/planning/story-direction/provenance.yaml": {
       "sha256": "9f0f5b4691f0d4484582fd8b38f4bf630114dd90730af3ef36e6ce2a71f5d5e0",
@@ -820,12 +820,12 @@
       "bytes": 977
     },
     "catalog/skills/planning/story-strategy/modules/platform-free.md": {
-      "sha256": "bf43fdfce1d1abdf9fc2ca59df831e0fec5e57026799e78c80c1c74eb333b113",
-      "bytes": 370
+      "sha256": "9f169ceac40ff08958f022b15e070b80d49c5514e71aeeb5298c4f7962c3c4cd",
+      "bytes": 521
     },
     "catalog/skills/planning/story-strategy/modules/platform-paid.md": {
-      "sha256": "11d77fca137a6d66d1a37707013afd834ccfdc56ee7c9b2904c34cfd348c932e",
-      "bytes": 344
+      "sha256": "3d650368e2a5582c5ec0a58100f40e4000dc2dd2ba1fec6c53636ecc9d79de4c",
+      "bytes": 495
     },
     "catalog/skills/planning/story-strategy/modules/reference-coolpoint-cadence.md": {
       "sha256": "f73f5558436f64539581ed10037b02dafff8233790405e7706a611acf529e7a2",
@@ -856,8 +856,8 @@
       "bytes": 312
     },
     "catalog/skills/planning/volume-outline/modules/manifest.json": {
-      "sha256": "084d459e0a755582de2f77f009aeb27d8b076a217b6a9a528b67c6e9de7f355f",
-      "bytes": 1005
+      "sha256": "0e3cbefa9ac8e76efac0e96f682fd817436e9e1c95ef4446e04098792433cfb0",
+      "bytes": 1059
     },
     "catalog/skills/planning/volume-outline/modules/reference-scene-blueprints.md": {
       "sha256": "2e34fffb9c82413a813b384a7c3ece68cd0765595785b41a8fce09391faf5c32",
@@ -904,8 +904,8 @@
       "bytes": 2464
     },
     "catalog/skills/planning/world-contract/prompt.md": {
-      "sha256": "d26868ee7144a4af8f9877a0481e71f0d8dff4f9a8dfe4205aaed7d6386b1e59",
-      "bytes": 16728
+      "sha256": "d35e40fa364b96f957abd590842d5e22f8ab49129bd8b71ed56e110742f97327",
+      "bytes": 20560
     },
     "catalog/skills/planning/world-contract/provenance.yaml": {
       "sha256": "6853d10fb6cb0b7c8321fcc0c98ecc53a95753c707a01dc281278183a905d2a8",
@@ -944,8 +944,8 @@
       "bytes": 445
     },
     "catalog/skills/review/entity-authority-review/modules/manifest.json": {
-      "sha256": "369f5d597f150dfee99e5aa0e28641d111d39b0cde2a4dfa0b24e27f7a9af8d5",
-      "bytes": 78
+      "sha256": "60f3c3e1221de3568d1a827709e1cb4319c70260138600ed81cf5d94cfe2e630",
+      "bytes": 132
     },
     "catalog/skills/review/entity-authority-review/prompt.md": {
       "sha256": "3876156c8c2d8797c68dcb8821a2b44cc3d11a938da1a2f8989f06a949490a2f",
@@ -1084,8 +1084,8 @@
       "bytes": 452
     },
     "catalog/skills/review/planning-cross-consistency-review/modules/manifest.json": {
-      "sha256": "9e498104fa626651cf67ed1d32fa522304c2de62394fc382f77a5031e8f23e82",
-      "bytes": 146
+      "sha256": "3620fb81e0c75d808e218ef4d4bb1d895b864cb30824a89441c5bd3b46e625fd",
+      "bytes": 232
     },
     "catalog/skills/review/planning-cross-consistency-review/prompt.md": {
       "sha256": "3008a4ca9b9af51ff3f932b79aeae903af5ccd678ca3f4aa496fda6ccf48d705",
@@ -1164,8 +1164,8 @@
       "bytes": 414
     },
     "catalog/skills/review/planning-quality-review/modules/manifest.json": {
-      "sha256": "369f5d597f150dfee99e5aa0e28641d111d39b0cde2a4dfa0b24e27f7a9af8d5",
-      "bytes": 78
+      "sha256": "2c0cd4a30676485409ecf10717e944c233656cdf877d8c27ebb6a98438b1b18b",
+      "bytes": 124
     },
     "catalog/skills/review/planning-quality-review/prompt.md": {
       "sha256": "6df369ab99da8cb6840e21f8787a6c248e432a5e4d99037b76de8f79c884346e",
@@ -1372,12 +1372,12 @@
       "bytes": 114
     },
     "catalog/skills/review/prose-quality-review/modules/manifest.json": {
-      "sha256": "3858aa7d76b1c43e88ea69ab47c1964e939b0f8d3e923e2849617e751005aff7",
-      "bytes": 1187
+      "sha256": "8968c16ba7ab028bca1db36713684c7edaf093fbd418cfa04c2d0e3bc6f3127f",
+      "bytes": 1287
     },
     "catalog/skills/review/prose-quality-review/prompt.md": {
-      "sha256": "5b822e05be4069ad81dbd8185371088940ba84361537d65b6cdd0c7f2e0187d8",
-      "bytes": 8897
+      "sha256": "f9e8f927293129a6276e206ead427749bffebaa2858e1a935f9185d0d1a2ed0e",
+      "bytes": 9987
     },
     "catalog/skills/review/prose-quality-review/provenance.yaml": {
       "sha256": "79030ec5e52ff3db0f8b6175d0a17144a10853f391dc5353dca99b9e1df186ff",
@@ -1436,8 +1436,8 @@
       "bytes": 617
     },
     "catalog/skills/writing/scene-fight-craft/prompt.md": {
-      "sha256": "d118103462cb17aa9836e4cbf9427fb898dd3562d566f47655613cc5569d3528",
-      "bytes": 474
+      "sha256": "40dba024c3430624fb38d9a2f9bfee0c8bf564118c8319f88acd713a0ec86bfa",
+      "bytes": 2226
     },
     "catalog/skills/writing/scene-fight-craft/provenance.yaml": {
       "sha256": "0bfb6c53ecc208eec5a79aac10e34630f86ae73636bceddd09ef7c07a228a3e4",

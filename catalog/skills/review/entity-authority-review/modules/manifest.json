@@ -1,5 +1,9 @@
 {
   "modules": [],
-  "data_slots": ["subject"],
+  "data_slots": [
+    "subject",
+    "canon_minimal",
+    "character_essence"
+  ],
   "decision_scope": "judge"
 }

@@ -1,5 +1,12 @@
 {
   "modules": [],
-  "data_slots": ["subject", "upstream:direction", "upstream:architecture", "upstream:strategy"],
+  "data_slots": [
+    "subject",
+    "upstream:direction",
+    "upstream:architecture",
+    "upstream:strategy",
+    "upstream:character_contract",
+    "upstream:world_contract"
+  ],
   "decision_scope": "judge"
 }

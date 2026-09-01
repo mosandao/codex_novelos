@@ -432,13 +432,16 @@
         "persona_full",
         "persona_gate",
         "project_setup",
+        "book_soul",
         "upstream:chapter_plan",
+        "upstream:world_contract",
         "knowledge:platform",
         "knowledge:commercial",
         "knowledge:compliance",
         "canon_minimal",
         "world_lexicon",
-        "character_essence"
+        "character_essence",
+        "prev_chapter_tail"
       ],
       "divergence": null,
       "decision_scope": "judge",
@@ -479,7 +482,9 @@
         "subject",
         "upstream:direction",
         "upstream:architecture",
-        "upstream:strategy"
+        "upstream:strategy",
+        "upstream:character_contract",
+        "upstream:world_contract"
       ],
       "divergence": null,
       "decision_scope": "judge",
@@ -491,7 +496,9 @@
       "composer_key": "entity-authority-review",
       "skill": "review/entity-authority-review",
       "slots": [
-        "subject"
+        "subject",
+        "canon_minimal",
+        "character_essence"
       ],
       "divergence": null,
       "decision_scope": "judge",
@@ -503,7 +510,9 @@
       "composer_key": "planning-quality-review",
       "skill": "review/planning-quality-review",
       "slots": [
-        "subject"
+        "subject",
+        "project_setup",
+        "book_soul"
       ],
       "divergence": null,
       "decision_scope": "judge",

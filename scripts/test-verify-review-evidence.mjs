@@ -110,12 +110,17 @@ test('归一化：引号统一（「」『』“”\'"→"）', () => {
   assert.equal(normalizeForMatch('『执行人』'), normalizeForMatch("'执行人'"));
 });
 
-test('归一化：破折号与省略号折叠、删全部空白（换行断句照常命中）', () => {
+test('归一化：破折号与省略号折叠、空白run折叠为单空格（R9 M5：splice 拼接不再命中）', () => {
   assert.equal(normalizeForMatch('清零——积分'), normalizeForMatch('清零—积分'));
   assert.equal(normalizeForMatch('清零–积分'), normalizeForMatch('清零—积分'));
   assert.equal(normalizeForMatch('……'), '…');
   assert.equal(normalizeForMatch('...'), '…');
-  assert.equal(normalizeForMatch('不是惩罚，\n而是清零'), '不是惩罚,而是清零');
+  assert.equal(normalizeForMatch('不是惩罚，\n而是清零'), '不是惩罚, 而是清零');
+  // R9 M5 反例：草稿跨段空白在归一后保留为单空格，excerpt 不带该空格 = 不命中
+  const draft = normalizeForMatch('他走了。\n\n然后天亮了');
+  assert.equal(draft, '他走了. 然后天亮了', '草稿侧空白结构保留（句号折叠为半角）');
+  // 合法换行引文（excerpt 自带换行）照常命中
+  assert.equal(normalizeForMatch('不是惩罚，\n而是清零'), normalizeForMatch('不是惩罚，\n 而是清零'));
 });
 
 test('loadReceipt：candidate 与 DB 行（findings_json 字符串）双形态', () => {
@@ -269,7 +274,7 @@ test('⑥ weak excerpt（<8 字符）与多处命中报告；--strict 升级 FAT
   assert.ok(JSON.parse(r3.stdout).fatal.length >= 1);
 });
 
-test('⑦ note-only 回执 PASS（缺 excerpt/未命中只统计，--strict 也不升级——R2 轮任务口径）', () => {
+test('⑦ note-only 回执 = 空查 FATAL（R9 M5 升格）；--allow-empty 放行且留痕', () => {
   const p = writeReceipt('noteonly.json', receipt({
     verdict: 'approved',
     findings: [
@@ -278,13 +283,17 @@ test('⑦ note-only 回执 PASS（缺 excerpt/未命中只统计，--strict 也�
       finding({ severity: 'strength', message: '抄错的高亮', evidence_refs: ['x'], excerpt: '这句高亮也不在草稿里' }),
     ],
   }));
+  // R9 M5：blocking/warning=0 + approved = 空查（note/strength 凑数不算查过）——默认 FATAL
   const r1 = runCli(['--receipt', p, '--draft', draftPath, '--json']);
-  assert.equal(r1.status, 0, r1.stdout + r1.stderr);
-  const j1 = JSON.parse(r1.stdout);
-  assert.equal(j1.summary.note_findings, 2);
-  assert.equal(j1.summary.fatal_total, 0);
-  const r2 = runCli(['--receipt', p, '--draft', draftPath, '--json', '--strict']);
-  assert.equal(r2.status, 0, 'note/strength 级不做 FATAL 检查（只统计）');
+  assert.equal(r1.status, 1, `R9 M5 应 FATAL: ${r1.stdout}${r1.stderr}`);
+  assert.ok(r1.stdout.includes('empty_findings_approved'), '应报 empty_findings_approved');
+  // --allow-empty 显式豁免 → PASS 且留痕
+  const r2 = runCli(['--receipt', p, '--draft', draftPath, '--json', '--allow-empty']);
+  assert.equal(r2.status, 0, r2.stdout + r2.stderr);
+  assert.ok(r2.stdout.includes('allow_empty'), '豁免留痕');
+  // --strict 不改变空查判定（FATAL 已默认）
+  const r3 = runCli(['--receipt', p, '--draft', draftPath, '--json', '--strict']);
+  assert.equal(r3.status, 1);
 });
 
 test('⑧ 归一化变体：换行断句/全半角/引号体例混用 → hit', () => {

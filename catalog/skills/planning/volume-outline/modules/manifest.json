@@ -46,5 +46,8 @@
     "promise_ledger"
   ],
   "divergence": "balanced",
-  "decision_scope": "propose_only"
+  "decision_scope": "propose_only",
+  "craft_refs": [
+    "story-expectation-design"
+  ]
 }

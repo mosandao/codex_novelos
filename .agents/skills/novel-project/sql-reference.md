@@ -184,8 +184,15 @@ UPDATE planning_assets SET status='locked', locked_review_id='review:xxx', updat
 -- 上述三纪律（核对回执 → 翻旧 → 置新）必须在同一 BEGIN IMMEDIATE 事务内完成
 -- 部分唯一索引 idx_planning_assets_current 保证同 scope 同时只有一个 locked
 
--- 标记 stale（上游变更后；沿 planning_asset_dependencies 依赖边，直接+间接下游全量标）
-UPDATE planning_assets SET status='stale', updated_at=CURRENT_TIMESTAMP WHERE id IN (SELECT asset_id FROM planning_asset_dependencies WHERE upstream_asset_id='planning:xxx');
+-- 标记 stale（上游变更后；沿 planning_asset_dependencies 依赖边递归 BFS——直接+间接下游全量标。
+-- R9 M8：原单层子查询只标直接下游、与 gate 的递归语义漂移，改为递归 CTE 同源（gate 通道优先））
+WITH RECURSIVE down(id) AS (
+    SELECT 'planning:xxx'                       -- 变更的上游资产 id
+    UNION ALL
+    SELECT d.asset_id FROM planning_asset_dependencies d JOIN down ON d.upstream_asset_id = down.id
+)
+UPDATE planning_assets SET status='stale', updated_at=CURRENT_TIMESTAMP
+WHERE id IN (SELECT id FROM down WHERE id <> 'planning:xxx') AND status = 'locked';
 
 -- 查询当前 locked 资产
 SELECT * FROM planning_assets
@@ -320,8 +327,11 @@ console.log(`resource:${randomUUID()}`);  // resource:3bb695f0-...
 | stale 传播 | `propagate-stale --asset <id> [--fine]` | coarse 全量 / fine 内容未变不误伤（依赖边版本+content_hash 双比对） |
 | 人物登记/状态迁移 | `register-characters --project <id> --roster/--entry/--status-update` | 四规则校验 + 幂等合并不覆盖状态史 + 批内失败整体回滚 |
 | 资产语义校验 | `validate-asset --asset <id>` | 七件校验器（book_soul 档位门/世界代价两轴/roster 规模/弧数/卷纲高潮密度等常量逐字），只读自查 |
+| 向导载荷校验 | `validate-payload --payload <file>` | R9 P0-1/M2：v3 载荷结构门 + select 内核三查（ownership/status/hash）+ style_seed 反查，只读——六表落库前必跑，替换纯「对照 schema 自查」纪律 |
 | 升级用户裁决（开单） | `open-adjudication --project <id> --subject-type <planning\|chapter> --subject-ref <id> --reason <文本> [--rounds <json>]` | subject 存在性+归属反查；同 subject 已 open 拒绝（022 部分唯一索引兜底）；open 期间 lock/accept 门互锁阻断（R8-T2，A5） |
 | 用户裁决落定 | `resolve-adjudication --adjudication <id> --resolution <文本>` | open→resolved 终态；resolution 必填；解除互锁 |
+
+R9 增补门语义：`commit-review` 另有 `--writer-profile`（写作/审查同模型 GateFail，`--allow-same-provider` 留痕豁免）与 `--no-check-hash`（metadata 记 `check_hash:false`）；空查口径=无 blocking/warning 级 finding（note 凑数 FATAL）；`lock-asset`/`accept-chapter` 遇同 subject ≥3 条回执且无裁决单 = 升级裁决门 GateFail（M10）；lock 对零上游依赖边资产 WARN（M8 静默断链形态）；023 TRIGGER 为上述状态机约束的 DB 层第二防线（裸 SQL 直写同样被拦）。
 
 项目创建签名链（六表事务）与项目删除仍走上文受控事务模板（主控执行，未见 R7 门覆盖范围）。「连续性」流水查询见该节 promise_events 部分（migration 021）。
 

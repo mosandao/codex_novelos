@@ -15,16 +15,25 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["name", "org", "duty", "power_tier", "first_consumption"],
+        "required": ["name", "org", "duty", "first_consumption"],
         "properties": {
           "name": {"type": "string", "minLength": 1, "maxLength": 40},
           "org": {"type": "string", "minLength": 1, "maxLength": 60},
           "duty": {"type": "string", "minLength": 1, "maxLength": 200},
           "power_tier": {"type": "string", "minLength": 1, "maxLength": 40},
+          "social_rank": {
+            "type": "string", "minLength": 1, "maxLength": 40,
+            "description": "社会层级/声誉/资源档位——力量非结算轴题材（都市言情/纯现实）以本字段替代 power_tier，禁止为过校验虚构力量档位"
+          },
           "rule_links": {"type": "array", "maxItems": 8, "items": {"type": "string", "maxLength": 60}},
           "first_consumption": {"type": "string", "minLength": 1, "maxLength": 80},
           "disposition": {"enum": ["待契约认领", "待卷级班底", "显式虚位"]}
-        }
+        },
+        "anyOf": [
+          {"required": ["power_tier"]},
+          {"required": ["social_rank"]}
+        ],
+        "description": "P17：power_tier 条件必填——power_tier 与 social_rank 至少其一（力量结算轴题材填 power_tier；力量非结算轴题材填 social_rank）；既有 power_tier 字段含义不变（向后兼容）"
       }
     },
     "lexicon": {

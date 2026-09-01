@@ -28,6 +28,20 @@
 6. **creative_axioms（创作公理）**：跨书稳定的处理规则（人物、冲突、伏笔、结局）——与分身层七字段的分工：公理是**跨书不变的骨架**，分身七字段是本书的落地。
 7. **kernel_blindspots**：overcommits 容易过度坚持什么 / overlooks 容易忽略什么。诚实申报——这是下游审查「心理解释压过节奏」「过度心理化」的判定依据。
 
+## identity × psychology 字段分工表（硬边界）
+
+identity 与 psychology 是两层不是两层皮——签名层有七字段分工表先例（creator-signature-fusion 2.2「同一约束只许住一个字段」），内核层按此表对位：
+
+| 字段 | 管什么 | 不碰什么 |
+|---|---|---|
+| emotion_processing（psychology 层） | 情绪反应通道：面对恐惧/愤怒/悲伤/羞耻时的**即时倾向**（分析/行动/压抑/幽默化/转移的第一反应） | 不写长期人格策略 |
+| defense_compensation（psychology 层） | 稳定人格策略：惯用防御与补偿的**长期模式**（用知识掩盖无力感、用控制感对抗混乱） | 不写即时情绪反应 |
+| value_axioms / emotional_stance（identity 层） | 价值排序与情感立场：认为什么更重要、天然同情谁警惕谁 | 不写情境触发的道德判断 |
+| moral_intuition（psychology 层） | 道德直觉触发器：什么情境触发道德判断、共情在哪里停止 | 不写价值排序本身（那是 identity 层的事） |
+
+- 硬规则：**同一条约束只允许住在一个字段**（判据同签名分工表：把条目换个字段读，若也成立，即重复）。「用玩笑回避脆弱」式条目先问归位——作为即时反应住 emotion_processing，作为长期模式住 defense_compensation，只住一处。
+- 写冲突时按此表归位：即时反应归 emotion_processing，长期模式归 defense_compensation，价值排序与情感立场归 identity 层，情境触发的道德判断归 moral_intuition。
+
 ## psychology 八维五段式
 
 每维必须写全五段：`tendency`（倾向）/ `triggers`（触发条件）/ `reactions`（常见反应）/ `blindspots`（可能盲点）/ `revision`（可修正方向）。维度：
@@ -101,4 +115,5 @@
 - 知识生态深度分档诚实；至少一个领域标注了 common_errors。
 - growth_log：create 模式可为空数组；revise 模式必须含本次归因条目。
 - 与既有内核指纹零撞车（核心问题同构/注意偏向同构/张力形态同构即撞车，rationale 里写比对结论）。
+- **交叉一致性查**：identity.emotional_stance 与 psychology 其余字段不反题（情绪反应通道/防御策略/道德直觉不得与情感立场唱反调——「情感立场同情弱者」而「道德直觉弱者活该」即反题）；aesthetic_commitments 与 identity 整体气质不矛盾——「冷峻内核 + 甜腻审美」式组合必须在 rationale 给出显式调和说明，否则打回。
 - `kernel` 通过 author-kernel schema（字段名、枚举、条数上限逐项核对）。

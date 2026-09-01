@@ -39,9 +39,9 @@
 import { DatabaseSync } from 'node:sqlite';
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
-import { readFileSync } from 'node:fs';
+import { readFileSync, realpathSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { contentHash, pyJsonDumps } from './novelos-compose-prompt.mjs';
+import { contentHash, pyJsonDumps, verifyKernelBinding, validateFusionPayloadStruct } from './novelos-compose-prompt.mjs';
 import { loadReceipt, checkFindings, normalizeForMatch } from './novelos-verify-review-evidence.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -127,6 +127,19 @@ export function withTransaction(conn, fn) {
     try { conn.exec('ROLLBACK'); } catch { /* 已回滚 */ }
     if (e instanceof GateFail) throw e;
     throw new GateFail(`事务失败已回滚：${e instanceof Error ? e.message : String(e)}`);
+  }
+}
+
+/** R9 M9：生产库识别不再做词法比对（`path.resolve` 相等——symlink/大小写变体实测可绕过），
+ *  改为 realpath 归一 + dev/ino 同体判定：软链、硬链、大小写别名一律识别为同一文件。 */
+function isSameFileAs(a, b) {
+  try {
+    const [ra, rb] = [realpathSync(a), realpathSync(b)];
+    if (ra === rb) return true;
+    const [sa, sb] = [statSync(ra), statSync(rb)];
+    return sa.dev === sb.dev && sa.ino === sb.ino;
+  } catch {
+    return false; // 任一路径不存在：非生产库（openDb 随后给出自己的错误）
   }
 }
 
@@ -258,18 +271,27 @@ export function propagateStale(conn, assetId, { fine = false, dryRun = true } = 
     const indirectIds = new Set(collectDownstream(conn, assetId).map((d) => d.id));
     for (const c of classified) indirectIds.delete(c.id);
     if (!dryRun && stale.length) markStale(stale.map((c) => c.id));
+    const warns = [];
+    if (classified.length === 0) {
+      warns.push(`WARN (R9 M8): ${assetId} 无任何下游依赖边——本次传播 marked=0 属静默断链形态，确认该资产的下游边已登记（planning_asset_dependencies）`);
+    }
     return {
       upstream, mode: 'fine', dryRun, marked: stale.length,
       neutral: classified.length - stale.length,
-      classification: classified, indirectPending: [...indirectIds].sort(),
+      classification: classified, indirectPending: [...indirectIds].sort(), warns,
     };
   }
 
   const downstream = collectDownstream(conn, assetId);
   if (!dryRun && downstream.length) markStale(downstream.map((d) => d.id));
+  const warns = [];
+  if (downstream.length === 0) {
+    warns.push(`WARN (R9 M8): ${assetId} 无任何下游依赖边——本次传播 marked=0 属静默断链形态，确认该资产的下游边已登记（planning_asset_dependencies）`);
+  }
   return {
     upstream, mode: 'coarse', dryRun, marked: downstream.length, neutral: 0,
     markedAssets: downstream.map(({ id, asset_type, scope_ref }) => ({ id, asset_type, scope_ref })),
+    warns,
   };
 }
 
@@ -550,22 +572,55 @@ export function commitReview(conn, input) {
       });
     }
   }
+  // R9 M5：「空」口径升格——blocking/warning 合计数=0 即空查（note 级凑数不算查过）。
+  const substantiveTotal = rows
+    .filter((r) => r.severity === 'blocking' || r.severity === 'warning').length;
   const advisories = [];
-  if (summary.findings_total === 0 && receipt.verdict === 'approved') {
+  if (substantiveTotal === 0 && receipt.verdict === 'approved') {
     if (input.allowEmpty) {
-      advisories.push({ type: 'empty_findings_approved', detail: '空查回执 --allow-empty 显式豁免留痕（R7-A1）' });
+      advisories.push({ type: 'empty_findings_approved', detail: `空查回执 --allow-empty 显式豁免留痕（R7-A1；findings 总数=${summary.findings_total}）` });
     } else {
-      fatalList.push({ type: 'empty_findings_approved', detail: 'findings=0 且 verdict=approved：什么都没查的回执（R7-A1 默认 FATAL；确需放行加 --allow-empty）' });
+      fatalList.push({ type: 'empty_findings_approved', detail: `无 blocking/warning 级 finding 且 verdict=approved（findings 总数=${summary.findings_total}，note 级凑数不算查过）——R9 M5 默认 FATAL；确需放行加 --allow-empty` });
     }
   }
   if (fatalList.length > 0) {
     throw new GateFail(`G2 引文验证未通过（未开事务零写入）：\n${fatalList.map((f) => `FAIL ${f.type}: ${f.detail}`).join('\n')}`);
   }
 
+  // R9 M6 防共谋机器强制：写作端模型（--writer-profile，来自该章 chapter-draft 组装记录）
+  // 与审查端身份的模型 token 同源即 GateFail；--allow-same-provider 显式豁免则 advisory 留痕。
+  // 模型 token 解析：model:<provider:model> → model；agent:<name>@<model> → model；裸名原样。
+  if (input.writerProfile !== undefined && input.writerProfile !== null && input.writerProfile !== '') {
+    const modelToken = (p) => {
+      let s = String(p);
+      if (s.startsWith('model:')) s = s.slice(6);
+      const at = s.lastIndexOf('@');
+      if (at !== -1) s = s.slice(at + 1);
+      const slash = s.indexOf('/');
+      if (slash !== -1) s = s.slice(slash + 1);
+      return s.trim().toLowerCase();
+    };
+    const wm = modelToken(input.writerProfile);
+    const rm = modelToken(receipt.reviewer_profile);
+    if (wm !== '' && wm === rm) {
+      if (input.allowSameProvider) {
+        advisories.push({ type: 'same_provider_reviewer', detail: `写作端与审查端同模型（${wm}）——--allow-same-provider 显式豁免留痕（R9 M6）` });
+      } else {
+        throw new GateFail(`防共谋校验 FAIL（未开事务零写入）：FAIL collusion_risk: 写作端模型 ${input.writerProfile} 与审查端 ${receipt.reviewer_profile} 同源（R9 M6：审查必须异构厂商/异模型；确需豁免加 --allow-same-provider）`);
+      }
+    }
+  }
+
   const reviewId = newId('review');
   const meta = {
     gate_version: VERSION,
-    verify: { fatal_total: 0, advisories: advisories.length, allow_empty: input.allowEmpty === true },
+    verify: {
+      fatal_total: 0, advisories: advisories.length, allow_empty: input.allowEmpty === true,
+      // R9 M5/D-3：跳过 hash 校验必须留痕——否则错版本回执落库后与验证过的不可区分
+      check_hash: input.checkHash !== false,
+      // R9 M6：同厂商豁免留痕（false=未触发或未豁免）
+      same_provider_allowed: input.allowSameProvider === true,
+    },
     dry_run: input.dryRun !== false,
   };
   const insert = () => {
@@ -616,11 +671,31 @@ export function lockAsset(conn, { assetId, reviewId, dryRun = true }) {
   ).get(assetId);
   if (!asset) throw new GateFail(`资产不存在: ${assetId}`);
   assertNoOpenAdjudication(conn, asset.id);
+  assertReviewRoundBudget(conn, asset.id);
   bindReviewGuard(conn, reviewId, asset.id, asset.content_hash);
+  // R9 M8：依赖边缺失告警（非阻断）——stale 传播依赖这张边表，无边=上游修订永远不会
+  // 传播到本资产（静默断链）。direction 无上游属正常；其余类型零上游边即 WARN。
+  const warns = [];
+  if (asset.asset_type !== 'direction') {
+    const up = conn.prepare(
+      'SELECT COUNT(*) AS n FROM planning_asset_dependencies WHERE asset_id = ?',
+    ).get(asset.id).n;
+    if (up === 0) {
+      warns.push(`WARN (R9 M8): ${asset.id}（${asset.asset_type}）无任何上游依赖边——上游修订将无法传播 stale 到本资产；锁定前应补 planning_asset_dependencies 边`);
+    } else {
+      const ups = conn.prepare(
+        "SELECT COUNT(*) AS n FROM planning_asset_dependencies d JOIN planning_assets u ON u.id = d.upstream_asset_id "
+        + "WHERE d.asset_id = ? AND u.status <> 'locked'",
+      ).get(asset.id).n;
+      if (ups > 0) {
+        warns.push(`WARN (R9 M8): ${asset.id} 有 ${ups} 条上游边指向未锁定资产——依赖链未收口即锁定`);
+      }
+    }
+  }
 
   if (asset.status === 'locked') {
     if (asset.locked_review_id === reviewId) {
-      return { results: [`幂等重放：${asset.id} 已由 ${reviewId} 锁定（零写入）`], idempotent: true };
+      return { results: [`幂等重放：${asset.id} 已由 ${reviewId} 锁定（零写入）`], warns, idempotent: true };
     }
     throw new GateFail(`${asset.id} 已锁定（review=${asset.locked_review_id}）——修订走新 revision，不得换回执重锁`);
   }
@@ -647,6 +722,7 @@ export function lockAsset(conn, { assetId, reviewId, dryRun = true }) {
         `dry-run：将锁定 ${asset.id}（${asset.asset_type}/${asset.scope_ref}）← review ${reviewId}`,
         ...siblings.map((s) => `dry-run：旧 locked ${s.id} 将翻 superseded`),
       ],
+      warns,
     };
   }
   withTransaction(conn, run);
@@ -655,6 +731,7 @@ export function lockAsset(conn, { assetId, reviewId, dryRun = true }) {
       `${asset.id} 已锁定 ← review ${reviewId}`,
       ...siblings.map((s) => `旧 locked ${s.id} 已翻 superseded`),
     ],
+    warns,
   };
 }
 
@@ -666,6 +743,7 @@ export function acceptChapter(conn, { chapterId, reviewId, dryRun = true }) {
   ).get(chapterId);
   if (!chapter) throw new GateFail(`章节不存在: ${chapterId}`);
   assertNoOpenAdjudication(conn, chapter.id);
+  assertReviewRoundBudget(conn, chapter.id);
   const projectRow = conn.prepare(
     'SELECT b.project_id AS project_id FROM volumes v JOIN books b ON b.id = v.book_id WHERE v.id = ?',
   ).get(chapter.volume_id);
@@ -727,6 +805,21 @@ export function assertNoOpenAdjudication(conn, subjectRef) {
   if (row) {
     throw new GateFail(`未决裁决阻断：${subjectRef} 有 open adjudication ${row.id}（${row.reason}）——先 resolve-adjudication 再推进`);
   }
+}
+
+/** R9 M10：3 轮升级门——同 subject 回执数 ≥3 且无 open 裁决单时，lock/accept 阻断，
+ *  强制先物化裁决（AGENTS.md「3 轮未收敛或同因复发→升级用户裁决」的机器锚点；
+ *  原 --round 手工参数常态缺失（R9 实测 7/8 为 null），改以 reviews 行数为库内事实源）。 */
+export function assertReviewRoundBudget(conn, subjectRef) {
+  const n = conn.prepare('SELECT COUNT(*) AS n FROM reviews WHERE subject_ref = ?').get(subjectRef).n;
+  if (n < 3) return;
+  if (adjudicationsReady(conn)) {
+    const open = conn.prepare(
+      "SELECT COUNT(*) AS n FROM adjudications WHERE subject_ref = ? AND status = 'open'",
+    ).get(subjectRef).n;
+    if (open > 0) return; // 已有 open 裁决：由 assertNoOpenAdjudication 走互锁阻断
+  }
+  throw new GateFail(`升级裁决门 FAIL（R9 M10）：subject ${subjectRef} 已有 ${n} 条审查回执（≥3 轮未收敛）——须先 open-adjudication 物化裁决单再锁定/接受（补审查走 commit-review 不受拦）`);
 }
 
 const ADJUDICATION_SUBJECT_TYPES = new Set(['planning', 'chapter']);
@@ -1452,6 +1545,48 @@ function parseArgs(argv, spec) {
 
 const WRITE_SUBCOMMANDS = new Set(['lock-asset', 'accept-chapter', 'commit-review', 'propagate-stale', 'register-characters', 'open-adjudication', 'resolve-adjudication']);
 
+// ── validate-payload（R9 P0-1/M2：创建链机器门，收口 RT-B1） ─────────────────
+
+/** v3 向导载荷落库前机器校验（只读零写入）：
+ *  ① 结构门 = composer validateFusionPayloadStruct（全字段/枚举/形状）；
+ *  ② select 内核三查 = verifyKernelBinding（ownership='author_kernel' + status='active' + hash 相符）；
+ *  ③ style_seed 对称反查 = 种子必须真是 style_seed 且 active 且 seed_subject_hash 相符。
+ *  任一 FAIL 即 GateFail——R2 退役的 ajv 门以此子命令形态复活，替换「对照 schema 自查」纯纪律。 */
+export function validateProjectPayload(conn, { payload }) {
+  const errs = validateFusionPayloadStruct(payload);
+  if (errs.length > 0) {
+    throw new GateFail(`向导载荷结构校验 FAIL（${errs.length} 处）: ${errs.join('；')}`);
+  }
+  const results = ['结构门: PASS（novelos.project.create.v3 全字段合法）'];
+  const setup = payload.setup;
+  const ak = setup.author_kernel ?? {};
+  if (ak.mode === 'select') {
+    verifyKernelBinding(conn, ak.kernel_version_id, ak.subject_hash ?? null);
+    results.push(`select 内核三查: PASS（${ak.kernel_version_id} ownership/status/hash 相符）`);
+  } else {
+    results.push('select 内核三查: SKIP（mode=create，内核待融合产出）');
+  }
+  const ss = setup.style_seed;
+  if (ss && ss.mode === 'persona_select') {
+    const row = conn.prepare(
+      'SELECT v.subject_hash, cp.ownership, cp.status FROM creator_profile_versions v '
+      + 'JOIN creator_profiles cp ON cp.id = v.profile_id WHERE v.id = ?',
+    ).get(ss.seed_version_id);
+    if (row === undefined) throw new GateFail(`style_seed 反查 FAIL: ${ss.seed_version_id} 不存在`);
+    if (row.ownership !== 'style_seed') {
+      throw new GateFail(`style_seed 反查 FAIL: ${ss.seed_version_id} ownership='${row.ownership}'（必须 style_seed）——其他资产不得冒充风格种子`);
+    }
+    if (row.status !== 'active') {
+      throw new GateFail(`style_seed 反查 FAIL: ${ss.seed_version_id} status='${row.status}'（必须 active）`);
+    }
+    if (typeof ss.seed_subject_hash === 'string' && ss.seed_subject_hash !== row.subject_hash) {
+      throw new GateFail(`style_seed 反查 FAIL: seed_subject_hash 与库内不符（${ss.seed_subject_hash} ≠ ${row.subject_hash}）`);
+    }
+    results.push(`style_seed 反查: PASS（${ss.seed_version_id} ownership/status/hash 相符）`);
+  }
+  return { subcommand: 'validate-payload', results, warns: [] };
+}
+
 function usage() {
   return [
     `用法：node scripts/${PROG}.mjs <子命令> [参数]`,
@@ -1459,9 +1594,10 @@ function usage() {
     '子命令：',
     '  lock-asset      --asset <planning:id> --review <review:id>',
     '  accept-chapter  --chapter <chapter:id> --review <review:id>',
-    '  commit-review   --receipt <file|内联JSON> [--allow-empty] [--no-check-hash]',
+    '  commit-review   --receipt <file|内联JSON> [--allow-empty] [--no-check-hash] [--writer-profile <写作端模型>] [--allow-same-provider]',
     '  propagate-stale --asset <planning:id> [--fine]',
     '  validate-asset  (--asset <planning:id> | --asset-type <t> --project <id> [--scope-ref <r>]) [--scale <s>]',
+    '  validate-payload --payload <file|内联JSON>（R9：v3 向导载荷结构门+select 内核/style_seed 反查，只读）',
     '  register-characters --project <id> [--roster <json>] [--entry <json>] [--status-update <json>] [--world <json>]',
     '  open-adjudication   --project <id> --subject-type <planning|chapter> --subject-ref <id> --reason <文本> [--rounds <json>]',
     '  resolve-adjudication --adjudication <adjudication:id> --resolution <文本>',
@@ -1481,11 +1617,12 @@ async function main() {
   const sub = argv[0];
   const flags = ['db', 'json', 'commit', 'fine', 'allow-production', 'allow-empty', 'no-check-hash',
     'asset', 'review', 'chapter', 'receipt', 'asset-type', 'project', 'scope-ref', 'scale',
-    'roster', 'entry', 'status-update', 'world',
+    'roster', 'entry', 'status-update', 'world', 'payload', 'user-adjudicated',
+    'writer-profile', 'allow-same-provider',
     'subject-type', 'subject-ref', 'reason', 'rounds', 'adjudication', 'resolution'];
   const args = parseArgs(argv.slice(1), flags);
   const dbPath = path.resolve(args.db ?? DEFAULT_DB);
-  const isProduction = path.resolve(dbPath) === path.resolve(DEFAULT_DB);
+  const isProduction = isSameFileAs(dbPath, DEFAULT_DB);
   const dryRun = !args.commit;
   if (WRITE_SUBCOMMANDS.has(sub) && !dryRun && isProduction && !args['allow-production']) {
     throw new UsageError(`拒绝写入：${dbPath} 是生产库路径——--commit 须搭配 --allow-production（先备份）`);
@@ -1521,6 +1658,7 @@ async function main() {
       report = commitReview(conn, {
         receiptRaw: args.receipt, allowEmpty: args['allow-empty'] === true,
         checkHash: args['no-check-hash'] !== true, dryRun,
+        writerProfile: args['writer-profile'], allowSameProvider: args['allow-same-provider'] === true,
       });
       break;
     }
@@ -1539,6 +1677,11 @@ async function main() {
         assetId: args.asset, assetType: args['asset-type'], projectId: args.project,
         scopeRef: args['scope-ref'], scale: args.scale,
       });
+      break;
+    }
+    case 'validate-payload': {
+      if (!args.payload) throw new UsageError('validate-payload 需要 --payload <file|内联JSON>');
+      report = validateProjectPayload(conn, { payload: loadJsonInput(args.payload) });
       break;
     }
     case 'open-adjudication': {

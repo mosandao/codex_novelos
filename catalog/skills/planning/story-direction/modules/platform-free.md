@@ -11,3 +11,5 @@
 
 - promise_cadence 引用了 patience 与 reader_profile；兑现形态与免费模式匹配（单元化/跳章友好/爽点前置）。
 - patience / reader_profile 过薄（寥寥数语无法支撑画像消费）时，已在候选正文显式声明「消费受限 + 缺什么」，不在贫信息上空转消费语法。
+
+数字常数以 config/platform-constants.json 为唯一权威源（R9 P11 单源化）；本卡叙述性规则与常数冲突时以 config 为准。

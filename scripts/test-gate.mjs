@@ -521,7 +521,85 @@ test('S19 commit-review：reviewer_profile 无前缀 → GateFail（P4-2 机器�
 test('S20 commit-review：空 findings+approved 默认 GateFail（A1），零写入', () => {
   const db = freshDb();
   fixture(db);
-  throwsGate(() => gate.commitReview(db, { receiptRaw: receiptFor({ findings: [] }), dryRun: false }), 'R7-A1');
+  throwsGate(() => gate.commitReview(db, { receiptRaw: receiptFor({ findings: [] }), dryRun: false }), 'R9 M5');
+});
+
+test('S20b commit-review：note-only+approved = 空查 GateFail；--allow-empty 放行且留痕（R9 M5）', () => {
+  const db = freshDb();
+  fixture(db);
+  const noteOnly = [{ severity: 'note', code: 'N1', message: '凑数', excerpt: '任务失败不是惩罚', evidence_refs: [] }];
+  throwsGate(() => gate.commitReview(db, { receiptRaw: receiptFor({ findings: noteOnly }), dryRun: false }), 'note 级凑数不算查过');
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM reviews').get().n, 5);
+  const r = gate.commitReview(db, { receiptRaw: receiptFor({ findings: noteOnly }), allowEmpty: true, dryRun: false });
+  const row = db.prepare('SELECT metadata_json FROM reviews WHERE id=?').get(r.reviewId);
+  assert.ok(row.metadata_json.includes('allow_empty'), '豁免须留痕');
+});
+
+test('S24 commit-review：写作/审查同模型 GateFail；--allow-same-provider 豁免留痕（R9 M6）', () => {
+  const db = freshDb();
+  fixture(db);
+  // receiptFor 的 reviewer_profile = model:fixture:m1；写作端同模型 → collusion_risk
+  throwsGate(() => gate.commitReview(db, {
+    receiptRaw: receiptFor(), dryRun: false, writerProfile: 'model:fixture:m1',
+  }), 'collusion_risk');
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM reviews').get().n, 5);
+  // provider 前缀不同但模型 token 相同（agent:@model 形态）同样拦截
+  throwsGate(() => gate.commitReview(db, {
+    receiptRaw: receiptFor({ reviewer_profile: 'agent:prose-review-perspectives@m1' }), dryRun: false,
+    writerProfile: 'deepseek-official/m1',
+  }), 'collusion_risk');
+  // 豁免 → PASS 且 metadata.same_provider_allowed=true + advisory
+  const r = gate.commitReview(db, {
+    receiptRaw: receiptFor(), dryRun: false, writerProfile: 'model:fixture:m1', allowSameProvider: true,
+  });
+  const row = db.prepare('SELECT metadata_json FROM reviews WHERE id=?').get(r.reviewId);
+  assert.ok(row.metadata_json.includes('same_provider_allowed'), '豁免须入 metadata');
+});
+
+test('S25 commit-review：写作/审查异模型正常落库（R9 M6 不误伤）', () => {
+  const db = freshDb();
+  fixture(db);
+  const r = gate.commitReview(db, {
+    receiptRaw: receiptFor(), dryRun: false, writerProfile: 'model:deepseek-official/deepseek-v4-pro',
+  });
+  assert.equal(r.dryRun, false);
+});
+
+test('S26 lock/accept：同 subject ≥3 回执且无裁决单 → 升级裁决门 GateFail；开裁决后由互锁接管（R9 M10）', () => {
+  const db = freshDb();
+  fixture(db);
+  const H = 'sha256:' + 'cd'.repeat(32);
+  // 锁定路径：planning:strat1 累积 3 条同 subject 回执（内容 hash 与锁定资产一致，避免错绑先拦）
+  const stratHash = db.prepare("SELECT r.content_hash AS h FROM planning_assets pa JOIN resources r ON r.id=pa.content_resource_id WHERE pa.id='planning:strat1'").get().h;
+  const insP = db.prepare(
+    "INSERT INTO reviews (id, subject_type, subject_ref, subject_hash, verdict, reviewer_profile, findings_json) "
+    + "VALUES (?, 'planning', 'planning:strat1', ?, 'rejected', 'model:fixture:m1', '[]')",
+  );
+  insP.run('review:p1', stratHash);
+  insP.run('review:p2', stratHash);
+  insP.run('review:p3', stratHash);
+  throwsGate(() => gate.lockAsset(db, { assetId: 'planning:strat1', reviewId: 'review:p3', dryRun: false }), '升级裁决门');
+  // 接受路径：chapter:t1 累积 3 条同 subject 回执
+  const ins = db.prepare(
+    "INSERT INTO reviews (id, subject_type, subject_ref, subject_hash, verdict, reviewer_profile, findings_json) "
+    + "VALUES (?, 'chapter', 'chapter:t1', ?, 'rejected', 'model:fixture:m1', '[]')",
+  );
+  ins.run('review:r1', H);
+  ins.run('review:r2', H);
+  ins.run('review:r3', H);
+  throwsGate(() => gate.acceptChapter(db, { chapterId: 'chapter:t1', reviewId: 'review:r3', dryRun: false }), '升级裁决门');
+  // 开 open 裁决后：M10 让位给互锁（仍阻断，但语义为未决裁决）——open 行存在时不重复报 ≥3
+  db.exec("INSERT INTO adjudications (id, project_id, subject_type, subject_ref, reason) VALUES ('adjudication:m10', 'project:t1', 'chapter', 'chapter:t1', '三轮不收敛')");
+  throwsGate(() => gate.acceptChapter(db, { chapterId: 'chapter:t1', reviewId: 'review:r3', dryRun: false }), '未决裁决阻断');
+});
+
+test('S20c commit-review：--no-check-hash 落库 metadata 留痕 check_hash=false（R9 M5/D-3）', () => {
+  const db = freshDb();
+  fixture(db);
+  const r = gate.commitReview(db, { receiptRaw: receiptFor(), checkHash: false, dryRun: false });
+  const row = db.prepare('SELECT metadata_json FROM reviews WHERE id=?').get(r.reviewId);
+  assert.ok(row.metadata_json.includes('check_hash'), 'check_hash 须入 metadata');
+  assert.ok(row.metadata_json.includes('false'), '跳过值须为 false');
 });
 
 test('S21 commit-review：--allow-empty 落库成功且 metadata 留痕', () => {
